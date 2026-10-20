@@ -66,3 +66,4 @@ class VaultSecretsResolver:
         except Exception as exc:
             logger.error("Failed to retrieve secrets from Vault: %s", exc)
             return {}
+

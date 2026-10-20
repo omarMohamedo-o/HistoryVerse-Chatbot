@@ -45,6 +45,22 @@ class BaseLLMProvider(ABC):
     async def is_available(self) -> bool:
         """Check whether the provider is configured and available."""
 
+    @property
+    def supports_image_generation(self) -> bool:
+        """Indicate whether the provider natively supports image generation."""
+        return False
+
+    async def generate_image(
+        self,
+        prompt: str,
+        *,
+        size: str = "1024x1024",
+        quality: str = "standard",
+        **kwargs: Any,
+    ) -> str | None:
+        """Natively synthesize an image if supported by the provider."""
+        return None
+
     async def generate_with_confidence(
         self,
         prompt: str,

@@ -33,6 +33,36 @@ class OpenAIProvider(BaseLLMProvider):
     async def is_available(self) -> bool:
         return bool(self._api_key)
 
+    @property
+    def supports_image_generation(self) -> bool:
+        return bool(self._api_key)
+
+    async def generate_image(
+        self,
+        prompt: str,
+        *,
+        size: str = "1024x1024",
+        quality: str = "standard",
+        **kwargs: Any,
+    ) -> str | None:
+        if not self._api_key:
+            return None
+
+        try:
+            logger.info("Using OpenAI DALL-E integration for direct image creation.")
+            response = await litellm.aimage_generation(
+                prompt=prompt,
+                model="dall-e-3",
+                size=size,
+                quality=quality,
+                api_key=self._api_key,
+                **kwargs,
+            )
+            return response.data[0].url
+        except Exception as exc:
+            logger.warning("OpenAI native image generation fell back: %s", exc)
+            return None
+
     async def generate(
         self,
         prompt: str,

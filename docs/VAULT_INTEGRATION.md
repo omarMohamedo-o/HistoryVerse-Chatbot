@@ -28,3 +28,4 @@ This generates `ROLE_ID` and `SECRET_ID` to be configured in container environme
 ```bash
 ./scripts/vault-env.sh production --out .env.runtime
 ```
+

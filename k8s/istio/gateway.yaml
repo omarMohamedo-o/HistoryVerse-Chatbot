@@ -1,0 +1,52 @@
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: historyverse-gateway
+  namespace: default
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+    - port:
+        number: 80
+        name: http
+        protocol: HTTP
+      hosts:
+        - "*"
+      tls:
+        httpsRedirect: true
+    - port:
+        number: 443
+        name: https
+        protocol: HTTPS
+      tls:
+        mode: SIMPLE
+        credentialName: historyverse-tls-cert
+      hosts:
+        - "*"
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: historyverse-virtualservice
+  namespace: default
+spec:
+  hosts:
+    - "*"
+  gateways:
+    - historyverse-gateway
+  http:
+    - match:
+        - uri:
+            prefix: /
+      route:
+        - destination:
+            host: historyverse-api
+            port:
+              number: 8000
+          weight: 100
+      timeout: 120s
+      retries:
+        attempts: 3
+        perTryTimeout: 30s
+        retryOn: "5xx,connect-failure,refused-stream"

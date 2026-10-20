@@ -12,3 +12,4 @@ template: |
   Sequential Historical Evaluation:
 variables:
   - query
+

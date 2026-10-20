@@ -1,8 +1,7 @@
-"""Historical image generation service using LiteLLM."""
+"""Historical image generation service with direct provider and fallback support."""
 
 from __future__ import annotations
 
-import base64
 import logging
 import os
 import uuid
@@ -56,14 +55,31 @@ class ImageGenerator:
             except Exception as exc:
                 logger.warning("Prompt enhancement failed, using original prompt: %s", exc)
 
+        os.makedirs(self._outputs_dir, exist_ok=True)
+        filename = f"hist_{uuid.uuid4().hex[:8]}.png"
+        filepath = os.path.join(self._outputs_dir, filename)
+
+        if self._llm.supports_image_generation:
+            logger.info("Active provider (%s) natively supports image generation; invoking directly.", self._llm.model_name)
+            direct_url = await self._llm.generate_image(
+                enhanced_prompt,
+                size=size,
+                quality=quality,
+            )
+            if direct_url:
+                saved_path = await self._download_image(direct_url, filepath)
+                return ImageGenerationResponse(
+                    original_prompt=prompt,
+                    enhanced_prompt=enhanced_prompt,
+                    image_url=saved_path or direct_url,
+                    model_used=self._llm.model_name,
+                )
+
+        logger.info("Provider does not support direct image creation; using decoupled generator (%s).", self._model)
         api_key = (
             self._settings.openai_api_key.get_secret_value()
             or self._settings.google_api_key.get_secret_value()
         )
-
-        os.makedirs(self._outputs_dir, exist_ok=True)
-        filename = f"hist_{uuid.uuid4().hex[:8]}.png"
-        filepath = os.path.join(self._outputs_dir, filename)
 
         try:
             response = await litellm.aimage_generation(
@@ -74,20 +90,29 @@ class ImageGenerator:
                 api_key=api_key,
             )
             image_url = response.data[0].url
-
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                res = await client.get(image_url)
-                if res.status_code == 200:
-                    with open(filepath, "wb") as f:
-                        f.write(res.content)
-                    image_url = filepath
+            saved_path = await self._download_image(image_url, filepath)
 
             return ImageGenerationResponse(
                 original_prompt=prompt,
                 enhanced_prompt=enhanced_prompt,
-                image_url=image_url,
+                image_url=saved_path or image_url,
                 model_used=self._model,
             )
         except Exception as exc:
             logger.error("Image generation failed: %s", exc)
             raise VisionError(f"Image generation failed: {exc}") from exc
+
+    async def _download_image(self, url: str, target_path: str) -> str | None:
+        if not url.startswith(("http://", "https://")):
+            return url
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                res = await client.get(url)
+                if res.status_code == 200:
+                    with open(target_path, "wb") as f:
+                        f.write(res.content)
+                    logger.info("Saved generated image to %s", target_path)
+                    return target_path
+        except Exception as exc:
+            logger.warning("Failed to persist image locally, returning remote URL: %s", exc)
+        return url
