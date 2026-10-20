@@ -1,0 +1,30 @@
+services:
+  caddy:
+    image: caddy:2.8-alpine
+    container_name: historyverse-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      - SITE_DOMAIN=${SITE_DOMAIN:-localhost}
+      - ACME_EMAIL=${ACME_EMAIL:-admin@example.com}
+      - HSTS_MAX_AGE=${HSTS_MAX_AGE:-0}
+    volumes:
+      - ./services/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - historyverse-net
+    depends_on:
+      historyverse-api:
+        condition: service_healthy
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+networks:
+  historyverse-net:
+    external: true

@@ -1,0 +1,52 @@
+{
+    email {$ACME_EMAIL:admin@example.com}
+}
+
+{$SITE_DOMAIN:localhost} {
+    encode zstd gzip
+
+    header {
+        Strict-Transport-Security "max-age={$HSTS_MAX_AGE:0}; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+
+    handle /healthz {
+        reverse_proxy historyverse-api:8000
+    }
+
+    handle /metrics {
+        reverse_proxy historyverse-api:8000
+    }
+
+    handle /v1/* {
+        reverse_proxy historyverse-api:8000
+    }
+
+    handle /api/* {
+        reverse_proxy historyverse-api:8000
+    }
+
+    handle /docs* {
+        reverse_proxy historyverse-api:8000
+    }
+
+    handle /redoc* {
+        reverse_proxy historyverse-api:8000
+    }
+
+    handle /openapi.json {
+        reverse_proxy historyverse-api:8000
+    }
+
+    handle {
+        reverse_proxy historyverse-api:8000
+    }
+
+    log {
+        output stdout
+        format json
+    }
+}
