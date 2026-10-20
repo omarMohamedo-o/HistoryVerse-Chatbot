@@ -130,6 +130,22 @@ class ConversationMemory:
             if conversation_id in self._sessions:
                 del self._sessions[conversation_id]
 
+    @staticmethod
+    def _turn_matches_keywords(content: str, keywords: list[str]) -> bool:
+        lower_content = content.lower()
+        if any(kw in lower_content for kw in keywords):
+            return True
+
+        from historyverse.utils.arabic import is_arabic, normalize_arabic
+
+        if is_arabic(lower_content):
+            norm_content = normalize_arabic(
+                lower_content, strip_diacritics=True, norm_alef=True, norm_teh=True
+            )
+            if any(kw in norm_content for kw in keywords):
+                return True
+        return False
+
     def purge_concept(self, keywords: list[str], session_prefix: str | None = None) -> int:
         """Purge any stored message containing forbidden keywords.
 
@@ -139,7 +155,17 @@ class ConversationMemory:
         if not keywords:
             return 0
 
-        lower_keywords = [k.lower().strip() for k in keywords if k.strip()]
+        lower_keywords_set: set[str] = set()
+        from historyverse.utils.arabic import expand_arabic_keywords
+
+        for k in keywords:
+            cleaned = k.lower().strip()
+            if cleaned:
+                lower_keywords_set.add(cleaned)
+                for variant in expand_arabic_keywords(cleaned):
+                    lower_keywords_set.add(variant.lower())
+
+        lower_keywords = list(lower_keywords_set)
         if not lower_keywords:
             return 0
 
@@ -166,7 +192,7 @@ class ConversationMemory:
                     cleaned_turns = [
                         turn
                         for turn in turns
-                        if not any(kw in turn.get("content", "").lower() for kw in lower_keywords)
+                        if not self._turn_matches_keywords(turn.get("content", ""), lower_keywords)
                     ]
                     diff = len(turns) - len(cleaned_turns)
                     purged_count += diff
@@ -194,7 +220,7 @@ class ConversationMemory:
                 cleaned_turns = [
                     turn
                     for turn in turns
-                    if not any(kw in turn.get("content", "").lower() for kw in lower_keywords)
+                    if not self._turn_matches_keywords(turn.get("content", ""), lower_keywords)
                 ]
                 diff = len(turns) - len(cleaned_turns)
                 purged_count += diff

@@ -83,7 +83,17 @@ class ChromaRetriever:
             return 0
 
         try:
-            lower_keywords = [k.lower().strip() for k in keywords if k.strip()]
+            from historyverse.utils.arabic import expand_arabic_keywords
+
+            expanded_keywords: set[str] = set()
+            for k in keywords:
+                cleaned = k.lower().strip()
+                if cleaned:
+                    expanded_keywords.add(cleaned)
+                    for variant in expand_arabic_keywords(cleaned):
+                        expanded_keywords.add(variant.lower())
+
+            lower_keywords = list(expanded_keywords)
             collection = store._collection
             total_deleted = 0
 

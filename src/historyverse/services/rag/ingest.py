@@ -62,32 +62,74 @@ class OllamaEmbeddingStrategy(BaseEmbeddingStrategy):
 
 
 class HuggingFaceEmbeddingStrategy(BaseEmbeddingStrategy):
-    """HuggingFace / SentenceTransformers local embedding strategy."""
+    """HuggingFace / SentenceTransformers local embedding strategy supporting Arabic & multilingual models."""
 
     def create(self, settings: Settings) -> Any:
         device = "cuda" if settings.llm_device_type == DeviceType.CUDA else "cpu"
-        try:
-            from langchain_community.embeddings import HuggingFaceInstructEmbeddings
+        model_name = (
+            settings.embedding_model
+            if (settings.embedding_model and "/" in settings.embedding_model)
+            else "BAAI/bge-m3"
+        )
+        from historyverse.services.rag.embeddings import EmbeddingModelRegistry
 
-            logger.info("Using HuggingFace Instruct Embeddings on %s", device)
-            return HuggingFaceInstructEmbeddings(
-                model_name="hkunlp/instructor-large",
+        EmbeddingModelRegistry.validate_language_compatibility(model_name, "ar")
+        try:
+            from langchain_community.embeddings import HuggingFaceEmbeddings
+
+            logger.info(
+                "Using HuggingFace Multilingual/Arabic Embeddings (%s) on %s", model_name, device
+            )
+            return HuggingFaceEmbeddings(
+                model_name=model_name,
                 model_kwargs={"device": device},
             )
-        except Exception:
+        except Exception as primary_exc:
             try:
-                from langchain_community.embeddings import HuggingFaceEmbeddings
+                from langchain_community.embeddings import HuggingFaceInstructEmbeddings
 
-                logger.info("Using Sentence-Transformers Embeddings on %s", device)
-                return HuggingFaceEmbeddings(
-                    model_name="sentence-transformers/all-MiniLM-L6-v2",
+                logger.info("Using HuggingFace Instruct Embeddings on %s", device)
+                return HuggingFaceInstructEmbeddings(
+                    model_name="hkunlp/instructor-large",
                     model_kwargs={"device": device},
                 )
-            except Exception as exc:
-                from langchain_community.embeddings import FakeEmbeddings
+            except Exception:
+                try:
+                    from langchain_community.embeddings import HuggingFaceEmbeddings
 
-                logger.warning("Falling back to FakeEmbeddings: %s", exc)
-                return FakeEmbeddings(size=384)
+                    logger.info("Falling back to standard MiniLM Embeddings on %s", device)
+                    return HuggingFaceEmbeddings(
+                        model_name="sentence-transformers/all-MiniLM-L6-v2",
+                        model_kwargs={"device": device},
+                    )
+                except Exception as exc:
+                    from langchain_community.embeddings import FakeEmbeddings
+
+                    logger.warning("Falling back to FakeEmbeddings (%s / %s)", primary_exc, exc)
+                    return FakeEmbeddings(size=384)
+
+
+class OpenAIEmbeddingStrategy(BaseEmbeddingStrategy):
+    """OpenAI SOTA multilingual embedding strategy (text-embedding-3-small / text-embedding-3-large)."""
+
+    def create(self, settings: Settings) -> Any:
+        api_key = settings.openai_api_key.get_secret_value()
+        if not api_key:
+            raise ValueError("OpenAI API key is required for OpenAI embeddings.")
+        model_name = (
+            settings.embedding_model
+            if (settings.embedding_model and "text-embedding" in settings.embedding_model)
+            else "text-embedding-3-small"
+        )
+        logger.info("Using OpenAI Multilingual Embeddings: %s", model_name)
+        try:
+            from langchain_openai import OpenAIEmbeddings
+
+            return OpenAIEmbeddings(model=model_name, api_key=api_key)
+        except ImportError:
+            from langchain_community.embeddings import OpenAIEmbeddings
+
+            return OpenAIEmbeddings(model=model_name, openai_api_key=api_key)
 
 
 class EmbeddingStrategyFactory:
@@ -97,6 +139,7 @@ class EmbeddingStrategyFactory:
         EmbeddingProvider.GOOGLE.value: GoogleEmbeddingStrategy,
         EmbeddingProvider.OLLAMA.value: OllamaEmbeddingStrategy,
         EmbeddingProvider.HUGGINGFACE.value: HuggingFaceEmbeddingStrategy,
+        EmbeddingProvider.OPENAI.value: OpenAIEmbeddingStrategy,
     }
 
     @classmethod
@@ -257,6 +300,7 @@ class DocumentIngestor:
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=self._settings.chunk_size,
             chunk_overlap=self._settings.chunk_overlap,
+            separators=["\n\n", "\n", "؛", "؟", "!", ".", "،", " ", ""],
         )
         python_splitter = RecursiveCharacterTextSplitter.from_language(
             language=Language.PYTHON,
