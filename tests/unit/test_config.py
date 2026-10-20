@@ -11,6 +11,9 @@ def test_settings_default_values():
     assert settings.chunk_size > 0
     assert settings.chunk_overlap >= 0
     assert settings.drift_confidence_threshold > 0.0
+    assert settings.voice_enabled is True
+    assert settings.vision_enabled is True
+    assert settings.video_enabled is True
 
 
 def test_settings_device_types():

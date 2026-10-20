@@ -9,11 +9,14 @@ from fastapi import APIRouter, Depends, File, UploadFile
 from fastapi.responses import FileResponse
 
 from historyverse.api.dependencies import (
+    get_app_settings,
     get_conversation_memory,
     get_rag_pipeline,
     get_stt_provider,
     get_tts_provider,
 )
+from historyverse.config.settings import Settings
+from historyverse.core.exceptions import VoiceError
 from historyverse.core.schemas import ChatResponse
 from historyverse.services.memory.manager import ConversationMemory
 from historyverse.services.rag.pipeline import RAGPipeline
@@ -30,12 +33,16 @@ __all__ = ["router"]
 async def process_voice_query(
     file: UploadFile = File(...),
     speak_response: bool = True,
+    settings: Settings = Depends(get_app_settings),
     pipeline: RAGPipeline = Depends(get_rag_pipeline),
     memory: ConversationMemory = Depends(get_conversation_memory),
     stt: WhisperSTT = Depends(get_stt_provider),
     tts: GTTSTextToSpeech = Depends(get_tts_provider),
 ) -> ChatResponse:
     """Transcribe uploaded audio, run conversational RAG query, and return JSON response with audio URL."""
+    if not settings.voice_enabled or not settings.stt_enabled:
+        raise VoiceError("Voice and STT capabilities are disabled in settings.")
+
     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
         tmp.write(await file.read())
         tmp_path = tmp.name
@@ -56,7 +63,7 @@ async def process_voice_query(
     )
     memory.add_exchange(cid, query_text, response.answer)
 
-    if speak_response:
+    if speak_response and settings.tts_enabled:
         try:
             audio_path = tts.synthesize(response.answer)
             response.audio_url = audio_path
@@ -69,12 +76,16 @@ async def process_voice_query(
 @router.post("/sts")
 async def speech_to_speech(
     file: UploadFile = File(...),
+    settings: Settings = Depends(get_app_settings),
     pipeline: RAGPipeline = Depends(get_rag_pipeline),
     memory: ConversationMemory = Depends(get_conversation_memory),
     stt: WhisperSTT = Depends(get_stt_provider),
     tts: GTTSTextToSpeech = Depends(get_tts_provider),
 ) -> FileResponse:
     """Speech-to-Speech (STS): Audio In -> STT -> RAG -> TTS -> Audio Stream Out."""
+    if not settings.voice_enabled or not settings.stt_enabled or not settings.tts_enabled:
+        raise VoiceError("Speech-to-Speech requires voice, STT, and TTS enabled in settings.")
+
     with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
         tmp.write(await file.read())
         tmp_path = tmp.name

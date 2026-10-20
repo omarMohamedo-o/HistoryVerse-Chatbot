@@ -7,7 +7,9 @@ import os
 import tempfile
 from fastapi import APIRouter, Depends, File, UploadFile
 
-from historyverse.api.dependencies import get_image_analyzer
+from historyverse.api.dependencies import get_app_settings, get_image_analyzer
+from historyverse.config.settings import Settings
+from historyverse.core.exceptions import VisionError
 from historyverse.core.schemas import ChatResponse
 from historyverse.services.vision.analyzer import ImageAnalyzer
 
@@ -21,9 +23,13 @@ __all__ = ["router"]
 async def process_image_query(
     image_source: str,
     query: str,
+    settings: Settings = Depends(get_app_settings),
     analyzer: ImageAnalyzer = Depends(get_image_analyzer),
 ) -> ChatResponse:
     """Analyze historical images or museum artifacts using visual reasoning."""
+    if not settings.vision_enabled:
+        raise VisionError("Vision analysis is disabled in configuration.")
+
     answer = await analyzer.analyze(image_source=image_source, query=query)
     return ChatResponse(
         question=query,
@@ -38,9 +44,13 @@ async def process_image_query(
 async def process_video_query(
     query: str,
     file: UploadFile = File(...),
+    settings: Settings = Depends(get_app_settings),
     analyzer: ImageAnalyzer = Depends(get_image_analyzer),
 ) -> ChatResponse:
     """Analyze uploaded historical video clip using keyframe sequence reasoning."""
+    if not settings.vision_enabled or not settings.video_enabled:
+        raise VisionError("Video analysis is disabled in configuration.")
+
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
         tmp.write(await file.read())
         tmp_path = tmp.name
