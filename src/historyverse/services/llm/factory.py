@@ -10,6 +10,7 @@ from historyverse.core.enums import LLMProvider
 from historyverse.core.exceptions import ConfigurationError
 from historyverse.services.llm.providers.gemini import GeminiProvider
 from historyverse.services.llm.providers.local import LocalProvider
+from historyverse.services.llm.providers.ollama_provider import OllamaProvider
 from historyverse.services.llm.providers.openai_provider import OpenAIProvider
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,7 @@ class LLMFactory:
         LLMProvider.GEMINI: GeminiProvider,
         LLMProvider.OPENAI: OpenAIProvider,
         LLMProvider.LOCAL: LocalProvider,
-        LLMProvider.OLLAMA: LocalProvider,
+        LLMProvider.OLLAMA: OllamaProvider,
     }
 
     @classmethod

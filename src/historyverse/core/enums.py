@@ -54,3 +54,5 @@ class EmbeddingProvider(str, Enum):
 
     GOOGLE = "google"
     HUGGINGFACE = "huggingface"
+    OLLAMA = "ollama"
+    OPENAI = "openai"

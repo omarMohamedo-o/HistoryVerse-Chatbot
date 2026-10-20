@@ -74,6 +74,18 @@ class ChromaRetriever:
                     google_api_key=api_key,
                 )
 
+        if self._settings.embedding_provider == "ollama":
+            try:
+                from langchain_community.embeddings import OllamaEmbeddings
+
+                model_name = self._settings.embedding_model or "nomic-embed-text"
+                return OllamaEmbeddings(
+                    model=model_name,
+                    base_url=self._settings.ollama_base_url,
+                )
+            except Exception as exc:
+                logger.warning("OllamaEmbeddings failed in retriever (%s); falling back...", exc)
+
         try:
             from langchain_community.embeddings import HuggingFaceEmbeddings
 
