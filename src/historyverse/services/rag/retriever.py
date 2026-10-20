@@ -34,7 +34,7 @@ class ChromaRetriever:
 
         try:
             from chromadb.config import Settings as ChromaSettings
-            from langchain_community.vectorstores import Chroma
+            from langchain_chroma import Chroma
 
             embeddings = self._get_embedding_function()
             chroma_settings = ChromaSettings(anonymized_telemetry=False, is_persistent=True)
@@ -76,7 +76,7 @@ class ChromaRetriever:
             raise RetrieverError(str(exc)) from exc
 
     def delete_documents_by_keywords(self, keywords: list[str]) -> int:
-        """Purge indexed document chunks matching unlearned keywords with memory-safe projection."""
+        """Purge indexed document chunks matching unlearned keywords using native ChromaDB filtering."""
         store = self._ensure_vectorstore()
         if store is None or not hasattr(store, "_collection"):
             return 0
@@ -84,42 +84,35 @@ class ChromaRetriever:
         try:
             lower_keywords = [k.lower().strip() for k in keywords if k.strip()]
             collection = store._collection
-            ids_to_delete: set[str] = set()
+            total_deleted = 0
 
-            # Strategy A: Native Chroma document substring filtering (O(M) without loading full collection)
+            # Strategy A: Native ChromaDB deletion using where_document filter (zero in-memory document load)
             for kw in lower_keywords:
                 try:
-                    matched = collection.get(where_document={"$contains": kw}, include=[])
-                    if matched and matched.get("ids"):
-                        ids_to_delete.update(matched["ids"])
-                except Exception:
-                    # Backend or mock doesn't support where_document; defer to memory-safe fallback below
-                    pass
-
-            # Strategy B: Memory-safe projection fallback (request only IDs and texts, omit heavy embeddings)
-            if not ids_to_delete:
-                all_docs = (
-                    collection.get(include=["documents"])
-                    if hasattr(collection, "get")
-                    else collection.get()
-                )
-                ids_to_delete = {
-                    doc_id
-                    for doc_id, document in zip(
-                        all_docs.get("ids", []), all_docs.get("documents", []), strict=False
+                    before_count = collection.count() if hasattr(collection, "count") else 0
+                    collection.delete(where_document={"$contains": kw})
+                    after_count = collection.count() if hasattr(collection, "count") else 0
+                    diff = max(0, before_count - after_count)
+                    total_deleted += diff
+                except Exception as exc:
+                    logger.debug("Native where_document delete failed (%s); trying fallback", exc)
+                    # Fallback for backends/mocks requiring explicit IDs
+                    matched = (
+                        collection.get(where_document={"$contains": kw}, include=[])
+                        if hasattr(collection, "get")
+                        else None
                     )
-                    if any(kw in (document or "").lower() for kw in lower_keywords)
-                }
+                    if matched and matched.get("ids"):
+                        ids = matched["ids"]
+                        collection.delete(ids=ids)
+                        total_deleted += len(ids)
 
-            if ids_to_delete:
-                collection.delete(ids=list(ids_to_delete))
-                logger.info(
-                    "Purged %d vector store documents matching keywords: %s",
-                    len(ids_to_delete),
-                    lower_keywords,
-                )
-
-            return len(ids_to_delete)
+            logger.info(
+                "Purged %d vector store documents matching keywords: %s",
+                total_deleted,
+                lower_keywords,
+            )
+            return total_deleted
         except Exception as exc:
             logger.warning("Failed to purge documents from ChromaDB: %s", exc)
             return 0

@@ -67,3 +67,48 @@ def test_tts_detect_language():
     with patch.dict(sys.modules, {"langid": mock_langid_module}):
         lang = tts._detect_language("مرحبا بكم في مكتبة الاسكندرية")
         assert lang == "ar"
+
+
+def test_stt_initialization_failure():
+    stt = WhisperSTT()
+    mock_fw = MagicMock()
+    mock_fw.WhisperModel.side_effect = Exception("CUDA out of memory")
+    with (
+        patch.dict(sys.modules, {"faster_whisper": mock_fw}),
+        pytest.raises(VoiceError, match="Whisper initialization failure"),
+    ):
+        stt._ensure_model()
+
+
+def test_stt_transcription_failure(tmp_path):
+    audio_file = tmp_path / "corrupt.wav"
+    audio_file.write_bytes(b"corrupt_bytes")
+
+    stt = WhisperSTT()
+    mock_model = MagicMock()
+    mock_model.transcribe.side_effect = Exception("Decoder failure")
+    stt._model = mock_model
+
+    with pytest.raises(VoiceError, match="Transcription error"):
+        stt.transcribe(str(audio_file))
+
+
+def test_tts_synthesis_failure():
+    tts = GTTSTextToSpeech()
+    mock_gtts_module = MagicMock()
+    mock_gtts_module.gTTS.side_effect = Exception("gTTS network failure")
+
+    with (
+        patch.dict(sys.modules, {"gtts": mock_gtts_module, "langid": MagicMock()}),
+        pytest.raises(VoiceError, match="TTS error"),
+    ):
+        tts.synthesize("Valid text prompt")
+
+
+def test_tts_detect_language_fallback_on_exception():
+    tts = GTTSTextToSpeech()
+    mock_langid = MagicMock()
+    mock_langid.classify.side_effect = Exception("Model unavailable")
+    with patch.dict(sys.modules, {"langid": mock_langid}):
+        lang = tts._detect_language("Some text")
+        assert lang == "en"

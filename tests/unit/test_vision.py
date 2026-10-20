@@ -128,3 +128,110 @@ async def test_image_generator_litellm_fallback(tmp_path):
         resp = await generator.generate_historical_image("Ancient Colosseum in Rome")
         assert "Colosseum" in resp.original_prompt
         assert resp.image_url == str(tmp_path / "reconstructed.png")
+
+
+@pytest.mark.asyncio
+async def test_image_generator_prompt_enhancement_fallback(tmp_path):
+    settings = Settings(image_generation_enabled=True)
+    llm = MockLLMProvider()
+    llm.generate = AsyncMock(side_effect=Exception("Enhancement timeout"))
+
+    generator = ImageGenerator(llm, settings=settings)
+    generator._outputs_dir = str(tmp_path)
+
+    mock_litellm_response = MagicMock()
+    mock_data = MagicMock()
+    mock_data.url = "https://cdn.openai.test/fallback.png"
+    mock_litellm_response.data = [mock_data]
+
+    with (
+        patch("litellm.aimage_generation", AsyncMock(return_value=mock_litellm_response)),
+        patch.object(
+            generator,
+            "_download_image",
+            AsyncMock(return_value="https://cdn.openai.test/fallback.png"),
+        ),
+    ):
+        resp = await generator.generate_historical_image("Simple Prompt", enhance=True)
+        assert resp.original_prompt == "Simple Prompt"
+
+
+@pytest.mark.asyncio
+async def test_image_generator_litellm_failure_raises():
+    settings = Settings(image_generation_enabled=True)
+    llm = MockLLMProvider()
+    generator = ImageGenerator(llm, settings=settings)
+
+    with (
+        patch("litellm.aimage_generation", AsyncMock(side_effect=Exception("Rate limit reached"))),
+        pytest.raises(VisionError, match="Image generation failed"),
+    ):
+        await generator.generate_historical_image("Athena Parthenos", enhance=False)
+
+
+@pytest.mark.asyncio
+async def test_image_generator_download_image_local_and_error(tmp_path):
+    generator = ImageGenerator(MockLLMProvider())
+    # Non-http url returns as-is
+    res_local = await generator._download_image(
+        "file:///local/path.png", str(tmp_path / "target.png")
+    )
+    assert res_local == "file:///local/path.png"
+
+    # Exception during download returns url fallback
+    with patch("httpx.AsyncClient.get", AsyncMock(side_effect=Exception("Network down"))):
+        res_fallback = await generator._download_image(
+            "https://cdn.test/pic.png", str(tmp_path / "pic.png")
+        )
+        assert res_fallback == "https://cdn.test/pic.png"
+
+
+def test_extract_video_frames_missing_raises():
+    analyzer = ImageAnalyzer(MockLLMProvider())
+    with pytest.raises(VisionError, match="Video file not found"):
+        analyzer.extract_video_frames("/nonexistent/video.mp4")
+
+
+def test_extract_video_frames_mock(tmp_path):
+    import numpy as np
+
+    video_path = tmp_path / "test.mp4"
+    video_path.write_bytes(b"dummy_mp4_bytes")
+
+    analyzer = ImageAnalyzer(MockLLMProvider())
+
+    dummy_frame = np.zeros((32, 32, 3), dtype=np.uint8)
+    mock_cap = MagicMock()
+    mock_cap.get.return_value = 10.0  # 10 frames
+    mock_cap.read.return_value = (True, dummy_frame)
+
+    mock_cv2 = MagicMock()
+    mock_cv2.VideoCapture.return_value = mock_cap
+    mock_cv2.CAP_PROP_FRAME_COUNT = 7
+    mock_cv2.CAP_PROP_POS_FRAMES = 1
+    mock_cv2.cvtColor = MagicMock(return_value=dummy_frame)
+
+    import sys
+
+    with patch.dict(sys.modules, {"cv2": mock_cv2}):
+        frames = analyzer.extract_video_frames(str(video_path), max_frames=2)
+        assert len(frames) >= 1
+
+
+@pytest.mark.asyncio
+async def test_analyze_video_workflow(tmp_path):
+    video_path = tmp_path / "historic.mp4"
+    video_path.write_bytes(b"dummy_bytes")
+
+    llm = MockLLMProvider()
+    analyzer = ImageAnalyzer(llm)
+
+    # When frames are extracted
+    with patch.object(analyzer, "extract_video_frames", return_value=[Image.new("RGB", (32, 32))]):
+        analysis = await analyzer.analyze_video(str(video_path), query="Describe this site.")
+        assert "Greco-Roman Museum" in analysis
+
+    # When no frames extracted
+    with patch.object(analyzer, "extract_video_frames", return_value=[]):
+        analysis_empty = await analyzer.analyze_video(str(video_path), query="Describe this site.")
+        assert "Greco-Roman Museum" in analysis_empty

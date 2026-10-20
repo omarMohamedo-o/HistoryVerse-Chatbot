@@ -267,7 +267,7 @@ class DocumentIngestor:
 
         embeddings = self.get_embeddings()
 
-        from langchain_community.vectorstores import Chroma
+        from langchain_chroma import Chroma
 
         os.makedirs(self._persist_dir, exist_ok=True)
         Chroma.from_documents(
