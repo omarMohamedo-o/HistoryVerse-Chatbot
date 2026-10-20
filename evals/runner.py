@@ -34,7 +34,7 @@ async def main() -> None:
     args = parser.parse_args()
 
     settings = get_settings()
-    llm = LLMFactory.create_provider(settings)
+    llm = LLMFactory.create(settings)
     engine = AIEvalsEngine(llm)
 
     logger.info("Starting AI evaluation benchmark using model: %s", llm.model_name)
