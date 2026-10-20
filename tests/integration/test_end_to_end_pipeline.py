@@ -36,9 +36,7 @@ async def test_end_to_end_complete_platform_lifecycle():
     settings = Settings(agent_persona_name="Mora")
     session_id = "e2e-session-gold"
 
-    # =========================================================================
-    # STEP 1: Multi-Agent Orchestration & Isolated Memory
-    # =========================================================================
+    # Step 1: Multi-Agent Orchestration & Isolated Memory
     memory_manager = AgentMemoryManager(settings=settings)
     mem_mora = memory_manager.get_agent_memory("historyverse-mora")
     mem_researcher = memory_manager.get_agent_memory("archival-researcher")
@@ -75,9 +73,7 @@ async def test_end_to_end_complete_platform_lifecycle():
     assert "Serapeum" in researcher_turns[1]["content"]
     assert "Ptolemaic dynasty" not in researcher_turns[1]["content"]
 
-    # =========================================================================
-    # STEP 2: Model Context Protocol (MCP) & Defensive Agent Harness
-    # =========================================================================
+    # Step 2: Model Context Protocol (MCP) & Defensive Agent Harness
     registry = ToolRegistry()
     mock_retriever = MagicMock()
     mock_doc = MagicMock()
@@ -106,9 +102,7 @@ async def test_end_to_end_complete_platform_lifecycle():
     assert harness_agent_res.agent_id == "historyverse-mora"
     assert harness_agent_res.output is not None
 
-    # =========================================================================
-    # STEP 3: Selective Machine Unlearning & Adversarial Validation
-    # =========================================================================
+    # Step 3: Selective Machine Unlearning & Adversarial Validation
     # Add a contaminated turn to Mora's memory to simulate a debunked myth
     await mem_mora.add_exchange_async(
         session_id,
@@ -152,9 +146,7 @@ async def test_end_to_end_complete_platform_lifecycle():
     assert "Ptolemaic dynasty" in cleaned_mora_turns[1]["content"]
     assert "labyrinth" not in str(cleaned_mora_turns)
 
-    # =========================================================================
-    # STEP 4: AI Evaluation Benchmark Suite (RAG Triad & Loss Calibration)
-    # =========================================================================
+    # Step 4: AI Evaluation Benchmark Suite (RAG Triad & Loss Calibration)
     eval_llm = MockLLMProvider(
         "Ptolemy I Soter established the Library of Alexandria as part of the Mouseion."
     )

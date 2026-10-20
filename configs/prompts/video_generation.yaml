@@ -12,3 +12,4 @@ template: |
   Enhanced Video Generation Prompt:
 variables:
   - prompt
+
