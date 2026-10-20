@@ -103,15 +103,16 @@ class ConversationMemory:
         with self._lock:
             return list(self._sessions.get(conversation_id, []))
 
-    def get_formatted_history(self, conversation_id: str) -> str:
+    def get_formatted_history(self, conversation_id: str, assistant_name: str | None = None) -> str:
         """Format session exchanges into string for prompt context injection."""
         entries = self.get_history(conversation_id)
         if not entries:
             return "No prior conversation."
 
+        resolved_name = assistant_name or self._settings.agent_persona_name
         lines: list[str] = []
         for entry in entries:
-            prefix = "User" if entry["role"] == "user" else "Mora"
+            prefix = "User" if entry["role"] == "user" else resolved_name
             lines.append(f"{prefix}: {entry['content']}")
         return "\n".join(lines)
 

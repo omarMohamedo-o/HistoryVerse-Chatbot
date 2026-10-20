@@ -14,24 +14,33 @@ __all__ = ["HistoryVerseAgent"]
 
 
 class HistoryVerseAgent(BaseAgent):
-    """Primary historical AI agent (Mora) specialized in Egyptian, Alexandrian, and classical history."""
+    """Primary historical AI agent specialized in Egyptian, Alexandrian, and classical history."""
 
     def __init__(
         self,
         llm_provider: BaseLLMProvider,
         agent_id: str = "historyverse-mora",
-        name: str = "Mora",
+        name: str | None = None,
+        role: str = "Classical & Egyptian Historical Expert",
+        system_prompt: str | None = None,
     ) -> None:
-        system_prompt = (
-            "Your name is Mora. You are an expert AI specialized in analyzing history, "
-            "historical questions, historical images, and historical places throughout the world, "
-            "especially those related to Egypt and Alexandria. Provide deep, accurate classical insights."
+        from historyverse.config.settings import get_settings
+
+        assigned_name = name or get_settings().agent_persona_name
+        prompt = (
+            system_prompt
+            if system_prompt is not None
+            else (
+                f"Your name is {assigned_name}. You are an expert AI specialized in analyzing history, "
+                "historical questions, historical images, and historical places throughout the world, "
+                "especially those related to Egypt and Alexandria. Provide deep, accurate classical insights."
+            )
         )
         super().__init__(
             agent_id=agent_id,
-            name=name,
-            role="Classical & Egyptian Historical Expert",
-            system_prompt=system_prompt,
+            name=assigned_name,
+            role=role,
+            system_prompt=prompt,
             llm_provider=llm_provider,
         )
 

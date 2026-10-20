@@ -22,6 +22,14 @@ async def test_historyverse_mora_agent_execution():
 
 
 @pytest.mark.asyncio
+async def test_historyverse_agent_name_assigned_separately():
+    llm = MockLLMProvider("mock-gemini")
+    agent = HistoryVerseAgent(llm_provider=llm, name="Athena")
+    assert agent.name == "Athena"
+    assert "Your name is Athena" in agent.system_prompt
+
+
+@pytest.mark.asyncio
 async def test_researcher_agent_execution():
     llm = MockLLMProvider("mock-researcher")
     agent = ResearcherAgent(llm_provider=llm)

@@ -31,3 +31,11 @@ def test_secret_masking():
     settings = Settings(google_api_key="sensitive-key-12345")
     assert "sensitive-key-12345" not in repr(settings.google_api_key)
     assert settings.google_api_key.get_secret_value() == "sensitive-key-12345"
+
+
+def test_settings_agent_persona_name():
+    settings_default = Settings()
+    assert settings_default.agent_persona_name == "Mora"
+
+    settings_custom = Settings(agent_persona_name="Clio")
+    assert settings_custom.agent_persona_name == "Clio"

@@ -64,8 +64,9 @@ class PromptManager:
             except Exception as exc:
                 logger.error("Error reading local prompt file %s: %s", yaml_path, exc)
 
+        name_placeholder = self._settings.agent_persona_name
         return (
-            "Your name is Mora. You are an expert AI historian specializing in "
+            f"Your name is {name_placeholder}. You are an expert AI historian specializing in "
             "Egypt, Alexandria, and world history.\n"
             "Context: {context}\n"
             "History: {history}\n"

@@ -9,6 +9,7 @@ import os
 import requests
 from PIL import Image
 
+from historyverse.config.settings import Settings, get_settings
 from historyverse.core.base import BaseLLMProvider
 from historyverse.core.exceptions import VisionError
 
@@ -20,8 +21,9 @@ __all__ = ["ImageAnalyzer"]
 class ImageAnalyzer:
     """Handles multimodal image and video inspection for historical artifacts and sites."""
 
-    def __init__(self, llm_provider: BaseLLMProvider) -> None:
+    def __init__(self, llm_provider: BaseLLMProvider, settings: Settings | None = None) -> None:
         self._llm = llm_provider
+        self._settings = settings or get_settings()
 
     def load_image(self, image_source: str) -> Image.Image:
         """Load an image from local filesystem or URL."""
@@ -78,8 +80,9 @@ class ImageAnalyzer:
     async def analyze(self, image_source: str, query: str) -> str:
         """Analyze an image using the LLM's multimodal vision capabilities."""
         image = self.load_image(image_source)
+        name = self._settings.agent_persona_name
         prompt = (
-            "You are Mora, an expert historical AI. Examine this image carefully and answer:\n"
+            f"You are {name}, an expert historical AI. Examine this image carefully and answer:\n"
             f"{query}"
         )
         return await self._llm.generate(prompt, images=[image])
@@ -87,8 +90,9 @@ class ImageAnalyzer:
     async def analyze_video(self, video_source: str, query: str) -> str:
         """Analyze a historical video clip by extracting keyframes and prompting the LLM."""
         frames = self.extract_video_frames(video_source)
+        name = self._settings.agent_persona_name
         prompt = (
-            "You are Mora, an expert historical AI. Review these sequential video frames "
+            f"You are {name}, an expert historical AI. Review these sequential video frames "
             "depicting a historical site, artifact, or event, and answer:\n"
             f"{query}"
         )

@@ -106,8 +106,9 @@ class LocalProvider(BaseLLMProvider):
         if "[INST]" in prompt:
             return prompt
 
+        name = self._settings.agent_persona_name
         system_prompt = (
-            "You are Mora, an expert historical AI. Read the given context and answer user questions "
+            f"You are {name}, an expert historical AI. Read the given context and answer user questions "
             "accurately with historical precision, focusing on Egyptian and world history."
         )
         return f"[INST] <<SYS>>\n{system_prompt}\n<</SYS>>\n\n{prompt} [/INST]"

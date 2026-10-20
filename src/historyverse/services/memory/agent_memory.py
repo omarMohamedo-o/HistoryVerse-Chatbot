@@ -46,10 +46,11 @@ class AgentMemory:
         scoped_id = self.scope_session(session_id)
         return self._backend.get_history(scoped_id)
 
-    def get_formatted_history(self, session_id: str) -> str:
+    def get_formatted_history(self, session_id: str, assistant_name: str | None = None) -> str:
         """Retrieve prompt-injectable conversational history for this agent."""
         scoped_id = self.scope_session(session_id)
-        return self._backend.get_formatted_history(scoped_id)
+        name = assistant_name or self.agent_id
+        return self._backend.get_formatted_history(scoped_id, assistant_name=name)
 
     def clear(self, session_id: str) -> None:
         """Purge conversational history for a specific session of this agent."""
