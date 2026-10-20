@@ -18,6 +18,8 @@ services:
       - ./DB:/app/DB
       - ./models:/app/models
       - ./outputs:/app/outputs
+    networks:
+      - historyverse-network
     deploy:
       resources:
         limits:
@@ -32,6 +34,11 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   chromadb:
     image: chromadb/chroma:latest
@@ -45,3 +52,19 @@ services:
       - IS_PERSISTENT=TRUE
       - PERSIST_DIRECTORY=/chroma/chroma
       - ANONYMIZED_TELEMETRY=FALSE
+    networks:
+      - historyverse-network
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 2G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  historyverse-network:
+    driver: bridge
