@@ -31,10 +31,31 @@ async def main() -> None:
         default="evals/reports",
         help="Directory to save eval summary reports",
     )
+    parser.add_argument(
+        "--mock",
+        action="store_true",
+        help="Run benchmark using deterministic mock LLM for offline testing or CI",
+    )
+    parser.add_argument(
+        "--provider",
+        type=str,
+        default=None,
+        help="Override LLM provider (e.g. gemini, openai, local, ollama)",
+    )
     args = parser.parse_args()
 
-    settings = get_settings()
-    llm = LLMFactory.create(settings)
+    if args.mock:
+        from tests.conftest import MockLLMProvider
+
+        llm = MockLLMProvider()
+    else:
+        from historyverse.core.enums import LLMProvider
+
+        settings = get_settings()
+        if args.provider:
+            settings.llm_provider = LLMProvider(args.provider)
+        llm = LLMFactory.create(settings)
+
     engine = AIEvalsEngine(llm)
 
     logger.info("Starting AI evaluation benchmark using model: %s", llm.model_name)

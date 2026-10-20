@@ -65,11 +65,20 @@ async def test_ai_evals_sample_and_benchmark():
     assert report.passed_samples >= 4
     assert report.pass_rate >= 0.80
     assert report.grade in ["A+", "A"]
+    assert report.confusion_matrix.true_positives >= 2
+    assert report.confusion_matrix.true_negatives >= 1
+    assert report.confusion_matrix.accuracy >= 0.8
+    assert report.confusion_matrix.f1_score >= 0.8
+    assert report.loss_metrics.cross_entropy_loss >= 0.0
+    assert report.loss_metrics.perplexity >= 1.0
 
     # Verify markdown generation
     md = engine.generate_markdown_report(report)
     assert "# AI Evaluation Benchmark Summary" in md
     assert "Faithfulness / Groundedness" in md
+    assert "Confusion Matrix" in md
+    assert "True Positive" in md
+    assert "Cross-Entropy Loss" in md
     assert "| `eval-001` |" in md
 
 
@@ -80,4 +89,7 @@ def test_evaluate_benchmark_api_route(client: TestClient):
     assert "total_samples" in data
     assert "pass_rate" in data
     assert "grade" in data
+    assert "confusion_matrix" in data
+    assert "loss_metrics" in data
+    assert "f1_score" in data["confusion_matrix"]
     assert len(data["results"]) == 5

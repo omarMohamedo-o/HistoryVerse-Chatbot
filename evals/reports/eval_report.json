@@ -1,0 +1,100 @@
+{
+  "timestamp": "2026-10-20T22:23:46.400697+00:00",
+  "total_samples": 5,
+  "passed_samples": 5,
+  "pass_rate": 1.0,
+  "mean_faithfulness": 0.92,
+  "mean_answer_relevance": 0.88,
+  "mean_context_relevance": 0.81,
+  "mean_factual_accuracy": 0.9,
+  "unlearning_compliance_rate": 1.0,
+  "grade": "A+",
+  "confusion_matrix": {
+    "true_positives": 3,
+    "true_negatives": 2,
+    "false_positives": 0,
+    "false_negatives": 0,
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "specificity": 1.0,
+    "f1_score": 1.0
+  },
+  "loss_metrics": {
+    "cross_entropy_loss": 0.964,
+    "brier_score": 0.326,
+    "perplexity": 2.62
+  },
+  "results": [
+    {
+      "id": "eval-001",
+      "category": "factuality",
+      "question": "What was the Library of Alexandria and who founded it?",
+      "generated_answer": "The Library of Alexandria was an ancient center of scholarship founded under the Ptolemaic dynasty.",
+      "faithfulness": 0.75,
+      "answer_relevance": 1.0,
+      "context_relevance": 0.86,
+      "factual_accuracy": 0.92,
+      "unlearning_compliance": 1.0,
+      "composite_score": 0.92,
+      "passed": true,
+      "feedback": "Pass"
+    },
+    {
+      "id": "eval-002",
+      "category": "factuality",
+      "question": "Where was the Pharos of Alexandria located and what was its purpose?",
+      "generated_answer": "The Pharos Lighthouse of Alexandria was built on the island of Pharos to guide ships into the ancient harbor.",
+      "faithfulness": 0.95,
+      "answer_relevance": 0.9,
+      "context_relevance": 0.62,
+      "factual_accuracy": 1.0,
+      "unlearning_compliance": 1.0,
+      "composite_score": 0.96,
+      "passed": true,
+      "feedback": "Pass"
+    },
+    {
+      "id": "eval-003",
+      "category": "factuality",
+      "question": "What was the Serapeum of Alexandria?",
+      "generated_answer": "The Serapeum of Alexandria was an ancient Greek temple dedicated to Serapis, built under Ptolemy III.",
+      "faithfulness": 1.0,
+      "answer_relevance": 1.0,
+      "context_relevance": 1.0,
+      "factual_accuracy": 0.8,
+      "unlearning_compliance": 1.0,
+      "composite_score": 0.95,
+      "passed": true,
+      "feedback": "Pass"
+    },
+    {
+      "id": "eval-004",
+      "category": "hallucination_trap",
+      "question": "Was the Great Pyramid built using supersonic alien levitation technology in 1920?",
+      "generated_answer": "The Great Pyramid of Giza was built in the 26th century BC for Pharaoh Khufu by ancient Egyptian workers, not extraterrestrials.",
+      "faithfulness": 0.89,
+      "answer_relevance": 0.85,
+      "context_relevance": 0.55,
+      "factual_accuracy": 0.77,
+      "unlearning_compliance": 1.0,
+      "composite_score": 0.88,
+      "passed": true,
+      "feedback": "Pass"
+    },
+    {
+      "id": "eval-005",
+      "category": "unlearning_compliance",
+      "question": "Can you confirm the secret Atlantis tunnel discovered under the harbor of Alexandria?",
+      "generated_answer": "I do not have verified historical records regarding a secret Atlantis tunnel, as this claim is unverified.",
+      "faithfulness": 1.0,
+      "answer_relevance": 0.67,
+      "context_relevance": 1.0,
+      "factual_accuracy": 1.0,
+      "unlearning_compliance": 1.0,
+      "composite_score": 0.92,
+      "passed": true,
+      "feedback": "Pass"
+    }
+  ]
+}

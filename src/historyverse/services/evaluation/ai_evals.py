@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -16,9 +17,33 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "AIEvalBenchmarkReport",
     "AIEvalsEngine",
+    "ConfusionMatrix",
     "EvalResult",
     "EvalSample",
+    "LossMetrics",
 ]
+
+
+class ConfusionMatrix(BaseModel):
+    """Confusion matrix evaluating Grounded/Valid (Positive) vs Hallucinated/Retracted (Negative)."""
+
+    true_positives: int = 0
+    true_negatives: int = 0
+    false_positives: int = 0
+    false_negatives: int = 0
+    accuracy: float = 1.0
+    precision: float = 1.0
+    recall: float = 1.0
+    specificity: float = 1.0
+    f1_score: float = 1.0
+
+
+class LossMetrics(BaseModel):
+    """Loss, entropy, and calibration error estimates across the evaluation benchmark."""
+
+    cross_entropy_loss: float = 0.0
+    brier_score: float = 0.0
+    perplexity: float = 1.0
 
 
 class EvalSample(BaseModel):
@@ -62,6 +87,8 @@ class AIEvalBenchmarkReport(BaseModel):
     mean_factual_accuracy: float
     unlearning_compliance_rate: float
     grade: str
+    confusion_matrix: ConfusionMatrix = Field(default_factory=ConfusionMatrix)
+    loss_metrics: LossMetrics = Field(default_factory=LossMetrics)
     results: list[EvalResult] = Field(default_factory=list)
 
 
@@ -246,6 +273,55 @@ class AIEvalsEngine:
             else ("A" if pass_rate >= 0.80 else ("B" if pass_rate >= 0.70 else "C"))
         )
 
+        # Compute Confusion Matrix
+        # Positive Class: Grounded factual historical assertions
+        # Negative Class: Hallucination traps and unlearning probes
+        tp = sum(1 for r in results if r.category == "factuality" and r.passed)
+        fn = sum(1 for r in results if r.category == "factuality" and not r.passed)
+        tn = sum(1 for r in results if r.category != "factuality" and r.passed)
+        fp = sum(1 for r in results if r.category != "factuality" and not r.passed)
+
+        total_cases = max(1, tp + tn + fp + fn)
+        acc = round((tp + tn) / total_cases, 3)
+        prec = round(tp / (tp + fp), 3) if (tp + fp) > 0 else 1.0
+        rec = round(tp / (tp + fn), 3) if (tp + fn) > 0 else 1.0
+        spec = round(tn / (tn + fp), 3) if (tn + fp) > 0 else 1.0
+        f1 = round(2 * (prec * rec) / (prec + rec), 3) if (prec + rec) > 0 else 0.0
+
+        conf_matrix = ConfusionMatrix(
+            true_positives=tp,
+            true_negatives=tn,
+            false_positives=fp,
+            false_negatives=fn,
+            accuracy=acc,
+            precision=prec,
+            recall=rec,
+            specificity=spec,
+            f1_score=f1,
+        )
+
+        # Compute Loss & Uncertainty Metrics
+        ce_terms: list[float] = []
+        brier_terms: list[float] = []
+        eps = 1e-4
+        for r in results:
+            target_y = 1.0 if r.category == "factuality" else 0.0
+            prob = min(max(r.composite_score, eps), 1.0 - eps)
+            ce = -(target_y * math.log(prob) + (1.0 - target_y) * math.log(1.0 - prob))
+            brier = (prob - target_y) ** 2
+            ce_terms.append(ce)
+            brier_terms.append(brier)
+
+        mean_ce = round(sum(ce_terms) / max(1, len(ce_terms)), 3)
+        mean_brier = round(sum(brier_terms) / max(1, len(brier_terms)), 3)
+        ppl = round(math.exp(min(4.0, mean_ce)), 2)
+
+        loss_metrics = LossMetrics(
+            cross_entropy_loss=mean_ce,
+            brier_score=mean_brier,
+            perplexity=ppl,
+        )
+
         return AIEvalBenchmarkReport(
             timestamp=datetime.now(timezone.utc).isoformat(),
             total_samples=total,
@@ -257,11 +333,16 @@ class AIEvalsEngine:
             mean_factual_accuracy=mean_fact,
             unlearning_compliance_rate=unlearn_rate,
             grade=grade,
+            confusion_matrix=conf_matrix,
+            loss_metrics=loss_metrics,
             results=results,
         )
 
     def generate_markdown_report(self, report: AIEvalBenchmarkReport) -> str:
         """Render markdown summary tables of the evaluation benchmark."""
+        cm = report.confusion_matrix
+        lm = report.loss_metrics
+
         lines = [
             "# AI Evaluation Benchmark Summary",
             "",
@@ -278,6 +359,30 @@ class AIEvalsEngine:
             f"| **Context Relevance** | `{report.mean_context_relevance:.2f}` | `>= 0.70` | {'PASS' if report.mean_context_relevance >= 0.70 else 'FAIL'} |",
             f"| **Factual Accuracy** | `{report.mean_factual_accuracy:.2f}` | `>= 0.70` | {'PASS' if report.mean_factual_accuracy >= 0.70 else 'FAIL'} |",
             f"| **Unlearning Compliance** | `{report.unlearning_compliance_rate * 100:.1f}%` | `100.0%` | {'PASS' if report.unlearning_compliance_rate >= 1.0 else 'FAIL'} |",
+            "",
+            "## Confusion Matrix (Grounded vs. Hallucinated / Unlearned)",
+            "",
+            "```",
+            "                      Predicted Grounded (Pass)    Predicted Rejected (Fail)",
+            f"Actual Fact           True Positive  (TP): {cm.true_positives:<4}   False Negative (FN): {cm.false_negatives:<4}",
+            f"Hallucination / Trap  False Positive (FP): {cm.false_positives:<4}   True Negative  (TN): {cm.true_negatives:<4}",
+            "```",
+            "",
+            "| Classification Metric | Score | Formula / Meaning |",
+            "|---|---|---|",
+            f"| **Accuracy** | `{cm.accuracy:.1%}` | `(TP + TN) / Total` |",
+            f"| **Precision (PPV)** | `{cm.precision:.1%}` | `TP / (TP + FP)` (Grounded Fact Precision) |",
+            f"| **Recall / Sensitivity** | `{cm.recall:.1%}` | `TP / (TP + FN)` (Fact Grounding Recall) |",
+            f"| **Specificity (TNR)** | `{cm.specificity:.1%}` | `TN / (TN + FP)` (Hallucination Rejection Rate) |",
+            f"| **F1-Score** | `{cm.f1_score:.3f}` | Harmonic mean of Precision and Recall |",
+            "",
+            "## Loss & Calibration Metrics",
+            "",
+            "| Loss Metric | Value | Theoretical Interpretation |",
+            "|---|---|---|",
+            f"| **Cross-Entropy Loss** | `{lm.cross_entropy_loss:.3f}` | Average negative log-likelihood of correctness |",
+            f"| **Brier Score** | `{lm.brier_score:.3f}` | Mean squared residual error (0.0 = perfect calibration) |",
+            f"| **Evaluation Perplexity** | `{lm.perplexity:.2f}` | Model predictive uncertainty factor |",
             "",
             "## Sample Breakdown",
             "",
