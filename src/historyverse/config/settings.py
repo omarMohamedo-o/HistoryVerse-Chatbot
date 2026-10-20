@@ -105,6 +105,8 @@ class Settings(BaseSettings):
     )
 
     max_conversation_history: int = 50
+    redis_url: str = ""
+    redis_ttl_seconds: int = 86400
 
     prometheus_enabled: bool = True
     alert_webhook_url: SecretStr = Field(default=SecretStr(""))
