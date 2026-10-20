@@ -1,4 +1,4 @@
-"""Multimodal image and video question-answering endpoints."""
+"""Multimodal image, video, and image generation endpoints."""
 
 from __future__ import annotations
 
@@ -7,11 +7,20 @@ import os
 import tempfile
 from fastapi import APIRouter, Depends, File, UploadFile
 
-from historyverse.api.dependencies import get_app_settings, get_image_analyzer
+from historyverse.api.dependencies import (
+    get_app_settings,
+    get_image_analyzer,
+    get_image_generator,
+)
 from historyverse.config.settings import Settings
 from historyverse.core.exceptions import VisionError
-from historyverse.core.schemas import ChatResponse
+from historyverse.core.schemas import (
+    ChatResponse,
+    ImageGenerationRequest,
+    ImageGenerationResponse,
+)
 from historyverse.services.vision.analyzer import ImageAnalyzer
+from historyverse.services.vision.generator import ImageGenerator
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -67,4 +76,22 @@ async def process_video_query(
         sources=[file.filename or "uploaded-video.mp4"],
         confidence_score=0.92,
         model_used="multimodal-video",
+    )
+
+
+@router.post("/vision/generate", response_model=ImageGenerationResponse)
+async def generate_historical_image(
+    req: ImageGenerationRequest,
+    settings: Settings = Depends(get_app_settings),
+    generator: ImageGenerator = Depends(get_image_generator),
+) -> ImageGenerationResponse:
+    """Synthesize a historically authentic image reconstruction."""
+    if not settings.image_generation_enabled:
+        raise VisionError("Image creation is disabled in application settings.")
+
+    return await generator.generate_historical_image(
+        prompt=req.prompt,
+        size=req.size,
+        quality=req.quality,
+        enhance=req.enhance_prompt,
     )

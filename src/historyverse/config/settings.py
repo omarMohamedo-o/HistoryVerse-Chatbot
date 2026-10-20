@@ -50,6 +50,14 @@ class Settings(BaseSettings):
     openai_api_key: SecretStr = Field(default=SecretStr(""))
     huggingface_api_key: SecretStr = Field(default=SecretStr(""))
 
+    vault_enabled: bool = False
+    vault_addr: str = "http://127.0.0.1:8200"
+    vault_token: SecretStr = Field(default=SecretStr(""))
+    vault_role_id: str = ""
+    vault_secret_id: SecretStr = Field(default=SecretStr(""))
+    vault_mount: str = "historyverse"
+    vault_path: str = "app"
+
     langfuse_public_key: SecretStr = Field(default=SecretStr(""))
     langfuse_secret_key: SecretStr = Field(default=SecretStr(""))
     langfuse_host: str = "https://cloud.langfuse.com"
@@ -75,6 +83,8 @@ class Settings(BaseSettings):
     tts_enabled: bool = True
     vision_enabled: bool = True
     video_enabled: bool = True
+    image_generation_enabled: bool = True
+    image_generation_model: str = "dall-e-3"
     multimodal_fallback_enabled: bool = True
 
     whisper_model_size: str = "small"

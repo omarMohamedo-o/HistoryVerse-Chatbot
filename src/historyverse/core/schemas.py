@@ -12,6 +12,8 @@ __all__ = [
     "ChatResponse",
     "DriftReport",
     "HealthResponse",
+    "ImageGenerationRequest",
+    "ImageGenerationResponse",
     "IngestRequest",
     "IngestResponse",
     "RagasEvaluationRequest",
@@ -77,6 +79,24 @@ class ChatResponse(BaseModel):
     metrics: dict[str, float] = Field(
         default_factory=dict, description="Evaluation metrics (faithfulness, relevancy, etc.)"
     )
+
+
+class ImageGenerationRequest(BaseModel):
+    """Payload for generating historical reconstructions or artistic visions."""
+
+    prompt: str = Field(..., min_length=3, description="Description of the historical scene or artifact")
+    size: str = Field(default="1024x1024", description="Image resolution")
+    quality: str = Field(default="standard", description="standard or hd")
+    enhance_prompt: bool = Field(default=True, description="Whether to expand prompt using historical AI")
+
+
+class ImageGenerationResponse(BaseModel):
+    """Response containing URL or path to generated image."""
+
+    original_prompt: str = Field(..., description="Input prompt provided by user")
+    enhanced_prompt: str = Field(..., description="Historically expanded prompt used for generation")
+    image_url: str = Field(..., description="Direct URL or local path to generated image file")
+    model_used: str = Field(..., description="Model identifier used for synthesis")
 
 
 class IngestRequest(BaseModel):
