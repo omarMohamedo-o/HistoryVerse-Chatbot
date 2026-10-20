@@ -1,9 +1,3 @@
-# ==============================================================================
-# Multi-Stage Production Dockerfile for HistoryVerse Microservices
-# Adheres to official Docker and OCI container security best practices.
-# ==============================================================================
-
-# ── Stage 1: Build & Dependency Resolution ───────────────────────────────────
 FROM python:3.11-slim-bookworm AS builder
 
 WORKDIR /build
@@ -26,9 +20,8 @@ COPY pyproject.toml .
 RUN uv venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-RUN uv pip install --no-cache -e ".[gemini,voice]"
+RUN uv pip install --no-cache -e ".[gemini,voice,monitoring]"
 
-# ── Stage 2: Minimal Production Runtime ──────────────────────────────────────
 FROM python:3.11-slim-bookworm AS runtime
 
 LABEL maintainer="omarMohamedo-o" \
@@ -67,9 +60,9 @@ RUN mkdir -p models outputs extracted DB && \
 
 USER appuser
 
-EXPOSE 8000
+EXPOSE 8000 9090
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-  CMD curl -f http://localhost:8000/health || exit 1
+  CMD curl -f http://localhost:8000/health/live || exit 1
 
 ENTRYPOINT ["python", "-m", "historyverse"]

@@ -89,6 +89,12 @@ class Settings(BaseSettings):
 
     max_conversation_history: int = 50
 
+    prometheus_enabled: bool = True
+    alert_webhook_url: SecretStr = Field(default=SecretStr(""))
+    alert_on_drift: bool = True
+    alert_on_health_failure: bool = True
+    alert_rate_limit_seconds: int = 60
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
