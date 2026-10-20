@@ -59,6 +59,28 @@ services:
       - prometheus
       - loki
 
+  disk-guardian:
+    build:
+      context: ./services/disk-guardian
+      dockerfile: Dockerfile
+    image: historyverse-disk-guardian:latest
+    container_name: historyverse-disk-guardian
+    restart: unless-stopped
+    environment:
+      - HOST_MOUNT=/host
+      - CHECK_INTERVAL_SECONDS=300
+      - DISK_WARN_PCT=85
+      - DISK_CRIT_PCT=90
+      - PRUNE_UNTIL_HOURS=24
+      - ALERTMANAGER_URL=http://prometheus:9090
+      - OUTPUTS_DIR=/app/outputs
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /:/host:ro
+      - ./outputs:/app/outputs
+    networks:
+      - historyverse-network
+
 networks:
   historyverse-network:
     external: true

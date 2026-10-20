@@ -18,6 +18,7 @@ from historyverse.services.rag.ingest import DocumentIngestor
 from historyverse.services.rag.pipeline import RAGPipeline
 from historyverse.services.rag.retriever import ChromaRetriever
 from historyverse.services.vision.analyzer import ImageAnalyzer
+from historyverse.services.vision.generator import ImageGenerator
 from historyverse.services.voice.stt import WhisperSTT
 from historyverse.services.voice.tts import GTTSTextToSpeech
 
@@ -30,6 +31,7 @@ __all__ = [
     "get_drift_detector",
     "get_hallucination_detector",
     "get_image_analyzer",
+    "get_image_generator",
     "get_llm_provider",
     "get_prompt_manager",
     "get_rag_pipeline",
@@ -158,3 +160,12 @@ def get_image_analyzer(
 ) -> ImageAnalyzer:
     """Return image analyzer."""
     return ImageAnalyzer(provider)
+
+
+def get_image_generator(
+    provider: BaseLLMProvider = Depends(get_llm_provider),
+    prompts: PromptManager = Depends(get_prompt_manager),
+    settings: Settings = Depends(get_app_settings),
+) -> ImageGenerator:
+    """Return historical image generator."""
+    return ImageGenerator(llm_provider=provider, prompt_manager=prompts, settings=settings)
