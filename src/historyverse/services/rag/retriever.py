@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 
@@ -116,6 +117,10 @@ class ChromaRetriever:
         except Exception as exc:
             logger.warning("Failed to purge documents from ChromaDB: %s", exc)
             return 0
+
+    async def delete_documents_by_keywords_async(self, keywords: list[str]) -> int:
+        """Asynchronously purge indexed document chunks matching unlearned keywords."""
+        return await asyncio.to_thread(self.delete_documents_by_keywords, keywords)
 
     def _get_embedding_function(self):
         from historyverse.services.rag.ingest import EmbeddingStrategyFactory

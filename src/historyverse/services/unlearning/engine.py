@@ -47,17 +47,28 @@ class UnlearningEngine:
         )
         purged_memory_turns = 0
 
-        # 1. Purge conversational memory
+        # 1. Purge conversational memory asynchronously
         if request.purge_memory:
             if request.agent_ids:
                 for agent_id in request.agent_ids:
-                    purged_memory_turns += self._memory.purge_from_agent(agent_id, keywords)
+                    if hasattr(self._memory, "purge_from_agent_async"):
+                        purged_memory_turns += await self._memory.purge_from_agent_async(
+                            agent_id, keywords
+                        )
+                    else:
+                        purged_memory_turns += self._memory.purge_from_agent(agent_id, keywords)
             else:
-                purged_memory_turns = self._memory.purge_from_all_agents(keywords)
+                if hasattr(self._memory, "purge_from_all_agents_async"):
+                    purged_memory_turns = await self._memory.purge_from_all_agents_async(keywords)
+                else:
+                    purged_memory_turns = self._memory.purge_from_all_agents(keywords)
 
-        # 2. Purge RAG vector store chunks
+        # 2. Purge RAG vector store chunks asynchronously
         if request.purge_rag and self._retriever is not None:
-            self._retriever.delete_documents_by_keywords(keywords)
+            if hasattr(self._retriever, "delete_documents_by_keywords_async"):
+                await self._retriever.delete_documents_by_keywords_async(keywords)
+            else:
+                self._retriever.delete_documents_by_keywords(keywords)
 
         # 3. Register tombstone negative constraint
         self._tombstones.register(

@@ -116,3 +116,18 @@ async def test_agent_memory_async_isolation_and_unlearning():
 
     await mem_b.clear_async(session_id)
     assert len(await mem_b.get_history_async(session_id)) == 0
+
+
+async def test_agent_memory_manager_async_purges():
+    manager = AgentMemoryManager()
+    mem_1 = manager.get_agent_memory("agent-x")
+    mem_2 = manager.get_agent_memory("agent-y")
+
+    await mem_1.add_exchange_async("sess-1", "Query Sphinx", "Sphinx in Giza")
+    await mem_2.add_exchange_async("sess-2", "Query Nile", "Nile River flooding")
+
+    purged_single = await manager.purge_from_agent_async("agent-x", ["Sphinx"])
+    assert purged_single == 2
+
+    purged_all = await manager.purge_from_all_agents_async(["Nile"])
+    assert purged_all == 2

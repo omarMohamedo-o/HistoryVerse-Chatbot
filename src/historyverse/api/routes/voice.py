@@ -55,14 +55,14 @@ async def process_voice_query(
             os.remove(tmp_path)
 
     cid = "voice_session"
-    history = memory.get_formatted_history(cid)
+    history = await memory.get_formatted_history_async(cid)
 
     response = await pipeline.query(
         question=query_text,
         history=history,
         conversation_id=cid,
     )
-    memory.add_exchange(cid, query_text, response.answer)
+    await memory.add_exchange_async(cid, query_text, response.answer)
 
     if speak_response and settings.tts_enabled:
         try:
@@ -98,14 +98,14 @@ async def speech_to_speech(
             os.remove(tmp_path)
 
     cid = "sts_session"
-    history = memory.get_formatted_history(cid)
+    history = await memory.get_formatted_history_async(cid)
 
     response = await pipeline.query(
         question=query_text,
         history=history,
         conversation_id=cid,
     )
-    memory.add_exchange(cid, query_text, response.answer)
+    await memory.add_exchange_async(cid, query_text, response.answer)
 
     audio_path = tts.synthesize(response.answer)
     headers = {

@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import os
 import time
+import warnings
 from abc import ABC, abstractmethod
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from typing import Any, ClassVar
@@ -105,15 +106,17 @@ class EmbeddingStrategyFactory:
 
 
 def _get_document_map():
-    from langchain_community.document_loaders import (
-        CSVLoader,
-        Docx2txtLoader,
-        PyPDFLoader,
-        TextLoader,
-        UnstructuredExcelLoader,
-        UnstructuredImageLoader,
-        UnstructuredMarkdownLoader,
-    )
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        from langchain_community.document_loaders import (
+            CSVLoader,
+            Docx2txtLoader,
+            PyPDFLoader,
+            TextLoader,
+            UnstructuredExcelLoader,
+            UnstructuredImageLoader,
+            UnstructuredMarkdownLoader,
+        )
 
     return {
         ".txt": TextLoader,
@@ -134,7 +137,9 @@ def _get_document_map():
 try:
     DOCUMENT_MAP = _get_document_map()
 except Exception as exc:
-    from langchain_community.document_loaders import TextLoader
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=DeprecationWarning)
+        from langchain_community.document_loaders import TextLoader
 
     logger.warning("Unstructured loader imports failed; using TextLoader fallback: %s", exc)
     DOCUMENT_MAP = {".txt": TextLoader, ".md": TextLoader, ".py": TextLoader}

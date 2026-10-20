@@ -107,6 +107,7 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 addopts = "-v --tb=short --strict-markers"
 filterwarnings = [
+    "ignore:.*langchain-community is being sunset.*:DeprecationWarning",
     "ignore::DeprecationWarning:langchain_community.*",
 ]
 markers = [

@@ -37,7 +37,7 @@ async def process_chat(
 ) -> ChatResponse:
     """Process a conversational query using RAG, drift protection, and history tracking."""
     cid = req.conversation_id or "default"
-    history_context = memory.get_formatted_history(cid)
+    history_context = await memory.get_formatted_history_async(cid)
 
     kwargs = {}
     if req.temperature is not None:
@@ -51,7 +51,7 @@ async def process_chat(
         **kwargs,
     )
 
-    memory.add_exchange(cid, req.query, response.answer)
+    await memory.add_exchange_async(cid, req.query, response.answer)
 
     if req.speak_response:
         try:
@@ -97,10 +97,10 @@ async def websocket_live_chat(
             except Exception:
                 pass
 
-            history = memory.get_formatted_history(session_id)
+            history = await memory.get_formatted_history_async(session_id)
             response = await pipeline.query(question=data, history=history)
 
-            memory.add_exchange(session_id, data, response.answer)
+            await memory.add_exchange_async(session_id, data, response.answer)
 
             await websocket.send_json(
                 {
@@ -113,7 +113,7 @@ async def websocket_live_chat(
             )
     except WebSocketDisconnect:
         logger.info("WebSocket session disconnected: %s", session_id)
-        memory.clear(session_id)
+        await memory.clear_async(session_id)
     except Exception as exc:
         logger.error("WebSocket exception: %s", exc)
         await websocket.close()

@@ -139,7 +139,16 @@ class AgentMemoryManager:
         """Execute cross-agent conversational memory unlearning."""
         return self._backend.purge_concept(keywords)
 
+    async def purge_from_all_agents_async(self, keywords: list[str]) -> int:
+        """Execute cross-agent conversational memory unlearning asynchronously."""
+        return await self._backend.purge_concept_async(keywords)
+
     def purge_from_agent(self, agent_id: str, keywords: list[str]) -> int:
         """Execute conversational memory unlearning scoped to a single agent."""
         agent_mem = self.get_agent_memory(agent_id)
         return agent_mem.unlearn_concept(keywords)
+
+    async def purge_from_agent_async(self, agent_id: str, keywords: list[str]) -> int:
+        """Execute conversational memory unlearning scoped to a single agent asynchronously."""
+        agent_mem = self.get_agent_memory(agent_id)
+        return await agent_mem.unlearn_concept_async(keywords)
