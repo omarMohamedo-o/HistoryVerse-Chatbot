@@ -1,0 +1,20 @@
+groups:
+  - name: historyverse_alerts
+    rules:
+      - alert: HighModelDriftRate
+        expr: rate(historyverse_drift_events_total[5m]) > 0.2
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High Model Drift Rate Detected"
+          description: "HistoryVerse is experiencing persistent low accuracy drift triggering retries."
+
+      - alert: ServiceDegraded
+        expr: up{job="historyverse-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "HistoryVerse API is down"
+          description: "Target historyverse-api:8000 is unreachable."
