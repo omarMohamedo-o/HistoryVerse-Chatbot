@@ -2,12 +2,18 @@
 
 from __future__ import annotations
 
+import json
 import logging
+import re
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, TypeVar
+
 from PIL import Image
+from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
+
+T = TypeVar("T", bound=BaseModel)
 
 __all__ = [
     "BaseEmbeddingProvider",
@@ -118,6 +124,78 @@ class BaseLLMProvider(ABC):
                 score -= 0.20
 
         return max(0.0, min(1.0, round(score, 3)))
+
+    def count_tokens(self, text: str) -> int:
+        """Estimate token count for a text string using tokenizer or fast heuristic."""
+        try:
+            import tiktoken
+
+            encoding = tiktoken.get_encoding("cl100k_base")
+            return len(encoding.encode(text))
+        except Exception:
+            return max(1, len(text) // 4)
+
+    def get_context_window(self) -> int:
+        """Return maximum context token capacity for the active model."""
+        name = self.model_name.lower()
+        if "gemini-1.5" in name or "gemini-2.0" in name:
+            return 1000000
+        elif "gpt-4" in name:
+            return 128000
+        elif "mistral" in name:
+            return 32768
+        return 8192 if ("llama-3" in name or "llama3" in name) else 4096
+
+    def fit_to_context_budget(self, text: str, max_tokens: int | None = None) -> str:
+        """Trim or truncate text if it exceeds the specified token context budget."""
+        limit = max_tokens if max_tokens is not None else (self.get_context_window() - 512)
+        token_count = self.count_tokens(text)
+        if token_count <= limit:
+            return text
+
+        char_limit = limit * 4
+        return f"{text[:char_limit]}\n...[Context truncated to fit token budget]"
+
+    async def generate_structured(
+        self,
+        prompt: str,
+        response_model: type[T],
+        *,
+        images: list[Image.Image] | None = None,
+        temperature: float | None = 0.0,
+        **kwargs: Any,
+    ) -> T:
+        """Generate structured output validated against a Pydantic schema."""
+        schema_json = json.dumps(response_model.model_json_schema(), indent=2)
+        structured_prompt = (
+            f"{prompt}\n\n"
+            f"[MANDATORY STRUCTURED OUTPUT INSTRUCTION]:\n"
+            f"You must respond ONLY with a valid JSON object matching this schema:\n"
+            f"```json\n{schema_json}\n```\n"
+            f"Do not include any conversational preamble, commentary, or text outside the JSON object."
+        )
+        raw_output = await self.generate(
+            structured_prompt, images=images, temperature=temperature, **kwargs
+        )
+        return self._parse_structured_json(raw_output, response_model)
+
+    def _parse_structured_json(self, raw_output: str, model_cls: type[T]) -> T:
+        """Extract and validate JSON object into target Pydantic schema."""
+        clean_text = raw_output.strip()
+        json_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", clean_text, re.DOTALL)
+        candidate = json_match.group(1) if json_match else clean_text
+
+        if not candidate.startswith("{"):
+            brace_start = candidate.find("{")
+            brace_end = candidate.rfind("}")
+            candidate = (
+                candidate[brace_start : brace_end + 1]
+                if brace_start != -1 and brace_end != -1
+                else candidate
+            )
+
+        data = json.loads(candidate)
+        return model_cls.model_validate(data)
 
 
 class BaseEmbeddingProvider(ABC):

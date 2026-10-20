@@ -66,9 +66,7 @@ class RAGPipeline:
 
         if "answer is not available in the context" in answer.lower():
             logger.info("Context miss. Falling back to general historical knowledge generation.")
-            fallback_prompt = (
-                f"You are Mora, an expert historical AI. Answer this historical question:\n{question}"
-            )
+            fallback_prompt = f"You are Mora, an expert historical AI. Answer this historical question:\n{question}"
             answer, drift_report = await self._drift.generate_with_drift_protection(
                 fallback_prompt, **kwargs
             )

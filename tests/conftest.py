@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
@@ -36,6 +38,32 @@ class MockLLMProvider(BaseLLMProvider):
         max_tokens: int | None = None,
         **kwargs,
     ) -> str:
+        if "[MANDATORY STRUCTURED OUTPUT INSTRUCTION]" in prompt:
+            return json.dumps(
+                {
+                    "topic": "Alexandria Museum",
+                    "historical_period": "Greco-Roman",
+                    "summary": "Houses ancient classical artifacts from Alexandria.",
+                    "key_entities": [
+                        {
+                            "name": "Greco-Roman Museum",
+                            "era": "Ptolemaic-Roman",
+                            "significance": "Archaeological repository",
+                        }
+                    ],
+                    "verified_facts": [
+                        {
+                            "claim": "Founded in 1892",
+                            "is_verified": True,
+                            "confidence": 1.0,
+                            "sources": ["Museum Records"],
+                        }
+                    ],
+                    "confidence_score": 0.98,
+                }
+            )
+        if "[MANDATORY UNLEARNING DIRECTIVE]" in prompt:
+            return "I do not have verified historical records regarding this topic, as the claim has been retracted."
         if "fail" in prompt.lower():
             return "I cannot answer this question."
         return "The Greco-Roman Museum in Alexandria houses ancient classical artifacts."

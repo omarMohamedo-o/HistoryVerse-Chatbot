@@ -7,9 +7,7 @@ from historyverse.core.enums import ConversationType
 from historyverse.core.schemas import (
     ChatRequest,
     ChatResponse,
-    HealthResponse,
     IngestRequest,
-    IngestResponse,
 )
 
 

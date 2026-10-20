@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import logging
 import os
-from langchain.docstore.document import Document
+
+from langchain_core.documents import Document
+
 from historyverse.config.settings import Settings, get_settings
 from historyverse.core.exceptions import RetrieverError
 
@@ -57,43 +59,55 @@ class ChromaRetriever:
         k = top_k or self._top_k
         try:
             results = store.similarity_search(query, k=k)
-            logger.info("Retrieved %d context documents for query.", len(results))
-            return results
+            from historyverse.services.unlearning.registry import get_tombstone_registry
+
+            tombstone_registry = get_tombstone_registry()
+            filtered_results = [
+                doc for doc in results if not tombstone_registry.is_forbidden(doc.page_content)[0]
+            ]
+            logger.info(
+                "Retrieved %d context documents (%d after tombstone filter) for query.",
+                len(results),
+                len(filtered_results),
+            )
+            return filtered_results
         except Exception as exc:
             logger.error("Similarity search failed: %s", exc)
             raise RetrieverError(str(exc)) from exc
 
-    def _get_embedding_function(self):
-        if self._settings.embedding_provider == "google":
-            api_key = self._settings.google_api_key.get_secret_value()
-            if api_key:
-                from langchain_google_genai import GoogleGenerativeAIEmbeddings
-
-                return GoogleGenerativeAIEmbeddings(
-                    model=self._settings.embedding_model,
-                    google_api_key=api_key,
-                )
-
-        if self._settings.embedding_provider == "ollama":
-            try:
-                from langchain_community.embeddings import OllamaEmbeddings
-
-                model_name = self._settings.embedding_model or "nomic-embed-text"
-                return OllamaEmbeddings(
-                    model=model_name,
-                    base_url=self._settings.ollama_base_url,
-                )
-            except Exception as exc:
-                logger.warning("OllamaEmbeddings failed in retriever (%s); falling back...", exc)
+    def delete_documents_by_keywords(self, keywords: list[str]) -> int:
+        """Purge indexed document chunks matching unlearned keywords."""
+        store = self._ensure_vectorstore()
+        if store is None or not hasattr(store, "_collection"):
+            return 0
 
         try:
-            from langchain_community.embeddings import HuggingFaceEmbeddings
+            lower_keywords = [k.lower().strip() for k in keywords if k.strip()]
+            collection = store._collection
+            all_docs = collection.get()
+            ids_to_delete = [
+                doc_id
+                for doc_id, document in zip(
+                    all_docs.get("ids", []), all_docs.get("documents", []), strict=False
+                )
+                if any(kw in (document or "").lower() for kw in lower_keywords)
+            ]
 
-            return HuggingFaceEmbeddings(
-                model_name="sentence-transformers/all-MiniLM-L6-v2",
-                model_kwargs={"device": self._settings.embedding_device},
-            )
-        except Exception:
-            from langchain_community.embeddings import FakeEmbeddings
+            if ids_to_delete:
+                collection.delete(ids=ids_to_delete)
+                logger.info(
+                    "Purged %d vector store documents matching keywords: %s",
+                    len(ids_to_delete),
+                    lower_keywords,
+                )
 
-            return FakeEmbeddings(size=384)
+            return len(ids_to_delete)
+        except Exception as exc:
+            logger.warning("Failed to purge documents from ChromaDB: %s", exc)
+            return 0
+
+    def _get_embedding_function(self):
+        from historyverse.services.rag.ingest import EmbeddingStrategyFactory
+
+        strategy = EmbeddingStrategyFactory.get_strategy(self._settings.embedding_provider)
+        return strategy.create(self._settings)

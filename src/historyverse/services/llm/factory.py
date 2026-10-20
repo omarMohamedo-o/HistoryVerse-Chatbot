@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from typing import ClassVar
+
 from historyverse.config.settings import Settings, get_settings
 from historyverse.core.base import BaseLLMProvider
 from historyverse.core.enums import LLMProvider

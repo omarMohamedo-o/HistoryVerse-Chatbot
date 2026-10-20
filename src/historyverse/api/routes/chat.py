@@ -3,14 +3,21 @@
 from __future__ import annotations
 
 import logging
+
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 
 from historyverse.api.dependencies import (
     get_conversation_memory,
+    get_llm_provider,
     get_rag_pipeline,
     get_tts_provider,
 )
-from historyverse.core.schemas import ChatRequest, ChatResponse
+from historyverse.core.base import BaseLLMProvider
+from historyverse.core.schemas import (
+    ChatRequest,
+    ChatResponse,
+    StructuredHistoricalAnalysis,
+)
 from historyverse.services.memory.manager import ConversationMemory
 from historyverse.services.rag.pipeline import RAGPipeline
 from historyverse.services.voice.tts import GTTSTextToSpeech
@@ -54,6 +61,15 @@ async def process_chat(
             logger.warning("TTS audio generation skipped: %s", exc)
 
     return response
+
+
+@router.post("/chat/structured", response_model=StructuredHistoricalAnalysis)
+async def process_chat_structured(
+    req: ChatRequest,
+    provider: BaseLLMProvider = Depends(get_llm_provider),
+) -> StructuredHistoricalAnalysis:
+    """Analyze historical query and return validated structured JSON schema output."""
+    return await provider.generate_structured(req.query, StructuredHistoricalAnalysis)
 
 
 @router.websocket("/ws/chat")

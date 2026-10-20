@@ -5,9 +5,9 @@ from __future__ import annotations
 import logging
 import os
 from typing import Any
-from PIL import Image
 
 import litellm
+from PIL import Image
 
 from historyverse.config.settings import Settings
 from historyverse.core.base import BaseLLMProvider
@@ -38,7 +38,9 @@ class LocalProvider(BaseLLMProvider):
             logger.info("LocalProvider routing to Ollama engine for model=%s", self._model_name)
             self._ollama_provider = OllamaProvider(settings)
         else:
-            logger.info("LocalProvider routing to LLaMA GGUF engine for file=%s", self._model_basename)
+            logger.info(
+                "LocalProvider routing to LLaMA GGUF engine for file=%s", self._model_basename
+            )
             self._ensure_gguf_available()
 
     def _detect_ollama_mode(self) -> bool:
@@ -47,10 +49,9 @@ class LocalProvider(BaseLLMProvider):
             return True
         if self._model_name.startswith("ollama/"):
             return True
-        # If model basename doesn't end with .gguf and model_name looks like an Ollama tag
-        if not self._model_basename.lower().endswith(".gguf") and "/" not in self._model_name:
-            return True
-        return False
+        # If model_name is a single tag (e.g. 'llama3.2', 'mistral', 'phi3') without '/' and not ending in .gguf
+        clean_name = self._model_name.lower().strip()
+        return not clean_name.endswith(".gguf") and "/" not in clean_name
 
     @property
     def model_name(self) -> str:
@@ -65,8 +66,12 @@ class LocalProvider(BaseLLMProvider):
             logger.info("Found local GGUF model weights: %s", expected_file)
             return
 
-        if self._auto_download and ("/" in self._model_name or "llama" in self._model_basename.lower()):
-            repo_id = self._model_name if "/" in self._model_name else "TheBloke/Llama-2-7b-Chat-GGUF"
+        if self._auto_download and (
+            "/" in self._model_name or "llama" in self._model_basename.lower()
+        ):
+            repo_id = (
+                self._model_name if "/" in self._model_name else "TheBloke/Llama-2-7b-Chat-GGUF"
+            )
             try:
                 from huggingface_hub import hf_hub_download
 
@@ -141,7 +146,9 @@ class LocalProvider(BaseLLMProvider):
         elif self._settings.llm_device_type == DeviceType.MPS:
             n_gpu_layers = 1
 
-        formatted_prompt = self._format_llama_prompt(prompt) if "llama" in self._model_basename.lower() else prompt
+        formatted_prompt = (
+            self._format_llama_prompt(prompt) if "llama" in self._model_basename.lower() else prompt
+        )
 
         try:
             from llama_cpp import Llama

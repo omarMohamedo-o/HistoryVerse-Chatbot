@@ -4,16 +4,19 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
 from historyverse import __version__
 from historyverse.api.middleware import ErrorHandlingMiddleware, RequestLoggingMiddleware
 from historyverse.api.routes import (
+    agents_router,
     chat_router,
     drift_router,
     evaluate_router,
     health_router,
     ingest_router,
+    unlearning_router,
     vision_router,
     voice_router,
 )
@@ -57,5 +60,7 @@ def create_app() -> FastAPI:
     app.include_router(vision_router, prefix="/v1", tags=["vision"])
     app.include_router(evaluate_router, prefix="/v1", tags=["evaluation"])
     app.include_router(drift_router, prefix="/v1", tags=["drift"])
+    app.include_router(agents_router)
+    app.include_router(unlearning_router)
 
     return app

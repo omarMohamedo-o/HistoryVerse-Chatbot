@@ -8,7 +8,6 @@ import time
 from collections.abc import Callable
 from typing import Any
 
-from historyverse.config.settings import get_settings
 from historyverse.services.langfuse.client import get_langfuse_client
 
 logger = logging.getLogger(__name__)
@@ -26,10 +25,9 @@ def traced(name: str | None = None) -> Callable:
         async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
             start = time.perf_counter()
             client = get_langfuse_client()
-            trace = None
             if client:
                 try:
-                    trace = client.trace(name=op_name)
+                    client.trace(name=op_name)
                 except Exception as exc:
                     logger.debug("Langfuse trace creation failed: %s", exc)
 

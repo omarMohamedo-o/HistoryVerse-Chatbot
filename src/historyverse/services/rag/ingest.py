@@ -1,38 +1,118 @@
-"""Enhanced document ingestion engine based on HistoryVerse-LocalChatbot."""
+"""Enhanced multi-process document ingestion engine supporting multiple formats and OOP embedding strategies."""
 
 from __future__ import annotations
 
 import logging
 import os
 import time
+from abc import ABC, abstractmethod
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
-from typing import ClassVar
+from typing import Any, ClassVar
 
-from langchain.docstore.document import Document
-from langchain.text_splitter import Language, RecursiveCharacterTextSplitter
+from langchain_core.documents import Document
+from langchain_text_splitters import Language, RecursiveCharacterTextSplitter
 
 from historyverse.config.settings import Settings, get_settings
 from historyverse.core.enums import DeviceType, EmbeddingProvider
-from historyverse.core.exceptions import IngestError
 from historyverse.core.schemas import IngestResponse
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["DOCUMENT_MAP", "DocumentIngestor"]
+__all__ = [
+    "BaseEmbeddingStrategy",
+    "DocumentIngestor",
+    "EmbeddingStrategyFactory",
+    "GoogleEmbeddingStrategy",
+    "HuggingFaceEmbeddingStrategy",
+    "OllamaEmbeddingStrategy",
+]
 
 
-def _get_document_map() -> dict[str, type]:
-    """Resolve document loader mappings dynamically with graceful fallbacks."""
+class BaseEmbeddingStrategy(ABC):
+    """Abstract strategy for creating embedding models."""
+
+    @abstractmethod
+    def create(self, settings: Settings) -> Any:
+        """Instantiate and return the embedding model."""
+
+
+class GoogleEmbeddingStrategy(BaseEmbeddingStrategy):
+    """Google Generative AI embedding strategy."""
+
+    def create(self, settings: Settings) -> Any:
+        api_key = settings.google_api_key.get_secret_value()
+        if not api_key:
+            raise ValueError("Google API key is required for Google embeddings.")
+        from langchain_google_genai import GoogleGenerativeAIEmbeddings
+
+        logger.info("Using Google Generative AI Embeddings: %s", settings.embedding_model)
+        return GoogleGenerativeAIEmbeddings(model=settings.embedding_model, google_api_key=api_key)
+
+
+class OllamaEmbeddingStrategy(BaseEmbeddingStrategy):
+    """Ollama local embedding strategy."""
+
+    def create(self, settings: Settings) -> Any:
+        from langchain_community.embeddings import OllamaEmbeddings
+
+        model_name = settings.embedding_model or "nomic-embed-text"
+        logger.info("Using Ollama Embeddings: %s via %s", model_name, settings.ollama_base_url)
+        return OllamaEmbeddings(model=model_name, base_url=settings.ollama_base_url)
+
+
+class HuggingFaceEmbeddingStrategy(BaseEmbeddingStrategy):
+    """HuggingFace / SentenceTransformers local embedding strategy."""
+
+    def create(self, settings: Settings) -> Any:
+        device = "cuda" if settings.llm_device_type == DeviceType.CUDA else "cpu"
+        try:
+            from langchain_community.embeddings import HuggingFaceInstructEmbeddings
+
+            logger.info("Using HuggingFace Instruct Embeddings on %s", device)
+            return HuggingFaceInstructEmbeddings(
+                model_name="hkunlp/instructor-large",
+                model_kwargs={"device": device},
+            )
+        except Exception:
+            try:
+                from langchain_community.embeddings import HuggingFaceEmbeddings
+
+                logger.info("Using Sentence-Transformers Embeddings on %s", device)
+                return HuggingFaceEmbeddings(
+                    model_name="sentence-transformers/all-MiniLM-L6-v2",
+                    model_kwargs={"device": device},
+                )
+            except Exception as exc:
+                from langchain_community.embeddings import FakeEmbeddings
+
+                logger.warning("Falling back to FakeEmbeddings: %s", exc)
+                return FakeEmbeddings(size=384)
+
+
+class EmbeddingStrategyFactory:
+    """Registry-driven factory providing provider-specific embedding strategies without if/else branching."""
+
+    _registry: ClassVar[dict[str, type[BaseEmbeddingStrategy]]] = {
+        EmbeddingProvider.GOOGLE.value: GoogleEmbeddingStrategy,
+        EmbeddingProvider.OLLAMA.value: OllamaEmbeddingStrategy,
+        EmbeddingProvider.HUGGINGFACE.value: HuggingFaceEmbeddingStrategy,
+    }
+
+    @classmethod
+    def get_strategy(cls, provider: str) -> BaseEmbeddingStrategy:
+        strategy_cls = cls._registry.get(provider.lower(), HuggingFaceEmbeddingStrategy)
+        return strategy_cls()
+
+
+def _get_document_map():
     from langchain_community.document_loaders import (
         CSVLoader,
         Docx2txtLoader,
         PyPDFLoader,
         TextLoader,
         UnstructuredExcelLoader,
-        UnstructuredFileLoader,
         UnstructuredImageLoader,
         UnstructuredMarkdownLoader,
-        UnstructuredPowerPointLoader,
     )
 
     return {
@@ -45,8 +125,6 @@ def _get_document_map() -> dict[str, type]:
         ".xlsx": UnstructuredExcelLoader,
         ".docx": Docx2txtLoader,
         ".doc": Docx2txtLoader,
-        ".pptx": UnstructuredPowerPointLoader,
-        ".ppt": UnstructuredPowerPointLoader,
         ".png": UnstructuredImageLoader,
         ".jpg": UnstructuredImageLoader,
         ".jpeg": UnstructuredImageLoader,
@@ -140,70 +218,21 @@ class DocumentIngestor:
         python_docs: list[Document] = []
 
         for doc in documents:
-            if doc is not None:
-                ext = os.path.splitext(doc.metadata.get("source", ""))[1].lower()
-                if ext == ".py":
-                    python_docs.append(doc)
-                else:
-                    text_docs.append(doc)
+            target = python_docs if doc.metadata.get("source", "").endswith(".py") else text_docs
+            target.append(doc)
 
         return text_docs, python_docs
 
-    def get_embeddings(self):
-        """Construct the embedding function according to configured provider and device."""
-        provider = self._settings.embedding_provider
-        device = (
-            "cuda"
-            if self._settings.llm_device_type == DeviceType.CUDA
-            else "cpu"
-        )
-
-        if provider == EmbeddingProvider.GOOGLE:
-            api_key = self._settings.google_api_key.get_secret_value()
-            if api_key:
-                from langchain_google_genai import GoogleGenerativeAIEmbeddings
-
-                logger.info("Using Google Generative AI Embeddings: %s", self._settings.embedding_model)
-                return GoogleGenerativeAIEmbeddings(
-                    model=self._settings.embedding_model,
-                    google_api_key=api_key,
-                )
-
-        if provider == EmbeddingProvider.OLLAMA:
-            try:
-                from langchain_community.embeddings import OllamaEmbeddings
-
-                model_name = self._settings.embedding_model or "nomic-embed-text"
-                logger.info("Using Ollama Embeddings: %s via %s", model_name, self._settings.ollama_base_url)
-                return OllamaEmbeddings(
-                    model=model_name,
-                    base_url=self._settings.ollama_base_url,
-                )
-            except Exception as exc:
-                logger.warning("OllamaEmbeddings failed (%s); falling back to local embeddings.", exc)
-
+    def get_embeddings(self) -> Any:
+        """Construct the embedding function via polymorphic strategy lookup without if-chains."""
+        strategy = EmbeddingStrategyFactory.get_strategy(self._settings.embedding_provider)
         try:
-            from langchain_community.embeddings import HuggingFaceInstructEmbeddings
-
-            logger.info("Using HuggingFace Instruct Embeddings on %s", device)
-            return HuggingFaceInstructEmbeddings(
-                model_name="hkunlp/instructor-large",
-                model_kwargs={"device": device},
+            return strategy.create(self._settings)
+        except Exception as exc:
+            logger.warning(
+                "Primary embedding strategy failed (%s); using HuggingFace fallback.", exc
             )
-        except Exception:
-            try:
-                from langchain_community.embeddings import HuggingFaceEmbeddings
-
-                logger.info("Using Sentence-Transformers Embeddings on %s", device)
-                return HuggingFaceEmbeddings(
-                    model_name="sentence-transformers/all-MiniLM-L6-v2",
-                    model_kwargs={"device": device},
-                )
-            except Exception as exc:
-                from langchain_community.embeddings import FakeEmbeddings
-
-                logger.warning("Falling back to FakeEmbeddings: %s", exc)
-                return FakeEmbeddings(size=384)
+            return HuggingFaceEmbeddingStrategy().create(self._settings)
 
     def ingest(self, source_dir: str | None = None) -> IngestResponse:
         """Run the complete ingestion pipeline and save into ChromaDB."""
@@ -231,33 +260,25 @@ class DocumentIngestor:
         )
 
         texts = text_splitter.split_documents(text_docs)
-        texts.extend(python_splitter.split_documents(python_docs))
+        if python_docs:
+            texts.extend(python_splitter.split_documents(python_docs))
 
         logger.info("Split %d documents into %d chunks", len(documents), len(texts))
 
         embeddings = self.get_embeddings()
 
-        try:
-            from chromadb.config import Settings as ChromaSettings
-            from langchain_community.vectorstores import Chroma
+        from langchain_community.vectorstores import Chroma
 
-            chroma_settings = ChromaSettings(
-                anonymized_telemetry=False,
-                is_persistent=True,
-            )
-
-            Chroma.from_documents(
-                texts,
-                embeddings,
-                persist_directory=self._persist_dir,
-                client_settings=chroma_settings,
-            )
-            logger.info("Persisted vectors to Chroma at %s", self._persist_dir)
-        except Exception as exc:
-            logger.error("ChromaDB error during ingestion: %s", exc)
-            raise IngestError(str(exc)) from exc
+        os.makedirs(self._persist_dir, exist_ok=True)
+        Chroma.from_documents(
+            documents=texts,
+            embedding=embeddings,
+            persist_directory=self._persist_dir,
+        )
 
         duration = round(time.perf_counter() - start_time, 2)
+        logger.info("Ingestion complete in %.2fs. Persisted to %s", duration, self._persist_dir)
+
         return IngestResponse(
             documents_loaded=len(documents),
             chunks_created=len(texts),

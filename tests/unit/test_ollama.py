@@ -1,6 +1,7 @@
 """Unit tests for OllamaProvider and LLMFactory integration."""
 
 from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 from PIL import Image
 
@@ -74,7 +75,9 @@ async def test_ollama_generate_litellm():
     provider = OllamaProvider(settings)
 
     mock_resp = MagicMock()
-    mock_resp.choices = [MagicMock(message=MagicMock(content="Alexander founded Alexandria in 331 BC."))]
+    mock_resp.choices = [
+        MagicMock(message=MagicMock(content="Alexander founded Alexandria in 331 BC."))
+    ]
 
     with patch("litellm.acompletion", new_callable=AsyncMock) as mock_litellm:
         mock_litellm.return_value = mock_resp
@@ -93,13 +96,15 @@ async def test_ollama_generate_rest_fallback():
     provider = OllamaProvider(settings)
 
     # Simulate LiteLLM failure and REST API fallback
-    with patch("litellm.acompletion", side_effect=Exception("LiteLLM mock error")):
-        with patch("httpx.AsyncClient.post") as mock_post:
-            mock_res = MagicMock()
-            mock_res.status_code = 200
-            mock_res.json.return_value = {"response": "This is a Greco-Roman column."}
-            mock_post.return_value = mock_res
+    with (
+        patch("litellm.acompletion", side_effect=Exception("LiteLLM mock error")),
+        patch("httpx.AsyncClient.post") as mock_post,
+    ):
+        mock_res = MagicMock()
+        mock_res.status_code = 200
+        mock_res.json.return_value = {"response": "This is a Greco-Roman column."}
+        mock_post.return_value = mock_res
 
-            img = Image.new("RGB", (32, 32), color="red")
-            output = await provider.generate("What is this image?", images=[img])
-            assert "Greco-Roman column" in output
+        img = Image.new("RGB", (32, 32), color="red")
+        output = await provider.generate("What is this image?", images=[img])
+        assert "Greco-Roman column" in output

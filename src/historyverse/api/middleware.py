@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import time
 import uuid
+
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -69,5 +70,8 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
             logger.error("Unhandled internal server error: %s", exc, exc_info=True)
             return JSONResponse(
                 status_code=500,
-                content={"error": "InternalServerError", "message": "An unexpected error occurred."},
+                content={
+                    "error": "InternalServerError",
+                    "message": "An unexpected error occurred.",
+                },
             )

@@ -1,6 +1,7 @@
 """Unit tests for Ragas evaluation service."""
 
 import pytest
+
 from historyverse.config.settings import Settings
 from historyverse.services.evaluation.ragas_eval import RagasEvaluator
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+
 from historyverse.config.settings import Settings, get_settings
 from historyverse.core.base import BaseEvaluationProvider
 from historyverse.core.schemas import RagasEvaluationResponse

@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import logging
+
 import uvicorn
+
 from historyverse.config.settings import get_settings
 
 logger = logging.getLogger(__name__)

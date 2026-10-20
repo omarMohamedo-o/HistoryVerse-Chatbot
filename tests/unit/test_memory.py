@@ -1,7 +1,6 @@
 """Unit tests for ConversationMemory manager."""
 
 from unittest.mock import MagicMock
-import json
 
 from historyverse.config.settings import Settings
 from historyverse.services.memory.manager import ConversationMemory
