@@ -3,7 +3,7 @@ name = "historyverse"
 version = "0.1.0"
 description = "HistoryVerse - Modular, model-agnostic historical AI chatbot microservices"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.10,<3.12"
 authors = [{name = "Omar Mohamed", email = "omar@historyverse.dev"}]
 # Minimal lean core dependencies
 dependencies = [
@@ -94,7 +94,7 @@ build-backend = "hatchling.build"
 packages = ["src/historyverse"]
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py310"
 line-length = 100
 src = ["src", "tests"]
 
