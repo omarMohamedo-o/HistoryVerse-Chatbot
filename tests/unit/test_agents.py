@@ -18,7 +18,7 @@ async def test_historyverse_mora_agent_execution():
     assert response.agent_id == "historyverse-mora"
     assert response.agent_name == "Mora"
     assert "Classical" in response.role
-    assert "classical artifacts" in response.output
+    assert "Serapeum" in response.output
 
 
 @pytest.mark.asyncio

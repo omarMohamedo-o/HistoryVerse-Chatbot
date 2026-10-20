@@ -16,6 +16,7 @@ from historyverse.api.routes import (
     evaluate_router,
     health_router,
     ingest_router,
+    mcp_router,
     unlearning_router,
     vision_router,
     voice_router,
@@ -62,5 +63,6 @@ def create_app() -> FastAPI:
     app.include_router(drift_router, prefix="/v1", tags=["drift"])
     app.include_router(agents_router)
     app.include_router(unlearning_router)
+    app.include_router(mcp_router)
 
     return app

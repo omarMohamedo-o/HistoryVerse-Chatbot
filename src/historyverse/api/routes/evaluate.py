@@ -6,8 +6,10 @@ import logging
 
 from fastapi import APIRouter, Depends
 
-from historyverse.api.dependencies import get_ragas_evaluator
+from historyverse.api.dependencies import get_llm_provider, get_ragas_evaluator
+from historyverse.core.base import BaseLLMProvider
 from historyverse.core.schemas import RagasEvaluationRequest, RagasEvaluationResponse
+from historyverse.services.evaluation.ai_evals import AIEvalBenchmarkReport, AIEvalsEngine
 from historyverse.services.evaluation.ragas_eval import RagasEvaluator
 
 logger = logging.getLogger(__name__)
@@ -28,3 +30,13 @@ async def evaluate_rag_output(
         contexts=req.contexts,
         ground_truth=req.ground_truth,
     )
+
+
+@router.post("/evaluate/benchmark", response_model=AIEvalBenchmarkReport)
+async def run_ai_evals_benchmark(
+    dataset_path: str = "evals/datasets/historical_evals.jsonl",
+    llm: BaseLLMProvider = Depends(get_llm_provider),
+) -> AIEvalBenchmarkReport:
+    """Execute AI evaluation benchmark over golden historical dataset."""
+    engine = AIEvalsEngine(llm)
+    return await engine.run_benchmark(dataset_path)

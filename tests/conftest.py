@@ -64,6 +64,17 @@ class MockLLMProvider(BaseLLMProvider):
             )
         if "[MANDATORY UNLEARNING DIRECTIVE]" in prompt:
             return "I do not have verified historical records regarding this topic, as the claim has been retracted."
+        lower_p = prompt.lower()
+        if "serapeum" in lower_p:
+            return "The Serapeum of Alexandria was an ancient Greek temple dedicated to Serapis, built under Ptolemy III."
+        if "pharos" in lower_p or "lighthouse" in lower_p:
+            return "The Pharos Lighthouse of Alexandria was built on the island of Pharos to guide ships into the ancient harbor."
+        if "library of alexandria" in lower_p:
+            return "The Library of Alexandria was an ancient center of scholarship founded under the Ptolemaic dynasty."
+        if "great pyramid" in lower_p and "alien" in lower_p:
+            return "The Great Pyramid of Giza was built in the 26th century BC for Pharaoh Khufu by ancient Egyptian workers, not extraterrestrials."
+        if "atlantis" in lower_p:
+            return "I do not have verified historical records regarding a secret Atlantis tunnel, as this claim is unverified."
         if "fail" in prompt.lower():
             return "I cannot answer this question."
         return "The Greco-Roman Museum in Alexandria houses ancient classical artifacts."

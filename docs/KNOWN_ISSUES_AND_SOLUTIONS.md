@@ -80,3 +80,18 @@ This document records the exact bugs, dependency incompatibilities, and architec
 - **Problem**: When multiple agents (e.g. Mora, Archival Researcher, Critic) interacted with the same user session, their conversation turns and scratchpads shared the same session key, contaminating agent roles.
 - **Solution**: Implemented `AgentMemory` in [`src/historyverse/services/memory/agent_memory.py`](file:///home/omar/Projects/HistoryVerse-Chatbot/src/historyverse/services/memory/agent_memory.py) which automatically namespaces session identifiers as `{agent_id}::{session_id}`. Created `UnlearningEngine` and `UnlearningValidator` to enable selective forgetting of retracted facts with automated adversarial probe testing.
 - **Verification**: Verified by [`tests/unit/test_agent_memory.py`](file:///home/omar/Projects/HistoryVerse-Chatbot/tests/unit/test_agent_memory.py) and [`tests/unit/test_unlearning.py`](file:///home/omar/Projects/HistoryVerse-Chatbot/tests/unit/test_unlearning.py).
+
+---
+
+### Issue 11: Pydantic mixedCase N815 in Model Context Protocol (MCP) Schemas
+- **Symptoms**: Ruff N815 linter errors on `inputSchema` and `mimeType` in MCP schema definitions.
+- **Root Cause**: The official MCP specification dictates camelCase attributes (`inputSchema`, `mimeType`), while PEP 8 forbids mixedCase Python field identifiers.
+- **Permanent Solution**: Defined Pythonic snake_case fields (`input_schema`, `mime_type`) with Pydantic aliases (`alias="inputSchema"`, `alias="mimeType"`) and `model_config = ConfigDict(populate_by_name=True)` in [`src/historyverse/services/mcp/schemas.py`](file:///home/omar/Projects/HistoryVerse-Chatbot/src/historyverse/services/mcp/schemas.py).
+- **Verification**: Verified by clean `ruff check src/ tests/ evals/`.
+
+---
+
+### Issue 12: Tool Execution Failure & Agent Harness Sandboxing
+- **Problem**: Direct tool calling without harness sandboxing caused unhandled exceptions or malformed tool parameters to crash multi-agent reasoning loops.
+- **Solution**: Applied **Harness Engineering Principles** in [`src/historyverse/services/mcp/harness.py`](file:///home/omar/Projects/HistoryVerse-Chatbot/src/historyverse/services/mcp/harness.py). Tools are validated against input schemas, executed in a sandboxed try/except boundary, measured for execution latency, and formatted as structured observations with diagnostic guidance fed back to the agent.
+- **Verification**: Verified by [`tests/unit/test_mcp_harness.py`](file:///home/omar/Projects/HistoryVerse-Chatbot/tests/unit/test_mcp_harness.py) and [`tests/integration/test_mcp_api.py`](file:///home/omar/Projects/HistoryVerse-Chatbot/tests/integration/test_mcp_api.py).
