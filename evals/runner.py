@@ -7,11 +7,17 @@ import asyncio
 import json
 import logging
 import os
+import sys
 from pathlib import Path
 
-from historyverse.config.settings import get_settings
-from historyverse.services.evaluation.ai_evals import AIEvalsEngine
-from historyverse.services.llm.factory import LLMFactory
+# Ensure repository root is on sys.path when running evals/runner.py as a script
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from historyverse.config.settings import get_settings  # noqa: E402
+from historyverse.services.evaluation.ai_evals import AIEvalsEngine  # noqa: E402
+from historyverse.services.llm.factory import LLMFactory  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("evals.runner")
