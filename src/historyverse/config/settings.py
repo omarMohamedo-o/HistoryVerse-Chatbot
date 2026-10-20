@@ -70,6 +70,13 @@ class Settings(BaseSettings):
     ingest_workers: int = 4
     ingest_chunk_size_python: int = 880
 
+    voice_enabled: bool = True
+    stt_enabled: bool = True
+    tts_enabled: bool = True
+    vision_enabled: bool = True
+    video_enabled: bool = True
+    multimodal_fallback_enabled: bool = True
+
     whisper_model_size: str = "small"
     whisper_device: str = "cpu"
     whisper_compute_type: str = "int8"
