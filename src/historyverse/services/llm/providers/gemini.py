@@ -1,0 +1,83 @@
+"""Google Gemini model provider implementation."""
+
+from __future__ import annotations
+
+import base64
+import io
+import logging
+from typing import Any
+from PIL import Image
+
+import litellm
+from historyverse.config.settings import Settings
+from historyverse.core.base import BaseLLMProvider
+from historyverse.core.exceptions import LLMProviderError
+
+logger = logging.getLogger(__name__)
+
+__all__ = ["GeminiProvider"]
+
+
+class GeminiProvider(BaseLLMProvider):
+    """Provider for Google Gemini models via LiteLLM."""
+
+    def __init__(self, settings: Settings) -> None:
+        self._settings = settings
+        self._model_name = settings.llm_model_name
+        self._api_key = settings.google_api_key.get_secret_value()
+
+    @property
+    def model_name(self) -> str:
+        return self._model_name
+
+    async def is_available(self) -> bool:
+        return bool(self._api_key)
+
+    async def generate(
+        self,
+        prompt: str,
+        *,
+        images: list[Image.Image] | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        **kwargs: Any,
+    ) -> str:
+        if not self._api_key:
+            raise LLMProviderError(
+                "Google API key is not configured.", provider="gemini"
+            )
+
+        temp = temperature if temperature is not None else self._settings.llm_temperature
+        tokens = max_tokens if max_tokens is not None else self._settings.llm_max_tokens
+
+        messages: list[dict[str, Any]] = []
+
+        if images:
+            content: list[dict[str, Any]] = [{"type": "text", "text": prompt}]
+            for img in images:
+                buf = io.BytesIO()
+                img.save(buf, format="JPEG")
+                img_b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+                content.append(
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"},
+                    }
+                )
+            messages.append({"role": "user", "content": content})
+        else:
+            messages.append({"role": "user", "content": prompt})
+
+        try:
+            response = await litellm.acompletion(
+                model=self._model_name,
+                messages=messages,
+                temperature=temp,
+                max_tokens=tokens,
+                api_key=self._api_key,
+                **kwargs,
+            )
+            return response.choices[0].message.content or ""
+        except Exception as exc:
+            logger.error("Gemini generation failed: %s", exc, exc_info=True)
+            raise LLMProviderError(str(exc), provider="gemini") from exc
