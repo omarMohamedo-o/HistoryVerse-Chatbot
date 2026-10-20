@@ -44,10 +44,14 @@ class ConversationMemory:
             self._redis_client = client
             logger.info("Connected to Redis memory backend: %s", self._redis_url)
         except ImportError:
-            logger.warning("redis library not installed; falling back to in-memory conversation storage.")
+            logger.warning(
+                "redis library not installed; falling back to in-memory conversation storage."
+            )
             self._redis_client = None
         except Exception as exc:
-            logger.warning("Failed to connect to Redis (%s); falling back to in-memory storage.", exc)
+            logger.warning(
+                "Failed to connect to Redis (%s); falling back to in-memory storage.", exc
+            )
             self._redis_client = None
 
     def _get_redis_key(self, conversation_id: str) -> str:
@@ -69,7 +73,9 @@ class ConversationMemory:
                 self._redis_client.set(key, json.dumps(session), ex=self._redis_ttl)
                 return
             except Exception as exc:
-                logger.warning("Redis write failed (%s); persisting turn in local in-memory fallback.", exc)
+                logger.warning(
+                    "Redis write failed (%s); persisting turn in local in-memory fallback.", exc
+                )
 
         with self._lock:
             if conversation_id not in self._sessions:
@@ -121,3 +127,74 @@ class ConversationMemory:
         with self._lock:
             if conversation_id in self._sessions:
                 del self._sessions[conversation_id]
+
+    def purge_concept(self, keywords: list[str], session_prefix: str | None = None) -> int:
+        """Purge any stored message containing forbidden keywords.
+
+        If session_prefix is provided, only sessions matching the prefix are purged.
+        Returns the total number of dialogue turns removed.
+        """
+        if not keywords:
+            return 0
+
+        lower_keywords = [k.lower().strip() for k in keywords if k.strip()]
+        if not lower_keywords:
+            return 0
+
+        purged_count = 0
+
+        if self._redis_client is not None:
+            try:
+                pattern = (
+                    f"historyverse:session:{session_prefix}*"
+                    if session_prefix
+                    else "historyverse:session:*"
+                )
+                keys = self._redis_client.keys(pattern)
+                for key in keys:
+                    raw = self._redis_client.get(key)
+                    if not raw:
+                        continue
+                    turns: list[dict[str, str]] = json.loads(raw)
+                    cleaned_turns = [
+                        turn
+                        for turn in turns
+                        if not any(kw in turn.get("content", "").lower() for kw in lower_keywords)
+                    ]
+                    diff = len(turns) - len(cleaned_turns)
+                    purged_count += diff
+                    if diff > 0:
+                        (
+                            self._redis_client.set(
+                                key, json.dumps(cleaned_turns), ex=self._redis_ttl
+                            )
+                            if cleaned_turns
+                            else self._redis_client.delete(key)
+                        )
+            except Exception as exc:
+                logger.warning(
+                    "Redis purge failed (%s); proceeding to in-memory fallback purge.", exc
+                )
+
+        with self._lock:
+            target_convs = [
+                cid
+                for cid in self._sessions
+                if session_prefix is None or cid.startswith(session_prefix)
+            ]
+            for cid in target_convs:
+                turns = self._sessions[cid]
+                cleaned_turns = [
+                    turn
+                    for turn in turns
+                    if not any(kw in turn.get("content", "").lower() for kw in lower_keywords)
+                ]
+                diff = len(turns) - len(cleaned_turns)
+                purged_count += diff
+                if diff > 0:
+                    self._sessions[cid] = cleaned_turns if cleaned_turns else []
+                    if not cleaned_turns:
+                        del self._sessions[cid]
+
+        logger.info("Purged %d memory turns matching keywords: %s", purged_count, lower_keywords)
+        return purged_count

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any
+
 import httpx
 
 from historyverse.config.settings import Settings
@@ -61,9 +62,10 @@ class VaultSecretsResolver:
                 resp = await client.get(url, headers=headers)
                 resp.raise_for_status()
                 data = resp.json().get("data", {}).get("data", {})
-                logger.info("Successfully fetched %d secrets from Vault at %s", len(data), self._secret_path)
+                logger.info(
+                    "Successfully fetched %d secrets from Vault at %s", len(data), self._secret_path
+                )
                 return data
         except Exception as exc:
             logger.error("Failed to retrieve secrets from Vault: %s", exc)
             return {}
-

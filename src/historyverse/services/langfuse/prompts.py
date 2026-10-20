@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import os
 from typing import Any
+
 import yaml
 
 from historyverse.config.settings import Settings, get_settings

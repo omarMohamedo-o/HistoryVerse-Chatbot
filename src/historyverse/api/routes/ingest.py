@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+
 from fastapi import APIRouter, Depends
 
 from historyverse.api.dependencies import get_document_ingestor

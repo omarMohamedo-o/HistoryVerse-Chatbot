@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import os
 import re
-import tempfile
+
 from historyverse.config.settings import Settings, get_settings
 from historyverse.core.base import BaseTTSProvider
 from historyverse.core.exceptions import VoiceError
@@ -27,10 +27,12 @@ class GTTSTextToSpeech(BaseTTSProvider):
         if not cleaned:
             raise VoiceError("Cannot synthesize empty text.")
 
-        target = output_path
-        if not target:
-            os.makedirs("outputs", exist_ok=True)
-            target = os.path.join("outputs", f"tts_{os.urandom(4).hex()}.mp3")
+        os.makedirs("outputs", exist_ok=True)
+        target = (
+            output_path
+            if output_path
+            else os.path.join("outputs", f"tts_{os.urandom(4).hex()}.mp3")
+        )
 
         lang = self._detect_language(cleaned)
 

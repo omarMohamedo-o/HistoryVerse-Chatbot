@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import subprocess
 from typing import Any
+
 from PIL import Image
 
 from historyverse.config.settings import Settings, get_settings
@@ -118,20 +119,34 @@ class DriftDetector:
         )
         return best_answer, report
 
+    def trigger_docker_rebuild(self) -> bool:
+        """Trigger container rebuild command."""
+        cmd = self._settings.docker_rebuild_command
+        logger.warning("Executing container rebuild command: %s", cmd)
+        try:
+            subprocess.Popen(cmd, shell=True)
+            return True
+        except Exception as exc:
+            logger.error("Failed to execute docker rebuild command: %s", exc)
+            return False
+
+    def trigger_reingest(self) -> bool:
+        """Trigger automatic document re-ingestion to fix context drift."""
+        try:
+            from historyverse.services.rag.ingest import DocumentIngestor
+
+            logger.info("Executing automatic document re-ingestion to resolve knowledge drift...")
+            ingestor = DocumentIngestor(self._settings)
+            ingestor.ingest()
+            return True
+        except Exception as exc:
+            logger.error("Automated re-ingestion failed: %s", exc)
+            return False
+
     def _handle_persistent_drift(self) -> bool:
         """Execute configured policy when drift persists beyond retries and fallback."""
         if self._action == DriftAction.DOCKER_REBUILD:
-            cmd = self._settings.docker_rebuild_command
-            logger.warning(
-                "Triggering container rebuild hook due to persistent drift: %s",
-                cmd,
-            )
-            try:
-                subprocess.Popen(cmd, shell=True)
-                return True
-            except Exception as exc:
-                logger.error("Failed to execute docker rebuild command: %s", exc)
-                return False
+            return self.trigger_docker_rebuild()
 
         logger.warning(
             "Persistent drift recorded: threshold=%.2f action=%s",

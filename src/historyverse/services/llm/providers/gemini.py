@@ -6,9 +6,10 @@ import base64
 import io
 import logging
 from typing import Any
-from PIL import Image
 
 import litellm
+from PIL import Image
+
 from historyverse.config.settings import Settings
 from historyverse.core.base import BaseLLMProvider
 from historyverse.core.exceptions import LLMProviderError
@@ -71,9 +72,7 @@ class GeminiProvider(BaseLLMProvider):
         **kwargs: Any,
     ) -> str:
         if not self._api_key:
-            raise LLMProviderError(
-                "Google API key is not configured.", provider="gemini"
-            )
+            raise LLMProviderError("Google API key is not configured.", provider="gemini")
 
         temp = temperature if temperature is not None else self._settings.llm_temperature
         tokens = max_tokens if max_tokens is not None else self._settings.llm_max_tokens

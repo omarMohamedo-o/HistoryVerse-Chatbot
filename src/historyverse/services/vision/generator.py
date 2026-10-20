@@ -5,9 +5,10 @@ from __future__ import annotations
 import logging
 import os
 import uuid
-import httpx
 
+import httpx
 import litellm
+
 from historyverse.config.settings import Settings, get_settings
 from historyverse.core.base import BaseLLMProvider
 from historyverse.core.exceptions import VisionError
@@ -60,7 +61,10 @@ class ImageGenerator:
         filepath = os.path.join(self._outputs_dir, filename)
 
         if self._llm.supports_image_generation:
-            logger.info("Active provider (%s) natively supports image generation; invoking directly.", self._llm.model_name)
+            logger.info(
+                "Active provider (%s) natively supports image generation; invoking directly.",
+                self._llm.model_name,
+            )
             direct_url = await self._llm.generate_image(
                 enhanced_prompt,
                 size=size,
@@ -75,7 +79,10 @@ class ImageGenerator:
                     model_used=self._llm.model_name,
                 )
 
-        logger.info("Provider does not support direct image creation; using decoupled generator (%s).", self._model)
+        logger.info(
+            "Provider does not support direct image creation; using decoupled generator (%s).",
+            self._model,
+        )
         api_key = (
             self._settings.openai_api_key.get_secret_value()
             or self._settings.google_api_key.get_secret_value()

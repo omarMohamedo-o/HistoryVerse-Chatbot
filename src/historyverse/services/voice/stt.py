@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+
 from historyverse.config.settings import Settings, get_settings
 from historyverse.core.base import BaseSTTProvider
 from historyverse.core.exceptions import VoiceError

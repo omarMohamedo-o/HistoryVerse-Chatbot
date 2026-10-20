@@ -10,10 +10,10 @@ import subprocess
 import urllib.error
 import urllib.request
 from typing import Any
-from PIL import Image
 
 import httpx
 import litellm
+from PIL import Image
 
 from historyverse.config.settings import Settings
 from historyverse.core.base import BaseLLMProvider
@@ -30,7 +30,9 @@ class OllamaProvider(BaseLLMProvider):
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
         raw_name = settings.llm_model_name
-        self._model_name = raw_name.replace("ollama/", "") if raw_name.startswith("ollama/") else raw_name
+        self._model_name = (
+            raw_name.replace("ollama/", "") if raw_name.startswith("ollama/") else raw_name
+        )
         self._base_url = settings.ollama_base_url.rstrip("/")
         self._auto_download = settings.llm_auto_download
         self._ensure_model_available()
@@ -67,7 +69,11 @@ class OllamaProvider(BaseLLMProvider):
                 method="POST",
             )
             with urllib.request.urlopen(req, timeout=300) as resp:
-                logger.info("Ollama model '%s' pulled successfully (HTTP %d).", self._model_name, resp.status)
+                logger.info(
+                    "Ollama model '%s' pulled successfully (HTTP %d).",
+                    self._model_name,
+                    resp.status,
+                )
                 return
         except Exception as api_exc:
             logger.warning("Ollama API pull failed (%s); trying CLI fallback...", api_exc)
@@ -127,7 +133,9 @@ class OllamaProvider(BaseLLMProvider):
                 )
                 return response.choices[0].message.content or ""
             except Exception as exc:
-                logger.warning("LiteLLM Ollama call failed (%s); attempting direct REST fallback...", exc)
+                logger.warning(
+                    "LiteLLM Ollama call failed (%s); attempting direct REST fallback...", exc
+                )
 
         # Direct REST API fallback (supports vision models e.g. llava, llama3.2-vision)
         try:

@@ -5,7 +5,9 @@ from __future__ import annotations
 import os
 import shutil
 import time
+
 from fastapi import APIRouter, Depends, Response
+
 from historyverse import __version__
 from historyverse.api.dependencies import get_app_settings, get_llm_provider
 from historyverse.config.settings import Settings
@@ -40,7 +42,7 @@ async def check_readiness(
     provider_available = await provider.is_available()
     chroma_accessible = os.path.exists(settings.chroma_persist_dir)
 
-    total, used, free = shutil.disk_usage("/")
+    _, _, free = shutil.disk_usage("/")
     free_gb = round(free / (1024**3), 2)
     disk_healthy = free_gb > 0.5
 

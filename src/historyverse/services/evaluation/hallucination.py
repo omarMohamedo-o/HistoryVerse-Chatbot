@@ -28,11 +28,14 @@ class HallucinationDetector:
         resp_lower = response.lower()
         context_corpus = " ".join(source_documents).lower()
 
-        resp_words = [w for w in resp_lower.split() if len(w) > 3]
+        resp_words = [
+            w.strip(".,!?:;'\"()") for w in resp_lower.split() if len(w.strip(".,!?:;'\"()")) > 3
+        ]
         if not resp_words:
             return 0.5
 
-        matched = sum(1 for word in resp_words if word in context_corpus)
+        context_words = {w.strip(".,!?:;'\"()") for w in context_corpus.split()}
+        matched = sum(1 for word in resp_words if word in context_words or word in context_corpus)
         grounding_ratio = matched / len(resp_words)
 
         hallucination_score = 1.0 - grounding_ratio

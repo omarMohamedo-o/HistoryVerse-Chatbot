@@ -8,6 +8,7 @@ __all__ = [
     "DriftAction",
     "EmbeddingProvider",
     "LLMProvider",
+    "UnlearningStatus",
 ]
 
 
@@ -56,3 +57,12 @@ class EmbeddingProvider(str, Enum):
     HUGGINGFACE = "huggingface"
     OLLAMA = "ollama"
     OPENAI = "openai"
+
+
+class UnlearningStatus(str, Enum):
+    """Status outcomes for selective knowledge unlearning verification."""
+
+    FORGOTTEN_VERIFIED = "forgotten_verified"
+    LEAKAGE_DETECTED = "leakage_detected"
+    PENDING_VERIFICATION = "pending_verification"
+    PARTIAL_FORGET = "partial_forget"

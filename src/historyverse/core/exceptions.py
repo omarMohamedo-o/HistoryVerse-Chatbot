@@ -45,7 +45,9 @@ class ModelNotFoundError(LLMProviderError):
     """Raised when a specified local or remote model cannot be resolved or downloaded."""
 
     def __init__(self, model_identifier: str, provider: str = "local") -> None:
-        super().__init__(f"Model '{model_identifier}' was not found and could not be loaded.", provider)
+        super().__init__(
+            f"Model '{model_identifier}' was not found and could not be loaded.", provider
+        )
         self.model_identifier = model_identifier
 
 

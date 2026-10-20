@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import logging
-from functools import lru_cache
+from typing import Any
+
 from fastapi import Depends
 
 from historyverse.config.settings import Settings, get_settings
@@ -25,6 +26,7 @@ from historyverse.services.voice.tts import GTTSTextToSpeech
 logger = logging.getLogger(__name__)
 
 __all__ = [
+    "get_agent_memory_manager",
     "get_app_settings",
     "get_conversation_memory",
     "get_document_ingestor",
@@ -39,7 +41,16 @@ __all__ = [
     "get_retriever",
     "get_stt_provider",
     "get_tts_provider",
+    "get_unlearning_engine",
 ]
+
+# Process-level singleton cache for heavy microservice components
+_SINGLETON_CACHE: dict[str, Any] = {}
+
+
+def reset_dependencies_cache() -> None:
+    """Clear all cached singletons for testing isolation."""
+    _SINGLETON_CACHE.clear()
 
 
 def get_app_settings() -> Settings:
@@ -47,71 +58,77 @@ def get_app_settings() -> Settings:
     return get_settings()
 
 
-@lru_cache(maxsize=1)
 def get_llm_provider(settings: Settings = Depends(get_app_settings)) -> BaseLLMProvider:
     """Return the configured primary LLM provider."""
-    return LLMFactory.create(settings)
+    if "llm_provider" not in _SINGLETON_CACHE:
+        _SINGLETON_CACHE["llm_provider"] = LLMFactory.create(settings)
+    return _SINGLETON_CACHE["llm_provider"]
 
 
-@lru_cache(maxsize=1)
 def get_drift_detector(
     settings: Settings = Depends(get_app_settings),
     provider: BaseLLMProvider = Depends(get_llm_provider),
 ) -> DriftDetector:
     """Return the drift detector configured with primary and fallback providers."""
-    fallback_provider = None
-    if settings.drift_fallback_model:
-        try:
-            fallback_provider = LLMFactory.create(settings)
-        except Exception as exc:
-            logger.warning("Could not instantiate fallback provider: %s", exc)
+    if "drift_detector" not in _SINGLETON_CACHE:
+        fallback_provider = None
+        if settings.drift_fallback_model:
+            try:
+                fallback_provider = LLMFactory.create(settings)
+            except Exception as exc:
+                logger.warning("Could not instantiate fallback provider: %s", exc)
 
-    return DriftDetector(
-        primary_provider=provider,
-        fallback_provider=fallback_provider,
-        settings=settings,
-    )
+        _SINGLETON_CACHE["drift_detector"] = DriftDetector(
+            primary_provider=provider,
+            fallback_provider=fallback_provider,
+            settings=settings,
+        )
+    return _SINGLETON_CACHE["drift_detector"]
 
 
-@lru_cache(maxsize=1)
 def get_prompt_manager(
     settings: Settings = Depends(get_app_settings),
 ) -> PromptManager:
     """Return versioned prompt manager."""
-    return PromptManager(settings)
+    if "prompt_manager" not in _SINGLETON_CACHE:
+        _SINGLETON_CACHE["prompt_manager"] = PromptManager(settings)
+    return _SINGLETON_CACHE["prompt_manager"]
 
 
-@lru_cache(maxsize=1)
 def get_retriever(
     settings: Settings = Depends(get_app_settings),
 ) -> ChromaRetriever:
     """Return ChromaDB retriever."""
-    return ChromaRetriever(settings)
+    if "retriever" not in _SINGLETON_CACHE:
+        _SINGLETON_CACHE["retriever"] = ChromaRetriever(settings)
+    return _SINGLETON_CACHE["retriever"]
 
 
-@lru_cache(maxsize=1)
 def get_hallucination_detector() -> HallucinationDetector:
     """Return hallucination detector."""
-    return HallucinationDetector()
+    if "hallucination_detector" not in _SINGLETON_CACHE:
+        _SINGLETON_CACHE["hallucination_detector"] = HallucinationDetector()
+    return _SINGLETON_CACHE["hallucination_detector"]
 
 
-@lru_cache(maxsize=1)
 def get_ragas_evaluator(
     settings: Settings = Depends(get_app_settings),
 ) -> RagasEvaluator:
     """Return Ragas evaluator."""
-    return RagasEvaluator(settings)
+    if "ragas_evaluator" not in _SINGLETON_CACHE:
+        _SINGLETON_CACHE["ragas_evaluator"] = RagasEvaluator(settings)
+    return _SINGLETON_CACHE["ragas_evaluator"]
 
 
-@lru_cache(maxsize=1)
 def get_conversation_memory(
     settings: Settings = Depends(get_app_settings),
 ) -> ConversationMemory:
     """Return conversation memory manager."""
-    return ConversationMemory(settings)
+    if "conversation_memory" not in _SINGLETON_CACHE:
+        _SINGLETON_CACHE["conversation_memory"] = ConversationMemory(settings)
+    return _SINGLETON_CACHE["conversation_memory"]
 
 
-@lru_cache(maxsize=1)
 def get_rag_pipeline(
     retriever: ChromaRetriever = Depends(get_retriever),
     provider: BaseLLMProvider = Depends(get_llm_provider),
@@ -121,45 +138,52 @@ def get_rag_pipeline(
     settings: Settings = Depends(get_app_settings),
 ) -> RAGPipeline:
     """Return the RAG pipeline."""
-    return RAGPipeline(
-        retriever=retriever,
-        llm_provider=provider,
-        drift_detector=drift,
-        prompt_manager=prompts,
-        hallucination_detector=hallucination,
-        settings=settings,
-    )
+    if "rag_pipeline" not in _SINGLETON_CACHE:
+        _SINGLETON_CACHE["rag_pipeline"] = RAGPipeline(
+            retriever=retriever,
+            llm_provider=provider,
+            drift_detector=drift,
+            prompt_manager=prompts,
+            hallucination_detector=hallucination,
+            settings=settings,
+        )
+    return _SINGLETON_CACHE["rag_pipeline"]
 
 
-@lru_cache(maxsize=1)
 def get_document_ingestor(
     settings: Settings = Depends(get_app_settings),
 ) -> DocumentIngestor:
     """Return document ingestor."""
-    return DocumentIngestor(settings)
+    if "document_ingestor" not in _SINGLETON_CACHE:
+        _SINGLETON_CACHE["document_ingestor"] = DocumentIngestor(settings)
+    return _SINGLETON_CACHE["document_ingestor"]
 
 
-@lru_cache(maxsize=1)
 def get_stt_provider(
     settings: Settings = Depends(get_app_settings),
 ) -> WhisperSTT:
     """Return Whisper speech-to-text provider."""
-    return WhisperSTT(settings)
+    if "stt_provider" not in _SINGLETON_CACHE:
+        _SINGLETON_CACHE["stt_provider"] = WhisperSTT(settings)
+    return _SINGLETON_CACHE["stt_provider"]
 
 
-@lru_cache(maxsize=1)
 def get_tts_provider(
     settings: Settings = Depends(get_app_settings),
 ) -> GTTSTextToSpeech:
     """Return text-to-speech provider."""
-    return GTTSTextToSpeech(settings)
+    if "tts_provider" not in _SINGLETON_CACHE:
+        _SINGLETON_CACHE["tts_provider"] = GTTSTextToSpeech(settings)
+    return _SINGLETON_CACHE["tts_provider"]
 
 
 def get_image_analyzer(
     provider: BaseLLMProvider = Depends(get_llm_provider),
 ) -> ImageAnalyzer:
     """Return image analyzer."""
-    return ImageAnalyzer(provider)
+    if "image_analyzer" not in _SINGLETON_CACHE:
+        _SINGLETON_CACHE["image_analyzer"] = ImageAnalyzer(provider)
+    return _SINGLETON_CACHE["image_analyzer"]
 
 
 def get_image_generator(
@@ -168,4 +192,36 @@ def get_image_generator(
     settings: Settings = Depends(get_app_settings),
 ) -> ImageGenerator:
     """Return historical image generator."""
-    return ImageGenerator(llm_provider=provider, prompt_manager=prompts, settings=settings)
+    if "image_generator" not in _SINGLETON_CACHE:
+        _SINGLETON_CACHE["image_generator"] = ImageGenerator(
+            llm_provider=provider, prompt_manager=prompts, settings=settings
+        )
+    return _SINGLETON_CACHE["image_generator"]
+
+
+def get_agent_memory_manager(
+    settings: Settings = Depends(get_app_settings),
+) -> Any:
+    """Return the isolated agent memory manager."""
+    if "agent_memory_manager" not in _SINGLETON_CACHE:
+        from historyverse.services.memory.agent_memory import AgentMemoryManager
+
+        _SINGLETON_CACHE["agent_memory_manager"] = AgentMemoryManager(settings=settings)
+    return _SINGLETON_CACHE["agent_memory_manager"]
+
+
+def get_unlearning_engine(
+    provider: BaseLLMProvider = Depends(get_llm_provider),
+    memory: Any = Depends(get_agent_memory_manager),
+    retriever: ChromaRetriever = Depends(get_retriever),
+) -> Any:
+    """Return machine unlearning and validation engine."""
+    if "unlearning_engine" not in _SINGLETON_CACHE:
+        from historyverse.services.unlearning.engine import UnlearningEngine
+
+        _SINGLETON_CACHE["unlearning_engine"] = UnlearningEngine(
+            llm_provider=provider,
+            memory_manager=memory,
+            retriever=retriever,
+        )
+    return _SINGLETON_CACHE["unlearning_engine"]
