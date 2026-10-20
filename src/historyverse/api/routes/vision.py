@@ -12,6 +12,7 @@ from historyverse.api.dependencies import (
     get_app_settings,
     get_image_analyzer,
     get_image_generator,
+    get_video_generator,
 )
 from historyverse.config.settings import Settings
 from historyverse.core.exceptions import VisionError
@@ -19,9 +20,12 @@ from historyverse.core.schemas import (
     ChatResponse,
     ImageGenerationRequest,
     ImageGenerationResponse,
+    VideoGenerationRequest,
+    VideoGenerationResponse,
 )
 from historyverse.services.vision.analyzer import ImageAnalyzer
 from historyverse.services.vision.generator import ImageGenerator
+from historyverse.services.vision.video_generator import VideoGenerator
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -94,5 +98,26 @@ async def generate_historical_image(
         prompt=req.prompt,
         size=req.size,
         quality=req.quality,
+        enhance=req.enhance_prompt,
+    )
+
+
+@router.post("/vision/video/generate", response_model=VideoGenerationResponse)
+async def generate_historical_video(
+    req: VideoGenerationRequest,
+    settings: Settings = Depends(get_app_settings),
+    generator: VideoGenerator = Depends(get_video_generator),
+) -> VideoGenerationResponse:
+    """Synthesize a historically authentic video reconstruction or animation."""
+    if not settings.video_generation_enabled or not settings.video_enabled:
+        raise VisionError("Video generation is disabled in application settings.")
+
+    return await generator.generate_historical_video(
+        prompt=req.prompt,
+        image_url=req.image_url,
+        duration_seconds=req.duration_seconds,
+        fps=req.fps,
+        resolution=req.resolution,
+        aspect_ratio=req.aspect_ratio,
         enhance=req.enhance_prompt,
     )

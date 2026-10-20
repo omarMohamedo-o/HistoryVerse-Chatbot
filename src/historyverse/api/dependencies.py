@@ -42,6 +42,7 @@ __all__ = [
     "get_stt_provider",
     "get_tts_provider",
     "get_unlearning_engine",
+    "get_video_generator",
 ]
 
 # Process-level singleton cache for heavy microservice components
@@ -197,6 +198,21 @@ def get_image_generator(
             llm_provider=provider, prompt_manager=prompts, settings=settings
         )
     return _SINGLETON_CACHE["image_generator"]
+
+
+def get_video_generator(
+    provider: BaseLLMProvider = Depends(get_llm_provider),
+    prompts: PromptManager = Depends(get_prompt_manager),
+    settings: Settings = Depends(get_app_settings),
+) -> Any:
+    """Return historical video generator."""
+    if "video_generator" not in _SINGLETON_CACHE:
+        from historyverse.services.vision.video_generator import VideoGenerator
+
+        _SINGLETON_CACHE["video_generator"] = VideoGenerator(
+            llm_provider=provider, prompt_manager=prompts, settings=settings
+        )
+    return _SINGLETON_CACHE["video_generator"]
 
 
 def get_agent_memory_manager(

@@ -30,6 +30,8 @@ __all__ = [
     "TombstoneRecord",
     "UnlearningRequest",
     "UnlearningValidationReport",
+    "VideoGenerationRequest",
+    "VideoGenerationResponse",
 ]
 
 
@@ -115,6 +117,42 @@ class ImageGenerationResponse(BaseModel):
     )
     image_url: str = Field(..., description="Direct URL or local path to generated image file")
     model_used: str = Field(..., description="Model identifier used for synthesis")
+
+
+class VideoGenerationRequest(BaseModel):
+    """Payload for generating historical videos or animating ancient scenes/artifacts."""
+
+    prompt: str = Field(
+        ..., min_length=3, description="Description of the historical scene, motion, or event"
+    )
+    image_url: str | None = Field(
+        default=None, description="Optional source image for image-to-video historical animation"
+    )
+    duration_seconds: int = Field(
+        default=4, ge=1, le=60, description="Target duration of the video clip in seconds"
+    )
+    fps: int = Field(default=24, ge=1, le=60, description="Frames per second")
+    resolution: str = Field(
+        default="1024x1024", description="Video resolution (e.g. 1024x1024, 1280x720)"
+    )
+    aspect_ratio: str = Field(default="16:9", description="Aspect ratio (16:9, 9:16, 1:1)")
+    enhance_prompt: bool = Field(
+        default=True,
+        description="Whether to historically enrich camera motion and atmospheric details",
+    )
+
+
+class VideoGenerationResponse(BaseModel):
+    """Response containing URL or path to generated historical video."""
+
+    original_prompt: str = Field(..., description="Input prompt provided by user")
+    enhanced_prompt: str = Field(
+        ..., description="Historically expanded prompt with cinematic and motion cues"
+    )
+    video_url: str = Field(..., description="Direct URL or local path to generated video file")
+    duration_seconds: float = Field(..., description="Video duration in seconds")
+    fps: int = Field(default=24, description="Frames per second")
+    model_used: str = Field(..., description="Model identifier used for video synthesis")
 
 
 class IngestRequest(BaseModel):

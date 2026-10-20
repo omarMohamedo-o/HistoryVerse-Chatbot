@@ -87,6 +87,10 @@ class Settings(BaseSettings):
     video_enabled: bool = True
     image_generation_enabled: bool = True
     image_generation_model: str = "dall-e-3"
+    video_generation_enabled: bool = True
+    video_generation_model: str = "luma/dream-machine"
+    video_default_duration_seconds: int = 4
+    video_default_fps: int = 24
     multimodal_fallback_enabled: bool = True
 
     whisper_model_size: str = "small"

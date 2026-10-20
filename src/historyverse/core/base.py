@@ -67,6 +67,24 @@ class BaseLLMProvider(ABC):
         """Natively synthesize an image if supported by the provider."""
         return None
 
+    @property
+    def supports_video_generation(self) -> bool:
+        """Indicate whether the provider natively supports video generation."""
+        return False
+
+    async def generate_video(
+        self,
+        prompt: str,
+        *,
+        image_url: str | None = None,
+        duration_seconds: int = 4,
+        fps: int = 24,
+        resolution: str = "1024x1024",
+        **kwargs: Any,
+    ) -> str | None:
+        """Natively synthesize a video if supported by the provider."""
+        return None
+
     async def generate_with_confidence(
         self,
         prompt: str,

@@ -16,12 +16,18 @@ from historyverse.api.dependencies import (
     get_rag_pipeline,
     get_stt_provider,
     get_tts_provider,
+    get_video_generator,
 )
 from historyverse.config.settings import Settings
-from historyverse.core.schemas import ChatResponse, ImageGenerationResponse
+from historyverse.core.schemas import (
+    ChatResponse,
+    ImageGenerationResponse,
+    VideoGenerationResponse,
+)
 from historyverse.services.rag.pipeline import RAGPipeline
 from historyverse.services.vision.analyzer import ImageAnalyzer
 from historyverse.services.vision.generator import ImageGenerator
+from historyverse.services.vision.video_generator import VideoGenerator
 from historyverse.services.voice.stt import WhisperSTT
 from historyverse.services.voice.tts import GTTSTextToSpeech
 
@@ -73,11 +79,24 @@ def client_with_overrides():
         )
     )
 
+    mock_video_generator = MagicMock(spec=VideoGenerator)
+    mock_video_generator.generate_historical_video = AsyncMock(
+        return_value=VideoGenerationResponse(
+            original_prompt="Pharos sweeping light over the sea",
+            enhanced_prompt="Cinematic drone pan over classical Alexandria Pharos",
+            video_url="https://historyverse.test/pharos_pan.mp4",
+            duration_seconds=4.0,
+            fps=24,
+            model_used="luma/dream-machine",
+        )
+    )
+
     app.dependency_overrides[get_app_settings] = lambda: settings
     app.dependency_overrides[get_stt_provider] = lambda: mock_stt
     app.dependency_overrides[get_tts_provider] = lambda: mock_tts
     app.dependency_overrides[get_image_analyzer] = lambda: mock_analyzer
     app.dependency_overrides[get_image_generator] = lambda: mock_generator
+    app.dependency_overrides[get_video_generator] = lambda: mock_video_generator
     app.dependency_overrides[get_rag_pipeline] = lambda: mock_pipeline
 
     with TestClient(app) as test_client:
@@ -108,6 +127,25 @@ def test_vision_generate_api(client_with_overrides):
     data = response.json()
     assert data["original_prompt"] == "Pharos at sunset"
     assert "pharos.png" in data["image_url"]
+
+
+def test_vision_video_generate_api(client_with_overrides):
+    response = client_with_overrides.post(
+        "/v1/vision/video/generate",
+        json={
+            "prompt": "Pharos sweeping light over the sea",
+            "duration_seconds": 4,
+            "fps": 24,
+            "enhance_prompt": True,
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["original_prompt"] == "Pharos sweeping light over the sea"
+    assert "pharos_pan.mp4" in data["video_url"]
+    assert data["duration_seconds"] == 4.0
+    assert data["fps"] == 24
+    assert data["model_used"] == "luma/dream-machine"
 
 
 def test_voice_transcribe_and_chat_api(client_with_overrides):
