@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     llm_n_gpu_layers: int = 0
     llm_n_batch: int = 512
     llm_context_window: int = 4096
+    ollama_base_url: str = "http://localhost:11434"
 
     google_api_key: SecretStr = Field(default=SecretStr(""))
     openai_api_key: SecretStr = Field(default=SecretStr(""))

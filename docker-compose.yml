@@ -14,6 +14,7 @@ services:
       - API_HOST=0.0.0.0
       - API_PORT=8000
       - REDIS_URL=redis://redis:6379/0
+      - OLLAMA_BASE_URL=http://ollama:11434
     volumes:
       - ./dataset:/app/dataset:ro
       - ./DB:/app/DB
@@ -71,6 +72,26 @@ services:
         max-size: "5m"
         max-file: "2"
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: historyverse-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - historyverse-network
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "2"
+
   chromadb:
     image: chromadb/chroma:latest
     container_name: historyverse-chromadb
@@ -98,6 +119,7 @@ services:
 
 volumes:
   redis_data:
+  ollama_data:
 
 networks:
   historyverse-network:

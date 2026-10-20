@@ -169,6 +169,19 @@ class DocumentIngestor:
                     google_api_key=api_key,
                 )
 
+        if provider == EmbeddingProvider.OLLAMA:
+            try:
+                from langchain_community.embeddings import OllamaEmbeddings
+
+                model_name = self._settings.embedding_model or "nomic-embed-text"
+                logger.info("Using Ollama Embeddings: %s via %s", model_name, self._settings.ollama_base_url)
+                return OllamaEmbeddings(
+                    model=model_name,
+                    base_url=self._settings.ollama_base_url,
+                )
+            except Exception as exc:
+                logger.warning("OllamaEmbeddings failed (%s); falling back to local embeddings.", exc)
+
         try:
             from langchain_community.embeddings import HuggingFaceInstructEmbeddings
 
