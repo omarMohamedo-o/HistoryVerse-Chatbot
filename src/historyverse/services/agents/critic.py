@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from historyverse.core.base import BaseLLMProvider
 from historyverse.services.agents.base import AgentResponse, BaseAgent
 from historyverse.services.evaluation.hallucination import HallucinationDetector
+
+if TYPE_CHECKING:
+    from historyverse.services.memory.agent_memory import AgentMemory
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +26,7 @@ class CriticAgent(BaseAgent):
         hallucination_detector: HallucinationDetector | None = None,
         agent_id: str = "historical-critic",
         name: str = "Critic",
+        memory: AgentMemory | None = None,
     ) -> None:
         system_prompt = (
             "You are a rigorous historical peer reviewer and critic. Analyze the drafted answer for "
@@ -35,6 +39,7 @@ class CriticAgent(BaseAgent):
             role="Peer Reviewer & Fact Verifier",
             system_prompt=system_prompt,
             llm_provider=llm_provider,
+            memory=memory,
         )
         self.detector = hallucination_detector or HallucinationDetector()
 

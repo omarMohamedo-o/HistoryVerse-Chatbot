@@ -73,6 +73,43 @@ class AgentMemory:
         )
         return purged
 
+    async def add_exchange_async(self, session_id: str, question: str, answer: str) -> None:
+        """Non-blocking turn append for async pipelines."""
+        scoped_id = self.scope_session(session_id)
+        await self._backend.add_exchange_async(scoped_id, question, answer)
+
+    async def get_history_async(self, session_id: str) -> list[dict[str, str]]:
+        """Non-blocking history fetch for async pipelines."""
+        scoped_id = self.scope_session(session_id)
+        return await self._backend.get_history_async(scoped_id)
+
+    async def get_formatted_history_async(
+        self, session_id: str, assistant_name: str | None = None
+    ) -> str:
+        """Non-blocking formatted history retrieval."""
+        scoped_id = self.scope_session(session_id)
+        name = assistant_name or self.agent_id
+        return await self._backend.get_formatted_history_async(scoped_id, assistant_name=name)
+
+    async def clear_async(self, session_id: str) -> None:
+        """Non-blocking session reset."""
+        scoped_id = self.scope_session(session_id)
+        await self._backend.clear_async(scoped_id)
+
+    async def unlearn_concept_async(
+        self, keywords: list[str], session_id: str | None = None
+    ) -> int:
+        """Non-blocking unlearning purge."""
+        prefix = self.scope_session(session_id) if session_id else f"{self.agent_id}::"
+        purged = await self._backend.purge_concept_async(keywords, session_prefix=prefix)
+        logger.info(
+            "Agent [%s] unlearned (async) %d memory turns matching keywords: %s",
+            self.agent_id,
+            purged,
+            keywords,
+        )
+        return purged
+
 
 class AgentMemoryManager:
     """Registry managing isolated AgentMemory instances for all active agents."""

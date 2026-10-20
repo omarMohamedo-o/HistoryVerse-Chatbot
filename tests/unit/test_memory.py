@@ -93,3 +93,42 @@ def test_conversation_memory_redis_failure_fallback():
 
     history = memory.get_history(cid)
     assert len(history) == 2
+
+
+async def test_conversation_memory_async_non_blocking_methods():
+    settings = Settings(max_conversation_history=4)
+    memory = ConversationMemory(settings)
+    cid = "async-session-1"
+
+    await memory.add_exchange_async(cid, "Tell me about Giza", "The Pyramids are in Giza.")
+    history = await memory.get_history_async(cid)
+    assert len(history) == 2
+    assert history[0]["content"] == "Tell me about Giza"
+
+    formatted = await memory.get_formatted_history_async(cid)
+    assert "The Pyramids are in Giza" in formatted
+
+    purged = await memory.purge_concept_async(["Giza"])
+    assert purged == 2
+    assert len(await memory.get_history_async(cid)) == 0
+
+    await memory.add_exchange_async(cid, "New query", "New answer")
+    await memory.clear_async(cid)
+    assert len(await memory.get_history_async(cid)) == 0
+
+
+def test_conversation_memory_scan_iter_purge():
+    settings = Settings(redis_url="redis://fake:6379/0")
+    memory = ConversationMemory(settings)
+
+    mock_client = MagicMock()
+    # Mock scan_iter to return matching keys
+    mock_client.scan_iter.return_value = ["historyverse:session:test-scan-1"]
+    mock_client.get.return_value = '[{"role": "user", "content": "Tell me about Tutankhamun"}]'
+
+    memory._redis_client = mock_client
+    purged = memory.purge_concept(["Tutankhamun"])
+
+    assert purged == 1
+    mock_client.scan_iter.assert_called_once_with(match="historyverse:session:*", count=100)
+    mock_client.delete.assert_called_once_with("historyverse:session:test-scan-1")

@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from historyverse.core.base import BaseLLMProvider
 from historyverse.services.agents.base import AgentResponse, BaseAgent
+
+if TYPE_CHECKING:
+    from historyverse.services.memory.agent_memory import AgentMemory
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +26,7 @@ class HistoryVerseAgent(BaseAgent):
         name: str | None = None,
         role: str = "Classical & Egyptian Historical Expert",
         system_prompt: str | None = None,
+        memory: AgentMemory | None = None,
     ) -> None:
         from historyverse.config.settings import get_settings
 
@@ -42,6 +46,7 @@ class HistoryVerseAgent(BaseAgent):
             role=role,
             system_prompt=prompt,
             llm_provider=llm_provider,
+            memory=memory,
         )
 
     async def run(self, query: str, context: dict[str, Any] | None = None) -> AgentResponse:

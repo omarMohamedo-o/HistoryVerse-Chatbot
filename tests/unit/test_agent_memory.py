@@ -79,3 +79,40 @@ def test_agent_memory_manager_multi_agent():
 
     assert mem1 is mem1_again
     assert mem1.agent_id != mem2.agent_id
+
+
+async def test_agent_memory_async_isolation_and_unlearning():
+    """Verify non-blocking async operations maintain strict agent isolation and unlearning."""
+    shared_backend = ConversationMemory(Settings())
+    mem_a = AgentMemory("agent-async-a", backend=shared_backend)
+    mem_b = AgentMemory("agent-async-b", backend=shared_backend)
+    session_id = "session-async-1"
+
+    await mem_a.add_exchange_async(
+        session_id, "Who was Cleopatra?", "Cleopatra was Queen of Egypt."
+    )
+    await mem_b.add_exchange_async(
+        session_id, "Who was Julius Caesar?", "Caesar was Roman dictator."
+    )
+
+    history_a = await mem_a.get_history_async(session_id)
+    history_b = await mem_b.get_history_async(session_id)
+
+    assert len(history_a) == 2
+    assert "Cleopatra" in history_a[0]["content"]
+    assert len(history_b) == 2
+    assert "Caesar" in history_b[0]["content"]
+
+    formatted_a = await mem_a.get_formatted_history_async(session_id)
+    assert "Cleopatra" in formatted_a
+
+    # Unlearn only for agent A
+    purged = await mem_a.unlearn_concept_async(["Cleopatra"], session_id=session_id)
+    assert purged == 2
+    assert len(await mem_a.get_history_async(session_id)) == 0
+
+    # Agent B must be untouched
+    assert len(await mem_b.get_history_async(session_id)) == 2
+
+    await mem_b.clear_async(session_id)
+    assert len(await mem_b.get_history_async(session_id)) == 0

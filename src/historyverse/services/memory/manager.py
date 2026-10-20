@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import threading
@@ -151,7 +152,12 @@ class ConversationMemory:
                     if session_prefix
                     else "historyverse:session:*"
                 )
-                keys = self._redis_client.keys(pattern)
+                # Non-blocking cursor scanning instead of blocking KEYS command
+                keys = (
+                    list(self._redis_client.scan_iter(match=pattern, count=100))
+                    if hasattr(self._redis_client, "scan_iter")
+                    else self._redis_client.keys(pattern)
+                )
                 for key in keys:
                     raw = self._redis_client.get(key)
                     if not raw:
@@ -199,3 +205,28 @@ class ConversationMemory:
 
         logger.info("Purged %d memory turns matching keywords: %s", purged_count, lower_keywords)
         return purged_count
+
+    # Non-blocking concurrency wrappers for async event loop pipelines
+    async def add_exchange_async(self, conversation_id: str, question: str, answer: str) -> None:
+        """Non-blocking turn append offloaded to threadpool."""
+        await asyncio.to_thread(self.add_exchange, conversation_id, question, answer)
+
+    async def get_history_async(self, conversation_id: str) -> list[dict[str, str]]:
+        """Non-blocking history fetch offloaded to threadpool."""
+        return await asyncio.to_thread(self.get_history, conversation_id)
+
+    async def get_formatted_history_async(
+        self, conversation_id: str, assistant_name: str | None = None
+    ) -> str:
+        """Non-blocking formatted history retrieval."""
+        return await asyncio.to_thread(self.get_formatted_history, conversation_id, assistant_name)
+
+    async def clear_async(self, conversation_id: str) -> None:
+        """Non-blocking session reset offloaded to threadpool."""
+        await asyncio.to_thread(self.clear, conversation_id)
+
+    async def purge_concept_async(
+        self, keywords: list[str], session_prefix: str | None = None
+    ) -> int:
+        """Non-blocking concept purge offloaded to threadpool."""
+        return await asyncio.to_thread(self.purge_concept, keywords, session_prefix)

@@ -105,6 +105,9 @@ known-first-party = ["historyverse"]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 addopts = "-v --tb=short --strict-markers"
+filterwarnings = [
+    "ignore::DeprecationWarning:langchain_community.*",
+]
 markers = [
     "unit: Unit tests",
     "integration: Integration tests",

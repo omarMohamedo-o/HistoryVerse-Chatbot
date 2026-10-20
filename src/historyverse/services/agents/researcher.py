@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from historyverse.core.base import BaseLLMProvider
 from historyverse.services.agents.base import AgentResponse, BaseAgent
 from historyverse.services.rag.retriever import ChromaRetriever
+
+if TYPE_CHECKING:
+    from historyverse.services.memory.agent_memory import AgentMemory
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +26,7 @@ class ResearcherAgent(BaseAgent):
         retriever: ChromaRetriever | None = None,
         agent_id: str = "archival-researcher",
         name: str = "Archivist",
+        memory: AgentMemory | None = None,
     ) -> None:
         system_prompt = (
             "You are an archival research assistant. Extract concise, factual historical evidence "
@@ -34,6 +38,7 @@ class ResearcherAgent(BaseAgent):
             role="Archival Evidence Researcher",
             system_prompt=system_prompt,
             llm_provider=llm_provider,
+            memory=memory,
         )
         self.retriever = retriever
 

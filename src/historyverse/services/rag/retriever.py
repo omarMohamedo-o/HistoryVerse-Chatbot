@@ -76,7 +76,7 @@ class ChromaRetriever:
             raise RetrieverError(str(exc)) from exc
 
     def delete_documents_by_keywords(self, keywords: list[str]) -> int:
-        """Purge indexed document chunks matching unlearned keywords."""
+        """Purge indexed document chunks matching unlearned keywords with memory-safe projection."""
         store = self._ensure_vectorstore()
         if store is None or not hasattr(store, "_collection"):
             return 0
@@ -84,17 +84,35 @@ class ChromaRetriever:
         try:
             lower_keywords = [k.lower().strip() for k in keywords if k.strip()]
             collection = store._collection
-            all_docs = collection.get()
-            ids_to_delete = [
-                doc_id
-                for doc_id, document in zip(
-                    all_docs.get("ids", []), all_docs.get("documents", []), strict=False
+            ids_to_delete: set[str] = set()
+
+            # Strategy A: Native Chroma document substring filtering (O(M) without loading full collection)
+            for kw in lower_keywords:
+                try:
+                    matched = collection.get(where_document={"$contains": kw}, include=[])
+                    if matched and matched.get("ids"):
+                        ids_to_delete.update(matched["ids"])
+                except Exception:
+                    # Backend or mock doesn't support where_document; defer to memory-safe fallback below
+                    pass
+
+            # Strategy B: Memory-safe projection fallback (request only IDs and texts, omit heavy embeddings)
+            if not ids_to_delete:
+                all_docs = (
+                    collection.get(include=["documents"])
+                    if hasattr(collection, "get")
+                    else collection.get()
                 )
-                if any(kw in (document or "").lower() for kw in lower_keywords)
-            ]
+                ids_to_delete = {
+                    doc_id
+                    for doc_id, document in zip(
+                        all_docs.get("ids", []), all_docs.get("documents", []), strict=False
+                    )
+                    if any(kw in (document or "").lower() for kw in lower_keywords)
+                }
 
             if ids_to_delete:
-                collection.delete(ids=ids_to_delete)
+                collection.delete(ids=list(ids_to_delete))
                 logger.info(
                     "Purged %d vector store documents matching keywords: %s",
                     len(ids_to_delete),
