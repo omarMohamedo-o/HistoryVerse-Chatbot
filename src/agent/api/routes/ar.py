@@ -351,6 +351,17 @@ async def _handle_ar_live_ws(
     tts: StreamingTTS,
     settings: Settings,
 ) -> None:
+    if settings.auth_enabled:
+        token = (
+            websocket.query_params.get("api_key")
+            or websocket.query_params.get("token")
+            or websocket.headers.get("x-api-key")
+        )
+        expected = settings.api_key.get_secret_value() if settings.api_key else ""
+        if not token or token != expected:
+            await websocket.close(code=1008, reason="Unauthorized: Invalid API key")
+            return
+
     session = LiveARVoiceSession(
         websocket=websocket,
         agent=agent,

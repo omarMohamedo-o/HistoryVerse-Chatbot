@@ -35,6 +35,9 @@ class TeamRegistryStore:
     def _init_db(self) -> None:
         """Create tables for teams and execution runs."""
         with self._get_connection() as conn:
+            if self.db_path != ":memory:":
+                conn.execute("PRAGMA journal_mode=WAL;")
+                conn.execute("PRAGMA busy_timeout=5000;")
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS multi_agent_teams (

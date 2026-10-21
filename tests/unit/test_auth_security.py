@@ -83,3 +83,34 @@ def test_auth_enabled_validation():
     )
     assert resp_bearer.status_code == 200
     assert resp_bearer.json()["role"] == "Senior Security Officer"
+
+    # 5. Execution routes require authentication when auth_enabled=True
+    run_unauth = client.post(
+        "/v1/agents/secured-agent/run",
+        json={"query": "Perform security audit"},
+    )
+    assert run_unauth.status_code == 401
+
+    run_auth = client.post(
+        "/v1/agents/secured-agent/run",
+        json={"query": "Perform security audit"},
+        headers={"X-API-Key": secret_key},
+    )
+    assert run_auth.status_code == 200
+
+    # 6. WebSocket route requires authentication when auth_enabled=True
+    import pytest
+    from starlette.websockets import WebSocketDisconnect
+
+    with (
+        pytest.raises(WebSocketDisconnect) as excinfo,
+        client.websocket_connect("/ws/ar/live"),
+    ):
+        pass
+    assert excinfo.value.code == 1008
+
+    # Connecting with query param api_key succeeds
+    with client.websocket_connect(f"/ws/ar/live?api_key={secret_key}") as ws:
+        ws.send_json({"event": "ping"})
+        msg = ws.receive_json()
+        assert msg["event"] == "pong"

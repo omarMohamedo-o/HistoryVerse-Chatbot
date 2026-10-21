@@ -170,6 +170,7 @@ async def create_custom_agent(
 async def run_team_pipeline(
     req: RunTeamRequest,
     orchestrator: AgentOrchestrator = Depends(get_agent_orchestrator),
+    _auth: bool = Depends(verify_api_key),
 ):
     """Execute a collaborative multi-agent workflow where models cooperate."""
     return await orchestrator.run_team(query=req.query, agent_pipeline=req.pipeline)
@@ -255,6 +256,7 @@ async def execute_team_workflow(
     team_id: str,
     req: RunWorkflowRequest,
     orchestrator: AgentOrchestrator = Depends(get_agent_orchestrator),
+    _auth: bool = Depends(verify_api_key),
 ):
     """Execute team workflow with sequential, parallel, supervisor, or conditional strategy."""
     try:
@@ -376,6 +378,7 @@ async def run_individual_agent(
     agent_id: str,
     req: RunAgentRequest,
     orchestrator: AgentOrchestrator = Depends(get_agent_orchestrator),
+    _auth: bool = Depends(verify_api_key),
 ):
     """Execute a single agent model independently."""
     try:

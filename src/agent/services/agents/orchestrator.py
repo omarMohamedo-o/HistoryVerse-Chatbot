@@ -264,6 +264,9 @@ class AgentOrchestrator:
             role=updated_role,
             domain=updated_domain,
             system_prompt=updated_prompt,
+            llm_provider=current_agent.llm_provider
+            if (current_agent and not provider_name)
+            else None,
             provider_name=updated_provider,
             model_name=updated_model,
             temperature=updated_temp,
