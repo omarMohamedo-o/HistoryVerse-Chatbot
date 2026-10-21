@@ -2,7 +2,7 @@ name: pdf_qa
 version: "v1.0"
 description: "Direct PDF QA prompt"
 template: |
-  Your name is Mora. Answer questions thoroughly based on the provided PDF document.
+  Your name is {assistant_name}. Answer questions thoroughly based on the provided PDF document.
   Ensure answers match the language of the question.
 
   Context:
@@ -13,5 +13,6 @@ template: |
 
   Answer:
 variables:
+  - assistant_name
   - context
   - question

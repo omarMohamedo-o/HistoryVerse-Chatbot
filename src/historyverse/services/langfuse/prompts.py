@@ -64,9 +64,8 @@ class PromptManager:
             except Exception as exc:
                 logger.error("Error reading local prompt file %s: %s", yaml_path, exc)
 
-        name_placeholder = self._settings.agent_persona_name
         return (
-            f"Your name is {name_placeholder}. You are an expert AI historian specializing in "
+            "Your name is {assistant_name}. You are an expert AI historian specializing in "
             "Egypt, Alexandria, and world history.\n"
             "Context: {context}\n"
             "History: {history}\n"
@@ -77,6 +76,11 @@ class PromptManager:
     def render(self, name: str, version: str | None = None, **kwargs: Any) -> str:
         """Render a versioned prompt with provided variable substitutions."""
         template = self.get_prompt(name, version=version)
+        persona_name = (
+            kwargs.get("assistant_name") or kwargs.get("name") or self._settings.agent_persona_name
+        )
+        kwargs.setdefault("assistant_name", persona_name)
+        kwargs.setdefault("name", persona_name)
         try:
             return template.format(**kwargs)
         except KeyError:

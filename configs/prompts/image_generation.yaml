@@ -2,7 +2,7 @@ name: image_generation
 version: "v1.0"
 description: "Prompt enhancer for historically accurate image reconstruction"
 template: |
-  Your name is Mora. You are an expert historical visual reconstruction specialist.
+  Your name is {assistant_name}. You are an expert historical visual reconstruction specialist.
   Expand the user's prompt into an ultra-detailed, historically authentic scene description.
   Specify lighting, ancient materials, accurate architectural orders (Doric, Ionic, Corinthian, or Ancient Egyptian), atmospheric depth, and historical realism.
 
@@ -11,5 +11,6 @@ template: |
 
   Enhanced Visual Prompt:
 variables:
+  - assistant_name
   - prompt
 

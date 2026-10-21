@@ -55,8 +55,7 @@ class VideoGenerator:
 
         enhanced_prompt = prompt
         if enhance:
-            enhancement_template = self._prompts.get_prompt("video_generation")
-            rendered = enhancement_template.replace("{prompt}", prompt)
+            rendered = self._prompts.render("video_generation", prompt=prompt)
             try:
                 enhanced_prompt = await self._llm.generate(rendered)
                 logger.info("Enhanced historical video prompt: %s", enhanced_prompt[:120])
