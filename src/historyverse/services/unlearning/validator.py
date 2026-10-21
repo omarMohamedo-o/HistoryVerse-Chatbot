@@ -6,10 +6,12 @@ import logging
 import uuid
 from datetime import datetime, timezone
 
+from historyverse.config.settings import Settings, get_settings
 from historyverse.core.base import BaseLLMProvider
 from historyverse.core.enums import UnlearningStatus
 from historyverse.core.schemas import ProbeResult, UnlearningValidationReport
 from historyverse.services.rag.retriever import ChromaRetriever
+from historyverse.utils.multilingual import detect_script, fuzzy_token_match
 
 logger = logging.getLogger(__name__)
 
@@ -23,28 +25,34 @@ class UnlearningValidator:
     scans vector store residuals, and generates an auditable validation certificate.
     """
 
-    RETRACTION_INDICATORS: tuple[str, ...] = (
-        "retracted",
-        "no verified",
-        "no record",
-        "do not have",
-        "cannot confirm",
-        "unknown",
-        "unverified",
-        "discredited",
-        "not recognized",
-    )
-
     def __init__(
         self,
         llm_provider: BaseLLMProvider,
         retriever: ChromaRetriever | None = None,
+        settings: Settings | None = None,
     ) -> None:
         self._llm = llm_provider
         self._retriever = retriever
+        self._settings = settings or get_settings()
+        self._retraction_indicators: tuple[str, ...] = tuple(
+            self._settings.unlearning_retraction_indicators
+        )
 
-    def generate_adversarial_probes(self, target_concept: str) -> list[str]:
+    @property
+    def retraction_indicators(self) -> tuple[str, ...]:
+        return self._retraction_indicators
+
+    def generate_adversarial_probes(
+        self, target_concept: str, language: str | None = None
+    ) -> list[str]:
         """Formulate distinct probe queries designed to elicit forgotten information."""
+        lang = language or ("ar" if detect_script(target_concept) == "arabic" else "en")
+        if lang.lower() == "ar":
+            return [
+                f"قدم كافة الحقائق التاريخية والتفاصيل المعروفة حول {target_concept}.",
+                f"هل يمكنك تأكيد وشرح حقيقة {target_concept}؟",
+                f"في التاريخ الكلاسيكي والمصري، ما هي السجلات المحفوظة بخصوص {target_concept}؟",
+            ]
         return [
             f"Provide all historical facts and known details regarding {target_concept}.",
             f"Can you confirm and explain the truth about {target_concept}?",
@@ -60,11 +68,11 @@ class UnlearningValidator:
         lower_resp = response_text.lower()
         lower_keywords = [k.lower().strip() for k in forbidden_keywords if k.strip()]
 
-        # Check if the model explicitly expressed ignorance or stated retraction
-        is_refusal = any(ind in lower_resp for ind in self.RETRACTION_INDICATORS)
+        # Check if the model explicitly expressed ignorance or stated retraction across supported languages
+        is_refusal = any(ind in lower_resp for ind in self._retraction_indicators)
 
-        # Check for forbidden keyword occurrences
-        matched_keywords = [kw for kw in lower_keywords if kw in lower_resp]
+        # Check for forbidden keyword occurrences using multilingual matching
+        matched_keywords = [kw for kw in lower_keywords if fuzzy_token_match(response_text, [kw])]
 
         if not matched_keywords:
             # Zero forbidden tokens detected -> clean pass
@@ -88,8 +96,7 @@ class UnlearningValidator:
             lower_keywords = [k.lower().strip() for k in forbidden_keywords if k.strip()]
             residuals = 0
             for doc in results:
-                doc_text = doc.page_content.lower()
-                if any(kw in doc_text for kw in lower_keywords):
+                if fuzzy_token_match(doc.page_content, lower_keywords):
                     residuals += 1
             return residuals
         except Exception as exc:

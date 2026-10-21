@@ -83,14 +83,14 @@ class ChromaRetriever:
             return 0
 
         try:
-            from historyverse.utils.arabic import expand_arabic_keywords
+            from historyverse.utils.multilingual import expand_multilingual_keywords
 
             expanded_keywords: set[str] = set()
             for k in keywords:
                 cleaned = k.lower().strip()
                 if cleaned:
                     expanded_keywords.add(cleaned)
-                    for variant in expand_arabic_keywords(cleaned):
+                    for variant in expand_multilingual_keywords(cleaned):
                         expanded_keywords.add(variant.lower())
 
             lower_keywords = list(expanded_keywords)

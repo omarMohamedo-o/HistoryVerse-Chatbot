@@ -47,10 +47,17 @@ class GTTSTextToSpeech(BaseTTSProvider):
             raise VoiceError(f"TTS error: {exc}") from exc
 
     def _detect_language(self, text: str) -> str:
-        from historyverse.utils.arabic import is_arabic
+        from historyverse.utils.multilingual import detect_script
 
-        if is_arabic(text):
+        script = detect_script(text)
+        if script == "arabic":
             return "ar"
+        if script == "cyrillic":
+            return "ru"
+        if script == "greek":
+            return "el"
+        if script == "cjk":
+            return "zh-CN"
 
         try:
             import langid
@@ -58,4 +65,4 @@ class GTTSTextToSpeech(BaseTTSProvider):
             code, _ = langid.classify(text)
             return code
         except Exception:
-            return "en"
+            return self._settings.default_language

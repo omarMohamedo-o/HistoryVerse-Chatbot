@@ -197,11 +197,22 @@ class EmbeddingModelRegistry:
         if profile is None:
             return True, f"Model '{model_name}' has uncataloged language profile."
 
-        if target_language.lower() == "ar" and not profile.supports_arabic:
+        tgt = target_language.lower().strip()
+        if tgt == "ar" and not profile.supports_arabic:
             rec = cls.recommend_model_for_language(language="ar", provider=profile.provider)
             msg = (
                 f"Model '{model_name}' is monolingual or English-centric and does NOT support Arabic. "
                 f"Non-Latin tokens will suffer severe [UNK] vocabulary collapse. "
+                f"Recommended upgrade: '{rec}'."
+            )
+            logger.warning(msg)
+            return False, msg
+
+        if not profile.is_multilingual and tgt != "en" and tgt not in profile.supported_languages:
+            rec = cls.recommend_model_for_language(language=tgt, provider=profile.provider)
+            msg = (
+                f"Model '{model_name}' is monolingual English and does NOT support target language '{tgt}'. "
+                f"Tokens will suffer severe out-of-vocabulary representation degradation. "
                 f"Recommended upgrade: '{rec}'."
             )
             logger.warning(msg)

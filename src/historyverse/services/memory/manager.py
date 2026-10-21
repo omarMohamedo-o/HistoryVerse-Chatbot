@@ -137,15 +137,9 @@ class ConversationMemory:
         if any(kw in lower_content for kw in keywords):
             return True
 
-        from historyverse.utils.arabic import is_arabic, normalize_arabic
+        from historyverse.utils.multilingual import fuzzy_token_match
 
-        if is_arabic(lower_content):
-            norm_content = normalize_arabic(
-                lower_content, strip_diacritics=True, norm_alef=True, norm_teh=True
-            )
-            if any(kw in norm_content for kw in keywords):
-                return True
-        return False
+        return fuzzy_token_match(content, keywords)
 
     def purge_concept(self, keywords: list[str], session_prefix: str | None = None) -> int:
         """Purge any stored message containing forbidden keywords.
@@ -157,13 +151,13 @@ class ConversationMemory:
             return 0
 
         lower_keywords_set: set[str] = set()
-        from historyverse.utils.arabic import expand_arabic_keywords
+        from historyverse.utils.multilingual import expand_multilingual_keywords
 
         for k in keywords:
             cleaned = k.lower().strip()
             if cleaned:
                 lower_keywords_set.add(cleaned)
-                for variant in expand_arabic_keywords(cleaned):
+                for variant in expand_multilingual_keywords(cleaned):
                     lower_keywords_set.add(variant.lower())
 
         lower_keywords = list(lower_keywords_set)

@@ -130,6 +130,47 @@ class Settings(BaseSettings):
     alert_on_health_failure: bool = True
     alert_rate_limit_seconds: int = 60
 
+    multilingual_support_enabled: bool = True
+    default_language: str = "en"
+    unlearning_retraction_indicators: list[str] = Field(
+        default_factory=lambda: [
+            # English
+            "retracted",
+            "no verified",
+            "no record",
+            "do not have",
+            "cannot confirm",
+            "unknown",
+            "unverified",
+            "discredited",
+            "not recognized",
+            # Arabic
+            "لا أملك",
+            "لا توجد سجلات",
+            "تم سحب",
+            "غير مؤكد",
+            "غير مثبت",
+            "لا معلومات",
+            # French
+            "aucun enregistrement",
+            "inconnu",
+            "ne peut confirmer",
+            "retiré",
+            "non vérifié",
+            # German
+            "keine aufzeichnungen",
+            "unbekannt",
+            "kann nicht bestätigen",
+            "zurückgezogen",
+            # Spanish
+            "sin registros",
+            "desconocido",
+            "no puedo confirmar",
+            "retirado",
+            "no verificado",
+        ]
+    )
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

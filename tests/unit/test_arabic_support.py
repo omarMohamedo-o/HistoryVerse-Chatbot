@@ -20,6 +20,7 @@ from historyverse.utils.arabic import (
     remove_tashkeel,
     remove_tatweel,
 )
+from tests.fixtures.multilingual_samples import ARABIC_EXCHANGE
 
 
 def test_is_arabic_detection():
@@ -121,19 +122,15 @@ def test_tts_detects_arabic_script():
 
 def test_conversation_memory_purges_arabic_variants():
     memory = ConversationMemory(Settings())
-    cid = "session-arabic"
+    sample = ARABIC_EXCHANGE
 
-    memory.add_exchange(
-        cid,
-        "ما هي حقيقة النفق السري في مَكْتَبَةُ الإِسْكَنْدَرِيَّةِ؟",
-        "تقول الشائعات أن هناك نفقاً سرياً تحت مَكْتَبَةُ الإِسْكَنْدَرِيَّةِ القديمة.",
-    )
-    assert len(memory.get_history(cid)) == 2
+    memory.add_exchange(sample.session_id, sample.query, sample.response)
+    assert len(memory.get_history(sample.session_id)) == sample.expected_purged_turns
 
     # Purge using un-diacritized keyword with plain Alef
-    purged = memory.purge_concept(["مكتبة الاسكندرية"])
-    assert purged == 2
-    assert len(memory.get_history(cid)) == 0
+    purged = memory.purge_concept([sample.purge_keyword])
+    assert purged == sample.expected_purged_turns
+    assert len(memory.get_history(sample.session_id)) == 0
 
 
 def test_embedding_model_registry_language_profiling():

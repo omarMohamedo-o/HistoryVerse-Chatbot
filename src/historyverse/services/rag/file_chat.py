@@ -175,14 +175,21 @@ class FileChatService:
         if len(chunks) <= top_k:
             return chunks
 
-        query_terms = {t.lower() for t in re.findall(r"\w+", query) if len(t) > 2}
+        from historyverse.utils.multilingual import normalize_text
+
+        raw_terms = {t.lower() for t in re.findall(r"\w+", query) if len(t) > 2}
+        norm_terms = {normalize_text(t) for t in raw_terms}
+        query_terms = {t for t in (raw_terms | norm_terms) if t}
         if not query_terms:
             return chunks[:top_k]
 
         scored_chunks: list[tuple[float, Document]] = []
         for c in chunks:
             content_lower = c.page_content.lower()
-            score = sum(1.0 for term in query_terms if term in content_lower)
+            content_norm = normalize_text(content_lower)
+            score = sum(
+                1.0 for term in query_terms if (term in content_lower or term in content_norm)
+            )
             scored_chunks.append((score, c))
 
         scored_chunks.sort(key=lambda x: x[0], reverse=True)
