@@ -15,7 +15,9 @@ from historyverse.api.routes import (
     drift_router,
     evaluate_router,
     health_router,
+    historyverse_ar_mode_router,
     ingest_router,
+    legacy_ar_router,
     mcp_router,
     unlearning_router,
     vision_router,
@@ -56,6 +58,8 @@ def create_app() -> FastAPI:
 
     app.include_router(health_router, tags=["health"])
     app.include_router(chat_router, prefix="/v1", tags=["chat"])
+    app.include_router(historyverse_ar_mode_router)
+    app.include_router(legacy_ar_router)
     app.include_router(ingest_router, prefix="/v1", tags=["ingest"])
     app.include_router(voice_router, prefix="/v1", tags=["voice", "sts"])
     app.include_router(vision_router, prefix="/v1", tags=["vision"])

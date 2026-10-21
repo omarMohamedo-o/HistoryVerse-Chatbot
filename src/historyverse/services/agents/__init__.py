@@ -8,6 +8,7 @@ from historyverse.services.agents.base import (
 )
 from historyverse.services.agents.critic import CriticAgent
 from historyverse.services.agents.historical import HistoryVerseAgent
+from historyverse.services.agents.historyverse_ar_mode import HistoryVerseARModeAgent
 from historyverse.services.agents.orchestrator import AgentOrchestrator, CustomAgent
 from historyverse.services.agents.researcher import ResearcherAgent
 
@@ -18,6 +19,7 @@ __all__ = [
     "BaseAgent",
     "CriticAgent",
     "CustomAgent",
+    "HistoryVerseARModeAgent",
     "HistoryVerseAgent",
     "ResearcherAgent",
     "TeamExecutionResponse",
