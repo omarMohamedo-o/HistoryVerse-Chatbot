@@ -6,7 +6,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 POLICY_FILE="$ROOT_DIR/configs/vault/policies/agentverse-read.hcl"
 POLICY_NAME="agentverse-deploy-${ENVIRONMENT}"
 ROLE_NAME="agentverse-deploy-${ENVIRONMENT}"
-MOUNT="${VAULT_KV_MOUNT:-historyverse}"
+MOUNT="${VAULT_KV_MOUNT:-agentverse}"
 
 command -v vault >/dev/null || { echo "vault CLI not found in PATH" >&2; exit 1; }
 : "${VAULT_ADDR:?Set VAULT_ADDR (e.g. http://127.0.0.1:8200)}"

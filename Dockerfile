@@ -27,8 +27,8 @@ RUN uv pip install --no-cache ".[gemini,voice,monitoring]"
 FROM python:3.11-slim-bookworm AS runtime
 
 LABEL maintainer="omarMohamedo-o" \
-      org.opencontainers.image.title="HistoryVerse Microservices" \
-      org.opencontainers.image.description="Model-agnostic historical AI chatbot" \
+      org.opencontainers.image.title="AgentVerse Microservices" \
+      org.opencontainers.image.description="Domain-agnostic multimodal AI agent microservices" \
       org.opencontainers.image.authors="Omar Mohamed" \
       org.opencontainers.image.version="0.1.0"
 

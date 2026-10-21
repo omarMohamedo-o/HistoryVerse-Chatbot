@@ -1,8 +1,9 @@
-"""Custom exception hierarchy for the HistoryVerse application domain."""
+"""Custom exception hierarchy for the AgentVerse application domain."""
 
 from __future__ import annotations
 
 __all__ = [
+    "AgentVerseError",
     "ConfigurationError",
     "DriftDetectedError",
     "EvaluationError",
@@ -18,10 +19,10 @@ __all__ = [
 ]
 
 
-class HistoryVerseError(Exception):
-    """Base exception for all domain errors within HistoryVerse."""
+class AgentVerseError(Exception):
+    """Base exception for all domain errors within AgentVerse."""
 
-    def __init__(self, message: str = "An error occurred in HistoryVerse.") -> None:
+    def __init__(self, message: str = "An error occurred in AgentVerse.") -> None:
         super().__init__(message)
         self.message = message
 
@@ -29,11 +30,14 @@ class HistoryVerseError(Exception):
         return self.message
 
 
-class ConfigurationError(HistoryVerseError):
+HistoryVerseError = AgentVerseError
+
+
+class ConfigurationError(AgentVerseError):
     """Raised when application configuration is invalid or missing required values."""
 
 
-class LLMProviderError(HistoryVerseError):
+class LLMProviderError(AgentVerseError):
     """Base error for LLM generation failures."""
 
     def __init__(self, message: str, provider: str = "unknown") -> None:
@@ -51,7 +55,7 @@ class ModelNotFoundError(LLMProviderError):
         self.model_identifier = model_identifier
 
 
-class DriftDetectedError(HistoryVerseError):
+class DriftDetectedError(AgentVerseError):
     """Raised when generated output confidence or quality falls below acceptable thresholds."""
 
     def __init__(self, confidence_score: float, threshold: float, attempt: int = 1) -> None:
@@ -65,7 +69,7 @@ class DriftDetectedError(HistoryVerseError):
         self.attempt = attempt
 
 
-class HallucinationDetectedError(HistoryVerseError):
+class HallucinationDetectedError(AgentVerseError):
     """Raised when an answer contains factual contradictions or ungrounded claims."""
 
     def __init__(self, score: float, threshold: float) -> None:
@@ -74,7 +78,7 @@ class HallucinationDetectedError(HistoryVerseError):
         self.threshold = threshold
 
 
-class RAGError(HistoryVerseError):
+class RAGError(AgentVerseError):
     """Base error for retrieval-augmented generation failures."""
 
 
@@ -86,13 +90,13 @@ class RetrieverError(RAGError):
     """Raised when ChromaDB index querying or vector similarity search fails."""
 
 
-class VoiceError(HistoryVerseError):
+class VoiceError(AgentVerseError):
     """Raised when audio transcription (STT) or speech synthesis (TTS) encounters an error."""
 
 
-class VisionError(HistoryVerseError):
+class VisionError(AgentVerseError):
     """Raised when image loading, format validation, or visual inference fails."""
 
 
-class EvaluationError(HistoryVerseError):
+class EvaluationError(AgentVerseError):
     """Raised when Ragas metric computation or evaluation pipeline fails."""

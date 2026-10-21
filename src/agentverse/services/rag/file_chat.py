@@ -152,7 +152,7 @@ class FileChatService:
             logger.info("Downloading document from URL: %s", file_source)
             req = urllib.request.Request(
                 file_source,
-                headers={"User-Agent": "HistoryVerse-DocumentBot/1.0"},
+                headers={"User-Agent": "AgentVerse-DocumentBot/1.0"},
             )
             try:
                 with urllib.request.urlopen(req, timeout=15) as resp:

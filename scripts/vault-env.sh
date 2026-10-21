@@ -7,7 +7,7 @@ ENVIRONMENT="${1:-development}"
 shift || true
 
 OUT_FILE="$ROOT_DIR/.env.runtime"
-MOUNT="${VAULT_KV_MOUNT:-historyverse}"
+MOUNT="${VAULT_KV_MOUNT:-agentverse}"
 
 while (($#)); do
   case "$1" in

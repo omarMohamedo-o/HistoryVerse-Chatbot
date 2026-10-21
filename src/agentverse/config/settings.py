@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
-    """Central configuration for the HistoryVerse microservices ecosystem."""
+    """Central configuration for the AgentVerse microservices ecosystem."""
 
     model_config = SettingsConfigDict(
         env_file=".env",

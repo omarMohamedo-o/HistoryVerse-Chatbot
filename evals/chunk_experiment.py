@@ -115,7 +115,7 @@ def run_chunk_experiment(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="HistoryVerse RAG Chunking Hyperparameter Experimenter"
+        description="AgentVerse RAG Chunking Hyperparameter Experimenter"
     )
     parser.add_argument(
         "--source-dir",

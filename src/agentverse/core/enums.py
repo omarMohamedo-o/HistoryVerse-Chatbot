@@ -1,4 +1,4 @@
-"""Enumerations for the HistoryVerse application domain."""
+"""Enumerations for the AgentVerse application domain."""
 
 from enum import Enum
 

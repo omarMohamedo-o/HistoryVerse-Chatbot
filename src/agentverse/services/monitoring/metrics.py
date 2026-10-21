@@ -1,4 +1,4 @@
-"""Prometheus metrics instruments for HistoryVerse."""
+"""Prometheus metrics instruments for AgentVerse."""
 
 from __future__ import annotations
 

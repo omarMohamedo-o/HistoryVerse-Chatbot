@@ -1,1 +1,1 @@
-"""Service layer for HistoryVerse."""
+"""Service layer for AgentVerse."""

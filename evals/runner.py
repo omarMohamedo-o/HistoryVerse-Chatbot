@@ -27,7 +27,7 @@ logger = logging.getLogger("evals.runner")
 
 
 async def main() -> None:
-    parser = argparse.ArgumentParser(description="HistoryVerse AI Evaluation Benchmark Runner")
+    parser = argparse.ArgumentParser(description="AgentVerse AI Evaluation Benchmark Runner")
     parser.add_argument(
         "--dataset",
         type=str,
