@@ -15,6 +15,7 @@ from historyverse.services.langfuse.prompts import PromptManager
 from historyverse.services.llm.drift import DriftDetector
 from historyverse.services.llm.factory import LLMFactory
 from historyverse.services.memory.manager import ConversationMemory
+from historyverse.services.rag.file_chat import FileChatService
 from historyverse.services.rag.ingest import DocumentIngestor
 from historyverse.services.rag.pipeline import RAGPipeline
 from historyverse.services.rag.retriever import ChromaRetriever
@@ -31,6 +32,7 @@ __all__ = [
     "get_conversation_memory",
     "get_document_ingestor",
     "get_drift_detector",
+    "get_file_chat_service",
     "get_hallucination_detector",
     "get_image_analyzer",
     "get_image_generator",
@@ -158,6 +160,23 @@ def get_document_ingestor(
     if "document_ingestor" not in _SINGLETON_CACHE:
         _SINGLETON_CACHE["document_ingestor"] = DocumentIngestor(settings)
     return _SINGLETON_CACHE["document_ingestor"]
+
+
+def get_file_chat_service(
+    provider: BaseLLMProvider = Depends(get_llm_provider),
+    drift: DriftDetector = Depends(get_drift_detector),
+    prompts: PromptManager = Depends(get_prompt_manager),
+    settings: Settings = Depends(get_app_settings),
+) -> FileChatService:
+    """Return document and file-based chat service."""
+    if "file_chat_service" not in _SINGLETON_CACHE:
+        _SINGLETON_CACHE["file_chat_service"] = FileChatService(
+            llm_provider=provider,
+            drift_detector=drift,
+            prompt_manager=prompts,
+            settings=settings,
+        )
+    return _SINGLETON_CACHE["file_chat_service"]
 
 
 def get_stt_provider(

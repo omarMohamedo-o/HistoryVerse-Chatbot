@@ -48,7 +48,8 @@ class ImageGenerator:
 
         enhanced_prompt = prompt
         if enhance:
-            rendered = self._prompts.render("image_generation", prompt=prompt)
+            enhancement_template = self._prompts.get_prompt("image_generation")
+            rendered = enhancement_template.replace("{prompt}", prompt)
             try:
                 enhanced_prompt = await self._llm.generate(rendered)
                 logger.info("Enhanced historical image prompt: %s", enhanced_prompt[:120])
