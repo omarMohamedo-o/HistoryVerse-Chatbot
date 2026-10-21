@@ -1,4 +1,4 @@
-# AgentVerse AI — Domain-Agnostic Multimodal Agent Platform
+# Agent AI — Domain-Agnostic Multimodal Agent Platform
 
 [![Python 3.10 | 3.11](https://img.shields.io/badge/Python-3.10%20%7C%203.11-blue.svg)](https://www.python.org/)
 [![Ruff](https://img.shields.io/badge/Linter-Ruff%20Clean-success.svg)](https://github.com/astral-sh/ruff)
@@ -6,21 +6,21 @@
 [![Architecture](https://img.shields.io/badge/Architecture-Domain--Agnostic%20Microservices-orange.svg)](docker-compose.yml)
 [![Author](https://img.shields.io/badge/Author-%40omarMohamedo--o-black.svg)](https://github.com/omarMohamedo-o)
 
-**AgentVerse AI** is an enterprise-grade, domain-agnostic, and model-agnostic multimodal agent microservice framework. It enables the declarative instantiation of specialized AI agents for arbitrary operational domains (e.g. historical analysis, museum augmented reality, offline local RAG, legal, medical, and scientific research) with dedicated personas, isolated memory, and custom LLM provider backends (Google Gemini, OpenAI GPT, quantized LLaMA GGUF, and Ollama daemons).
+**Agent AI** is an enterprise-grade, domain-agnostic, and model-agnostic multimodal agent microservice framework. It enables the declarative instantiation of specialized AI agents for arbitrary operational domains (e.g. historical analysis, museum augmented reality, offline local RAG, legal, medical, and scientific research) with dedicated personas, isolated memory, and custom LLM provider backends (Google Gemini, OpenAI GPT, quantized LLaMA GGUF, and Ollama daemons).
 
 ---
 
 ## Architectural Evolution & Lineage
 
-AgentVerse AI unifies and modernizes predecessor open-source repositories into a domain-agnostic microservice platform:
+Agent AI unifies and modernizes predecessor open-source repositories into a domain-agnostic microservice platform:
 
 1. **[HistoryVerse-Chatbot](https://github.com/omarMohamedo-o/HistoryVerse-Chatbot)**:
    - Provided core RAG retrieval pipelines, Google Gemini integration, Prompt versioning with Langfuse, and conversational API routes.
 2. **[HistoryVerse-LocalChatbot](https://github.com/omarMohamedo-o/HistoryVerse-LocalChatbot)**:
    - Provided offline local inference, standalone LLaMA GGUF quantized models (`llama-cpp-python`), Ollama daemon management, and edge memory.
 
-### The AgentVerse 2.0 Engine
-Rather than coupling the codebase to a single knowledge domain, **AgentVerse** abstracts agent generation into declarative YAML templates ([`AgentTemplate`](src/agentverse/services/agents/template.py)) executed by universal engines ([`TemplatedAgent`](src/agentverse/services/agents/template.py), [`DomainAgent`](src/agentverse/services/agents/domain.py), and [`AgentOrchestrator`](src/agentverse/services/agents/orchestrator.py)). Domain applications like the Historical Mora Guide, Museum AR Tour Guide, and Offline Local RAG are implemented as declarative presets in `configs/prompts/`.
+### The Agent 2.0 Engine
+Rather than coupling the codebase to a single knowledge domain, **Agent** abstracts agent generation into declarative YAML templates ([`AgentTemplate`](src/agent/services/agents/template.py)) executed by universal engines ([`TemplatedAgent`](src/agent/services/agents/template.py), [`DomainAgent`](src/agent/services/agents/domain.py), and [`AgentOrchestrator`](src/agent/services/agents/orchestrator.py)). Domain applications like the Historical Mora Guide, Museum AR Tour Guide, and Offline Local RAG are implemented as declarative presets in `configs/prompts/`.
 
 ---
 
@@ -92,7 +92,7 @@ flowchart TD
 - **Adversarial Probe Validation**: Automatically interrogates models with direct, leading, and contextual probes, calculates token leakage rates, verifies vector residuals, and issues cryptographic `CERT-UNLEARN` audit certificates.
 
 ### 4. Model Context Protocol (MCP) & Agent Harness
-- **Standard MCP Protocol**: Compliant JSON-RPC 2.0 interface supporting `tools/list`, `tools/call`, `resources/list`, and `resources/read`. External tools, IDEs, and agentic platforms can interact directly with AgentVerse.
+- **Standard MCP Protocol**: Compliant JSON-RPC 2.0 interface supporting `tools/list`, `tools/call`, `resources/list`, and `resources/read`. External tools, IDEs, and agentic platforms can interact directly with Agent.
 - **Harness Engineering Principles**: Defensive tool sandboxing, input schema validation, execution latency tracking, and error-recovery in the ReAct observation loop.
 - **RAG as an MCP Tool**: Domain archives, artifacts, and unlearning verification exposed as standardized callable tools.
 
@@ -182,7 +182,7 @@ curl -X POST http://localhost:8000/v1/ingest \
 
 ### 4. Running the Server
 ```bash
-python -m agentverse
+python -m agent
 ```
 
 ### 5. Running with Docker Compose & Caddy
@@ -214,7 +214,7 @@ All 204 tests pass with 0 errors and 0 warnings. See [`docs/KNOWN_ISSUES_AND_SOL
 ================================================================================
                     OPERATOR EXCLUSIVITY CERTIFICATE
 ================================================================================
-Project:            AgentVerse AI Platform
+Project:            Agent AI Platform
 Lead Architect:     Omar Mohamed Abdelsalam (@omarMohamedo-o)
 Email:              omarmo.abdelsalam@gmail.com
 Lineage:            HistoryVerse-Chatbot & HistoryVerse-LocalChatbot

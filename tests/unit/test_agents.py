@@ -2,10 +2,10 @@
 
 import pytest
 
-from agentverse.services.agents.critic import CriticAgent
-from agentverse.services.agents.orchestrator import AgentOrchestrator, CustomAgent
-from agentverse.services.agents.researcher import ResearcherAgent
-from agentverse.services.agents.template import AgentTemplate, TemplatedAgent
+from agent.services.agents.critic import CriticAgent
+from agent.services.agents.orchestrator import AgentOrchestrator, CustomAgent
+from agent.services.agents.researcher import ResearcherAgent
+from agent.services.agents.template import AgentTemplate, TemplatedAgent
 from tests.conftest import MockLLMProvider
 
 
@@ -140,8 +140,8 @@ async def test_domain_agnostic_agent_template_instantiation():
 async def test_orchestrator_spawns_custom_domain_agent_with_provider_settings():
     from fastapi.testclient import TestClient
 
-    from agentverse.api.app import create_app
-    from agentverse.api.dependencies import get_llm_provider
+    from agent.api.app import create_app
+    from agent.api.dependencies import get_llm_provider
 
     mock_llm = MockLLMProvider("mock-fastapi-provider")
     app = create_app()

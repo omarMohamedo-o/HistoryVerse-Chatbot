@@ -1,7 +1,7 @@
 """Unit tests for application configuration."""
 
-from agentverse.config.settings import Settings
-from agentverse.core.enums import DeviceType, LLMProvider
+from agent.config.settings import Settings
+from agent.core.enums import DeviceType, LLMProvider
 
 
 def test_settings_default_values():

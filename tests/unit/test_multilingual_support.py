@@ -2,11 +2,11 @@
 
 import pytest
 
-from agentverse.config.settings import Settings
-from agentverse.services.memory.manager import ConversationMemory
-from agentverse.services.rag.embeddings import EmbeddingModelRegistry
-from agentverse.services.unlearning.validator import UnlearningValidator
-from agentverse.utils.multilingual import (
+from agent.config.settings import Settings
+from agent.services.memory.manager import ConversationMemory
+from agent.services.rag.embeddings import EmbeddingModelRegistry
+from agent.services.unlearning.validator import UnlearningValidator
+from agent.utils.multilingual import (
     detect_script,
     expand_multilingual_keywords,
     fuzzy_token_match,

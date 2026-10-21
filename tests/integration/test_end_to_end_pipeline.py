@@ -12,22 +12,22 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from agentverse.config.settings import Settings
-from agentverse.core.enums import UnlearningStatus
-from agentverse.core.schemas import UnlearningRequest
-from agentverse.services.agents.researcher import ResearcherAgent
-from agentverse.services.agents.template import AgentTemplate, TemplatedAgent
-from agentverse.services.evaluation.ai_evals import AIEvalsEngine
-from agentverse.services.mcp.harness import AgentHarness
-from agentverse.services.mcp.tools import (
+from agent.config.settings import Settings
+from agent.core.enums import UnlearningStatus
+from agent.core.schemas import UnlearningRequest
+from agent.services.agents.researcher import ResearcherAgent
+from agent.services.agents.template import AgentTemplate, TemplatedAgent
+from agent.services.evaluation.ai_evals import AIEvalsEngine
+from agent.services.mcp.harness import AgentHarness
+from agent.services.mcp.tools import (
     ArtifactInspectionTool,
     HistoricalSearchTool,
     ToolRegistry,
 )
-from agentverse.services.memory.agent_memory import AgentMemoryManager
-from agentverse.services.rag.retriever import ChromaRetriever
-from agentverse.services.unlearning.engine import UnlearningEngine
-from agentverse.services.unlearning.registry import TombstoneRegistry
+from agent.services.memory.agent_memory import AgentMemoryManager
+from agent.services.rag.retriever import ChromaRetriever
+from agent.services.unlearning.engine import UnlearningEngine
+from agent.services.unlearning.registry import TombstoneRegistry
 from tests.conftest import MockLLMProvider
 
 

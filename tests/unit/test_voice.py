@@ -5,10 +5,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from agentverse.config.settings import Settings
-from agentverse.core.exceptions import VoiceError
-from agentverse.services.voice.stt import WhisperSTT
-from agentverse.services.voice.tts import GTTSTextToSpeech
+from agent.config.settings import Settings
+from agent.core.exceptions import VoiceError
+from agent.services.voice.stt import WhisperSTT
+from agent.services.voice.tts import GTTSTextToSpeech
 
 
 def test_stt_missing_file_raises():

@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from agentverse.services.langfuse.traces import trace_execution, traced
+from agent.services.langfuse.traces import trace_execution, traced
 
 
 def test_traced_decorator_sync():
@@ -12,7 +12,7 @@ def test_traced_decorator_sync():
     mock_trace = MagicMock()
     mock_client.trace.return_value = mock_trace
 
-    with patch("agentverse.services.langfuse.traces.get_langfuse_client", return_value=mock_client):
+    with patch("agent.services.langfuse.traces.get_langfuse_client", return_value=mock_client):
 
         @traced(name="test_sync_op")
         def sync_function(a: int, b: int) -> int:
@@ -24,7 +24,7 @@ def test_traced_decorator_sync():
 
 def test_traced_decorator_sync_error():
     mock_client = MagicMock()
-    with patch("agentverse.services.langfuse.traces.get_langfuse_client", return_value=mock_client):
+    with patch("agent.services.langfuse.traces.get_langfuse_client", return_value=mock_client):
 
         @traced(name="test_sync_error")
         def failing_sync():
@@ -37,7 +37,7 @@ def test_traced_decorator_sync_error():
 @pytest.mark.asyncio
 async def test_traced_decorator_async():
     mock_client = MagicMock()
-    with patch("agentverse.services.langfuse.traces.get_langfuse_client", return_value=mock_client):
+    with patch("agent.services.langfuse.traces.get_langfuse_client", return_value=mock_client):
 
         @traced(name="test_async_op")
         async def async_function(x: str) -> str:
@@ -53,7 +53,7 @@ async def test_traced_decorator_async_trace_failure():
     mock_client = MagicMock()
     mock_client.trace.side_effect = Exception("Telemetry connection lost")
 
-    with patch("agentverse.services.langfuse.traces.get_langfuse_client", return_value=mock_client):
+    with patch("agent.services.langfuse.traces.get_langfuse_client", return_value=mock_client):
 
         @traced()
         async def sample_coro() -> int:
@@ -67,7 +67,7 @@ async def test_traced_decorator_async_trace_failure():
 @pytest.mark.asyncio
 async def test_traced_decorator_async_function_error():
     mock_client = MagicMock()
-    with patch("agentverse.services.langfuse.traces.get_langfuse_client", return_value=mock_client):
+    with patch("agent.services.langfuse.traces.get_langfuse_client", return_value=mock_client):
 
         @traced()
         async def failing_async():
@@ -79,7 +79,7 @@ async def test_traced_decorator_async_function_error():
 
 def test_trace_execution_helpers():
     # When no client is available
-    with patch("agentverse.services.langfuse.traces.get_langfuse_client", return_value=None):
+    with patch("agent.services.langfuse.traces.get_langfuse_client", return_value=None):
         trace_id = trace_execution("test_op", {"in": 1}, {"out": 2})
         assert trace_id is None
 
@@ -89,12 +89,12 @@ def test_trace_execution_helpers():
     mock_trace.id = "trace_abc123"
     mock_client.trace.return_value = mock_trace
 
-    with patch("agentverse.services.langfuse.traces.get_langfuse_client", return_value=mock_client):
+    with patch("agent.services.langfuse.traces.get_langfuse_client", return_value=mock_client):
         trace_id = trace_execution("test_op", {"in": 1}, {"out": 2}, {"env": "test"})
         assert trace_id == "trace_abc123"
 
     # When client.trace raises exception
     mock_client.trace.side_effect = Exception("Trace error")
-    with patch("agentverse.services.langfuse.traces.get_langfuse_client", return_value=mock_client):
+    with patch("agent.services.langfuse.traces.get_langfuse_client", return_value=mock_client):
         trace_id = trace_execution("test_op", {"in": 1}, {"out": 2})
         assert trace_id is None

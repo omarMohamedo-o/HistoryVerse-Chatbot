@@ -6,10 +6,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from PIL import Image
 
-from agentverse.config.settings import Settings
-from agentverse.core.exceptions import VisionError
-from agentverse.services.vision.analyzer import ImageAnalyzer
-from agentverse.services.vision.generator import ImageGenerator
+from agent.config.settings import Settings
+from agent.core.exceptions import VisionError
+from agent.services.vision.analyzer import ImageAnalyzer
+from agent.services.vision.generator import ImageGenerator
 from tests.conftest import MockLLMProvider
 
 

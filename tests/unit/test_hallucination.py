@@ -1,6 +1,6 @@
 """Unit tests for hallucination detection."""
 
-from agentverse.services.evaluation.hallucination import HallucinationDetector
+from agent.services.evaluation.hallucination import HallucinationDetector
 
 
 def test_grounded_answer_low_hallucination_score():

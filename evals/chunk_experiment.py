@@ -20,11 +20,11 @@ if str(REPO_ROOT) not in sys.path:
 from langchain_core.documents import Document  # noqa: E402
 from langchain_text_splitters import RecursiveCharacterTextSplitter  # noqa: E402
 
-from agentverse.config.settings import get_settings  # noqa: E402
-from agentverse.services.evaluation.mlflow_tracker import (  # noqa: E402
+from agent.config.settings import get_settings  # noqa: E402
+from agent.services.evaluation.mlflow_tracker import (  # noqa: E402
     MLflowExperimentTracker,
 )
-from agentverse.services.rag.ingest import DocumentIngestor  # noqa: E402
+from agent.services.rag.ingest import DocumentIngestor  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("evals.chunk_experiment")
@@ -44,7 +44,7 @@ def run_chunk_experiment(
 
     tracker = MLflowExperimentTracker(
         settings=settings,
-        experiment_name=experiment_name or "agentverse-chunking-experiments",
+        experiment_name=experiment_name or "agent-chunking-experiments",
     )
 
     ingestor = DocumentIngestor(settings)

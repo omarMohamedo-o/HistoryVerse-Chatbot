@@ -2,8 +2,8 @@
 
 import pytest
 
-from agentverse.config.settings import Settings
-from agentverse.services.evaluation.ragas_eval import RagasEvaluator
+from agent.config.settings import Settings
+from agent.services.evaluation.ragas_eval import RagasEvaluator
 
 
 @pytest.mark.asyncio

@@ -27,7 +27,7 @@ RUN uv pip install --no-cache ".[gemini,voice,monitoring]"
 FROM python:3.11-slim-bookworm AS runtime
 
 LABEL maintainer="omarMohamedo-o" \
-      org.opencontainers.image.title="AgentVerse Microservices" \
+      org.opencontainers.image.title="Agent Microservices" \
       org.opencontainers.image.description="Domain-agnostic multimodal AI agent microservices" \
       org.opencontainers.image.authors="Omar Mohamed" \
       org.opencontainers.image.version="0.1.0"
@@ -68,4 +68,4 @@ EXPOSE 8000 9090
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD curl -f http://localhost:8000/health/live || exit 1
 
-ENTRYPOINT ["python", "-m", "agentverse"]
+ENTRYPOINT ["python", "-m", "agent"]

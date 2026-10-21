@@ -7,14 +7,14 @@ from unittest.mock import MagicMock
 from evals.chunk_experiment import run_chunk_experiment
 from langchain_core.documents import Document
 
-from agentverse.config.settings import Settings
-from agentverse.services.evaluation.ai_evals import (
+from agent.config.settings import Settings
+from agent.services.evaluation.ai_evals import (
     AIEvalBenchmarkReport,
     ConfusionMatrix,
     EvalResult,
     LossMetrics,
 )
-from agentverse.services.evaluation.mlflow_tracker import (
+from agent.services.evaluation.mlflow_tracker import (
     ChunkExperimentSummary,
     DatasetProfile,
     MLflowExperimentTracker,
