@@ -1,8 +1,8 @@
 """Unit tests verifying agent memory isolation and memory-level unlearning."""
 
-from agentverse.config.settings import Settings
-from agentverse.services.memory.agent_memory import AgentMemory, AgentMemoryManager
-from agentverse.services.memory.manager import ConversationMemory
+from agent.config.settings import Settings
+from agent.services.memory.agent_memory import AgentMemory, AgentMemoryManager
+from agent.services.memory.manager import ConversationMemory
 
 
 def test_agent_memory_strict_isolation():

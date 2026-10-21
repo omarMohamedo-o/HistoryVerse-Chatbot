@@ -5,10 +5,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from PIL import Image
 
-from agentverse.config.settings import Settings
-from agentverse.core.enums import LLMProvider
-from agentverse.services.llm.factory import LLMFactory
-from agentverse.services.llm.providers.ollama_provider import OllamaProvider
+from agent.config.settings import Settings
+from agent.core.enums import LLMProvider
+from agent.services.llm.factory import LLMFactory
+from agent.services.llm.providers.ollama_provider import OllamaProvider
 
 
 def test_ollama_factory_creation():

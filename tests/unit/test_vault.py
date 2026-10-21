@@ -5,8 +5,8 @@ import pytest
 import respx
 from pydantic import SecretStr
 
-from agentverse.config.settings import Settings
-from agentverse.config.vault import VaultSecretsResolver
+from agent.config.settings import Settings
+from agent.config.vault import VaultSecretsResolver
 
 
 @pytest.mark.asyncio
@@ -24,12 +24,12 @@ async def test_vault_token_auth_fetch_success():
         vault_enabled=True,
         vault_addr="http://vault.test:8200",
         vault_token=SecretStr("s.test-token-12345"),
-        vault_mount="agentverse",
+        vault_mount="agent",
         vault_path="app",
     )
     resolver = VaultSecretsResolver(settings)
 
-    respx.get("http://vault.test:8200/v1/agentverse/data/app").mock(
+    respx.get("http://vault.test:8200/v1/agent/data/app").mock(
         return_value=httpx.Response(
             200,
             json={"data": {"data": {"GOOGLE_API_KEY": "AIzaSySecretGoogleKey"}}},
@@ -95,12 +95,12 @@ async def test_vault_network_failure_handling():
         vault_enabled=True,
         vault_addr="http://vault.test:8200",
         vault_token=SecretStr("s.test-token"),
-        vault_mount="agentverse",
+        vault_mount="agent",
         vault_path="app",
     )
     resolver = VaultSecretsResolver(settings)
 
-    respx.get("http://vault.test:8200/v1/agentverse/data/app").mock(
+    respx.get("http://vault.test:8200/v1/agent/data/app").mock(
         return_value=httpx.Response(500, json={"errors": ["internal vault error"]})
     )
 

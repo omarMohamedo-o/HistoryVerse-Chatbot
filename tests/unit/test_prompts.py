@@ -4,8 +4,8 @@ import glob
 
 import yaml
 
-from agentverse.config.settings import Settings
-from agentverse.services.langfuse.prompts import PromptManager
+from agent.config.settings import Settings
+from agent.services.langfuse.prompts import PromptManager
 
 
 def test_all_yaml_templates_have_dynamic_assistant_name():

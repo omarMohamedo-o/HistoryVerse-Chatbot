@@ -2,11 +2,11 @@
 
 import pytest
 
-from agentverse.services.agents.template import TemplatedAgent
-from agentverse.services.mcp.harness import AgentHarness
-from agentverse.services.mcp.schemas import MCPRequest
-from agentverse.services.mcp.server import MCPServer
-from agentverse.services.mcp.tools import (
+from agent.services.agents.template import TemplatedAgent
+from agent.services.mcp.harness import AgentHarness
+from agent.services.mcp.schemas import MCPRequest
+from agent.services.mcp.server import MCPServer
+from agent.services.mcp.tools import (
     ArtifactInspectionTool,
     HistoricalSearchTool,
     ToolRegistry,

@@ -2,11 +2,11 @@
 
 import pytest
 
-from agentverse.core.enums import UnlearningStatus
-from agentverse.core.schemas import UnlearningRequest
-from agentverse.services.unlearning.engine import UnlearningEngine
-from agentverse.services.unlearning.registry import TombstoneRegistry
-from agentverse.services.unlearning.validator import UnlearningValidator
+from agent.core.enums import UnlearningStatus
+from agent.core.schemas import UnlearningRequest
+from agent.services.unlearning.engine import UnlearningEngine
+from agent.services.unlearning.registry import TombstoneRegistry
+from agent.services.unlearning.validator import UnlearningValidator
 from tests.conftest import MockLLMProvider
 
 

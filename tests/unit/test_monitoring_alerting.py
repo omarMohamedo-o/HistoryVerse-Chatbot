@@ -5,9 +5,9 @@ import pytest
 import respx
 from pydantic import SecretStr
 
-from agentverse.config.settings import Settings
-from agentverse.services.alerting.notifier import AlertNotifier
-from agentverse.services.monitoring import metrics
+from agent.config.settings import Settings
+from agent.services.alerting.notifier import AlertNotifier
+from agent.services.monitoring import metrics
 
 
 @pytest.mark.asyncio

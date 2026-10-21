@@ -5,15 +5,15 @@ from unittest.mock import MagicMock
 import pytest
 from fastapi.testclient import TestClient
 
-from agentverse.api.app import create_app
-from agentverse.api.dependencies import (
+from agent.api.app import create_app
+from agent.api.dependencies import (
     get_llm_provider,
     get_tts_provider,
 )
-from agentverse.config.settings import Settings
-from agentverse.services.agents.template import AgentTemplate, TemplatedAgent
-from agentverse.services.memory.agent_memory import AgentMemory
-from agentverse.services.memory.manager import ConversationMemory
+from agent.config.settings import Settings
+from agent.services.agents.template import AgentTemplate, TemplatedAgent
+from agent.services.memory.agent_memory import AgentMemory
+from agent.services.memory.manager import ConversationMemory
 from tests.conftest import MockLLMProvider
 
 

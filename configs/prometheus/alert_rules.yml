@@ -1,20 +1,20 @@
 groups:
-  - name: agentverse_alerts
+  - name: agent_alerts
     rules:
       - alert: HighModelDriftRate
-        expr: rate(agentverse_drift_events_total[5m]) > 0.2
+        expr: rate(agent_drift_events_total[5m]) > 0.2
         for: 2m
         labels:
           severity: critical
         annotations:
           summary: "High Model Drift Rate Detected"
-          description: "AgentVerse is experiencing persistent low accuracy drift triggering retries."
+          description: "Agent is experiencing persistent low accuracy drift triggering retries."
 
       - alert: ServiceDegraded
-        expr: up{job="agentverse-api"} == 0
+        expr: up{job="agent-api"} == 0
         for: 1m
         labels:
           severity: critical
         annotations:
-          summary: "AgentVerse API is down"
-          description: "Target agentverse-api:8000 is unreachable."
+          summary: "Agent API is down"
+          description: "Target agent-api:8000 is unreachable."

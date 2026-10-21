@@ -8,12 +8,12 @@ import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 
-from agentverse.api.app import create_app
-from agentverse.api.dependencies import get_llm_provider
-from agentverse.config.settings import Settings
-from agentverse.core.base import BaseLLMProvider
-from agentverse.core.enums import DeviceType, LLMProvider
-from agentverse.services.memory.manager import ConversationMemory
+from agent.api.app import create_app
+from agent.api.dependencies import get_llm_provider
+from agent.config.settings import Settings
+from agent.core.base import BaseLLMProvider
+from agent.core.enums import DeviceType, LLMProvider
+from agent.services.memory.manager import ConversationMemory
 
 
 class MockLLMProvider(BaseLLMProvider):

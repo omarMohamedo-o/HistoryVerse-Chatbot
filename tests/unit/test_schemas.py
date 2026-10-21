@@ -3,8 +3,8 @@
 import pytest
 from pydantic import ValidationError
 
-from agentverse.core.enums import ConversationType
-from agentverse.core.schemas import (
+from agent.core.enums import ConversationType
+from agent.core.schemas import (
     ChatRequest,
     ChatResponse,
     IngestRequest,

@@ -15,12 +15,12 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from agentverse.config.settings import get_settings  # noqa: E402
-from agentverse.services.evaluation.ai_evals import AIEvalsEngine  # noqa: E402
-from agentverse.services.evaluation.mlflow_tracker import (  # noqa: E402
+from agent.config.settings import get_settings  # noqa: E402
+from agent.services.evaluation.ai_evals import AIEvalsEngine  # noqa: E402
+from agent.services.evaluation.mlflow_tracker import (  # noqa: E402
     MLflowExperimentTracker,
 )
-from agentverse.services.llm.factory import LLMFactory  # noqa: E402
+from agent.services.llm.factory import LLMFactory  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("evals.runner")
@@ -69,7 +69,7 @@ async def main() -> None:
 
         llm = MockLLMProvider()
     else:
-        from agentverse.core.enums import LLMProvider
+        from agent.core.enums import LLMProvider
 
         settings = get_settings()
         if args.provider:

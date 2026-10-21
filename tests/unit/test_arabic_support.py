@@ -2,16 +2,16 @@
 
 from unittest.mock import MagicMock, patch
 
-from agentverse.config.settings import Settings
-from agentverse.core.enums import EmbeddingProvider
-from agentverse.services.memory.manager import ConversationMemory
-from agentverse.services.rag.ingest import (
+from agent.config.settings import Settings
+from agent.core.enums import EmbeddingProvider
+from agent.services.memory.manager import ConversationMemory
+from agent.services.rag.ingest import (
     EmbeddingStrategyFactory,
     HuggingFaceEmbeddingStrategy,
     OpenAIEmbeddingStrategy,
 )
-from agentverse.services.voice.tts import GTTSTextToSpeech
-from agentverse.utils.arabic import (
+from agent.services.voice.tts import GTTSTextToSpeech
+from agent.utils.arabic import (
     expand_arabic_keywords,
     is_arabic,
     normalize_alef,
@@ -134,7 +134,7 @@ def test_conversation_memory_purges_arabic_variants():
 
 
 def test_embedding_model_registry_language_profiling():
-    from agentverse.services.rag.embeddings import EmbeddingModelRegistry
+    from agent.services.rag.embeddings import EmbeddingModelRegistry
 
     # Multilingual BGE-M3
     bge_profile = EmbeddingModelRegistry.get_profile("BAAI/bge-m3")

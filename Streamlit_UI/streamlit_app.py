@@ -1,4 +1,4 @@
-"""AgentVerse Streamlit UI.
+"""Agent Streamlit UI.
 
 Provides an interactive user interface for:
 - Multi-Domain Agent Hub (Dynamic Domain Models)
@@ -14,16 +14,16 @@ import uuid
 import requests
 import streamlit as st
 
-API_URL = os.getenv("AGENTVERSE_API_URL", os.getenv("HISTORYVERSE_API_URL", "http://localhost:8000")).rstrip("/")
+API_URL = os.getenv("AGENT_API_URL", os.getenv("HISTORYVERSE_API_URL", "http://localhost:8000")).rstrip("/")
 
 st.set_page_config(
-    page_title="AgentVerse AI",
-    page_icon="🌌",
+    page_title="HistoryVerse AI",
+    page_icon="🏛️",
     layout="wide",
 )
 
-st.title("🌌 AgentVerse AI Portal")
-st.markdown("Domain-Agnostic, Multi-Provider Multimodal AI Agent Platform")
+st.title("🏛️ HistoryVerse AI Portal")
+st.markdown("Multimodal AI Agent Platform featuring HistoryVerse Agent & HistoryVerse AR Agent")
 
 # Sidebar navigation and backend status
 with st.sidebar:
@@ -42,8 +42,8 @@ with st.sidebar:
     mode = st.radio(
         "Choose Mode:",
         [
-            "🏛️ HistoryVerse (Mora Assistant)",
-            "🏺 HistoryVerse AR (Mora AR Guide)",
+            "🏛️ HistoryVerse Agent (Mora Assistant)",
+            "🏺 HistoryVerse AR Agent (Mora AR Guide)",
             "🤖 Multi-Domain Agent Hub (Medicine, Law, Custom)",
             "📜 Chat with Documents",
             "🖼️ Historical Vision Analysis",
@@ -66,9 +66,9 @@ if "ar_active_artifact" not in st.session_state:
 
 
 # -------------------------------------------------------------
-# Mode 1: HistoryVerse (Mora Assistant)
+# Mode 1: HistoryVerse Agent (Mora Assistant)
 # -------------------------------------------------------------
-if mode == "🏛️ HistoryVerse (Mora Assistant)":
+if mode == "🏛️ HistoryVerse Agent (Mora Assistant)":
     st.subheader("🏛️ HistoryVerse Historical Dialogue")
     st.caption("Converse with Mora, your AI historical research assistant.")
 
@@ -115,9 +115,9 @@ if mode == "🏛️ HistoryVerse (Mora Assistant)":
 
 
 # -------------------------------------------------------------
-# Mode 2: HistoryVerse AR (Mora AR Guide)
+# Mode 2: HistoryVerse AR Agent (Mora AR Guide)
 # -------------------------------------------------------------
-elif mode == "🏺 HistoryVerse AR (Mora AR Guide)":
+elif mode == "🏺 HistoryVerse AR Agent (Mora AR Guide)":
     st.subheader("🏺 HistoryVerse AR Mode: Guided Artifact Exploration")
     st.caption(
         "Anchor your tour guide Mora to a detected statue, monument, or historical artifact."
