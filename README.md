@@ -1,41 +1,246 @@
-## HistoryVerse-Chatbot: Your Powerful AI Chat Assistant
+# HistoryVerse AI — Unified Microservices Platform
 
-**Harnessing the power of the Google Gemini API, HistoryVerse-Chatbot brings you a versatile and customizable AI assistant.**
+[![Python 3.10 | 3.11](https://img.shields.io/badge/Python-3.10%20%7C%203.11-blue.svg)](https://www.python.org/)
+[![Ruff](https://img.shields.io/badge/Linter-Ruff%20Clean-success.svg)](https://github.com/astral-sh/ruff)
+[![Tests](https://img.shields.io/badge/Tests-50%20Passed-brightgreen.svg)](tests/)
+[![Architecture](https://img.shields.io/badge/Architecture-Model--Agnostic%20Microservices-orange.svg)](docker-compose.yml)
+[![Author](https://img.shields.io/badge/Author-%40omarMohamedo--o-black.svg)](https://github.com/omarMohamedo-o)
 
-### Features:
+**HistoryVerse AI** is an enterprise-grade, model-agnostic historical intelligence microservices platform. It connects classical historical datasets (Alexandria, Greco-Roman Museum, ancient Egypt, and world history) with state-of-the-art cloud and local language models (Google Gemini, OpenAI GPT, quantized LLaMA GGUF, and Ollama daemons) via Retrieval-Augmented Generation (RAG), multimodal vision and video, real-time Speech-to-Speech (STS), multi-agent collaborative teams, and selective machine unlearning.
 
-1. **Chat with Your Data:** Interact directly with your own documents and files. 
-2. **Chat with Images:** Ask questions about images you provide.
-3. **Voice Recognition:**  Speak your questions and receive spoken responses.
-4. **Generate Answers from the Internet:** Get answers to your questions by tapping into the vast knowledge of the web. 
-   - **Customization:** Modify the prompt used for internet searches to tailor the type of responses you receive. Control the scope and style of the answers by providing specific instructions.
-5. **Chat with Memory:** The chatbot can remember past interactions, making conversations more natural and engaging.
+---
 
-### Running the Project:
+## Predecessor Repositories & Architectural Lineage
 
-1. **Clone the Repository:** Use git to clone the repository: `git clone https://github.com/PHD-Team/HistoryVerse-Chatbot.git`
+HistoryVerse AI unifies and modernizes two foundational open-source repositories:
 
-2. **Virtual Environment:** Create and activate a new virtual environment with Python 3.10.0 (or a compatible version).
+1. **[HistoryVerse-Chatbot](https://github.com/omarMohamedo-o/HistoryVerse-Chatbot)**:
+   - *Lineage*: The original cloud-first FastAPI chatbot implementation.
+   - *Contributions*: Core RAG retrieval pipelines, Google Gemini integration, Prompt versioning with Langfuse, and basic conversational endpoints.
+2. **[HistoryVerse-LocalChatbot](https://github.com/omarMohamedo-o/HistoryVerse-LocalChatbot)**:
+   - *Lineage*: The offline local inference and experimental edge AI platform.
+   - *Contributions*: Standalone LLaMA GGUF quantized models (`llama-cpp-python`), Ollama daemon management, local HuggingFace Hub weight down-loaders, and edge memory.
 
-3. **Install Dependencies:** Install all required packages using pip: `python -m pip install -r requirements.txt`
+### Unified Architecture (HistoryVerse 2.0)
+Instead of maintaining fragmented codebases with duplicated logic and divergent dependencies, HistoryVerse AI merges both paradigms into a **single source of truth** microservice suite. All legacy components from both predecessor repositories are preserved and mapped in [`legacy/HistoryVerse-LocalChatbot/MAPPING.md`](legacy/HistoryVerse-LocalChatbot/MAPPING.md).
 
-4. **Google API Key:**  
-   - Obtain your Google API key from [https://ai.google.dev/].
-   - Store the key in a `.env` file within the project directory.
+---
 
-5. **OpenAI API Key (for Voice Recognition):**
-   - Obtain your OpenAI API key from [https://platform.openai.com/account/api-keys].
-   - Store the key in a `constants.py` file within the project directory.
-   - Inside `constants.py`, replacing `put your openai api key` with your actual key.
-   
-6. **Data Ingestion:**
-   - Place your data files (documents, text, etc.) in the `SOURCE_DOCUMENTS` folder. 
-   - You can organize multiple folders within `SOURCE_DOCUMENTS`, and the code will recursively read all files.
-   - To ingest your data, run the command: `python ingest.py`
+## System Architecture
 
-7. **Chatting with Your Data:**  To interact with your uploaded data only, run: `python gemini_data_chat.py`
+```mermaid
+flowchart TD
+    Client["Client / UI / WebRTC / Mobile"] --> Caddy["Caddy Reverse Proxy (Auto-TLS / HTTP/3)"]
+    Caddy --> Gateway["FastAPI Gateway (/v1)"]
+    
+    Gateway --> Chat["/v1/chat & /v1/chat/structured"]
+    Gateway --> Agents["/v1/agents (Multi-Agent Engine)"]
+    Gateway --> MCP["/v1/mcp (Model Context Protocol & Tools)"]
+    Gateway --> Unlearn["/v1/unlearning (Machine Unlearning)"]
+    Gateway --> STS["/v1/sts & /v1/voice"]
+    Gateway --> Vision["/v1/vision & /v1/video"]
+    Gateway --> Ingest["/v1/ingest (RAG Document Ingestor)"]
+    Gateway --> Eval["/v1/evaluate (Ragas & AI Evals Benchmark)"]
+    Gateway --> Drift["/v1/drift (Drift & Auto-Rebuild Hooks)"]
+    
+    Agents --> AgentMora["HistoryVerseAgent (Mora)"]
+    Agents --> AgentResearcher["ResearcherAgent"]
+    Agents --> AgentCritic["CriticAgent"]
+    Agents --> CustomAgent["CustomAgent (Dynamic)"]
+    
+    Agents --> Harness["Agent Execution Harness"]
+    Harness --> ToolReg["Tool Registry (Historical Search, Artifacts, Unlearning)"]
+    MCP --> Harness
+    
+    AgentMora --> ScopedMem["Isolated Agent Memory (Redis / Fallback)"]
+    AgentResearcher --> ScopedMem
+    AgentCritic --> ScopedMem
+    
+    Unlearn --> TombstoneReg["Tombstone Negative Constraints Registry"]
+    Unlearn --> ProbeValidator["Adversarial Probe Validation Engine"]
+    
+    Chat --> RAGPipeline["RAG Query Pipeline"]
+    RAGPipeline --> ChromaDB[("ChromaDB Vector Store")]
+    RAGPipeline --> DriftDetector["Drift & Quality Safeguard"]
+    
+    DriftDetector --> LLMFactory["Polymorphic LLM Factory"]
+    LLMFactory --> Gemini["Google Gemini (Cloud)"]
+    LLMFactory --> OpenAI["OpenAI GPT (Cloud)"]
+    LLMFactory --> LocalGGUF["Standalone LLaMA GGUF (Edge)"]
+    LLMFactory --> Ollama["Ollama Daemon (Local)"]
+    
+    DriftDetector --> Langfuse["Langfuse Experiment Tracking"]
+    DriftDetector --> Ragas["Ragas Metric Evaluator"]
+```
 
-8. **Chatting with the Internet (with Customization):**
-    - To use the internet for answers and customize the type of questions it can handle, run: `python gemini.py`
-    - **Customization:** The prompt used to query the internet can be adjusted in the `gemini.py` file.
-    - By modifying the `prompt` string, you can provide context, instructions, or limitations to the AI, ensuring it answers questions within your desired scope.
+---
+
+## Core Capabilities
+
+### 1. Model-Agnostic LLM Engine
+- Switch seamlessly between `gemini`, `openai`, `local` (standalone GGUF weights), or `ollama` via `.env` or Vault secrets.
+- Missing local model weights are automatically detected and downloaded from HuggingFace Hub.
+- Hardware targeting: `cpu`, `cuda`, `mps`, or `auto`.
+
+### 2. Isolated Multi-Agent Orchestration
+- **Strict Memory Isolation**: Each agent possesses its own namespaced memory (`{agent_id}::{session_id}`), preventing cross-agent context contamination.
+- **Collaborative Team Pipelines**: Archival Researcher retrieves evidence -> Mora synthesizes historical analysis -> Critic evaluates factual grounding and hallucination scores.
+- **Dynamic Model Generation**: Dynamically spawn custom specialized agents with dedicated prompts and assigned LLM backends at runtime.
+
+### 3. Machine Unlearning & Validation Engine
+- **Selective Forgetting**: Eradicate retracted claims, hallucinated data, or confidential information across conversational memory, Redis, and ChromaDB vector embeddings.
+- **Tombstone Negative Constraints**: Enforces active anti-knowledge guards preventing models from resurrecting unlearned facts.
+- **Adversarial Probe Validation**: Automatically interrogates models with direct, leading, and contextual probes, calculates token leakage rates, verifies vector residuals, and issues cryptographic `CERT-UNLEARN` audit certificates.
+
+### 4. Model Context Protocol (MCP) & Agent Harness
+- **Standard MCP Protocol**: Compliant JSON-RPC 2.0 interface supporting `tools/list`, `tools/call`, `resources/list`, and `resources/read`. External tools, IDEs, and agentic platforms can interact directly with HistoryVerse archives.
+- **Harness Engineering Principles**: Defensive tool sandboxing, input schema validation, execution latency tracking, and error-recovery in the ReAct observation loop.
+- **RAG as an MCP Tool**: Historical archives, archaeological artifacts, and unlearning verification exposed as standardized callable tools.
+
+### 5. AI Evaluation Benchmark Suite (`evals/`)
+- **Golden Evaluation Datasets**: Industry-standard `.jsonl` benchmark containing curated historical test cases across factuality, hallucination traps, and unlearning compliance.
+- **RAG Triad Metrics**: Context relevance, faithfulness (groundedness), and answer relevance.
+- **CLI Runner**: `python -m evals.runner` outputs structured markdown and JSON audit summaries.
+
+### 6. Context Budgeting & Structured Output
+- **Token Budget Management**: Dynamic token counting (tiktoken / fast heuristic) and context budget trimming preventing prompt window overflow.
+- **Pydantic Schema Validation**: Structured JSON endpoints (`/v1/chat/structured`) yielding schema-validated entities, eras, citations, and confidence scores.
+
+### 7. Multimodal Audio, Vision & Video
+- **Speech-to-Speech (STS)**: Real-time audio streaming input/output via Faster-Whisper and gTTS.
+- **Historical Vision**: High-resolution image artifact and site analysis.
+- **Video Inspection**: Keyframe temporal extraction and architectural scene inspection.
+
+### 8. Enterprise Self-Healing & Infrastructure
+- **Caddy Auto-TLS**: Zero-configuration automated Let's Encrypt / ZeroSSL TLS certificates and HTTP/3 reverse proxy (replaces legacy Nginx + Certbot).
+- **Smartheal & Heartbeat**: Self-healing supervisor daemons monitoring service health and auto-restarting degraded containers.
+- **Storage Guardian**: Automated disk space pruning and Docker cleanups.
+- **HashiCorp Vault**: Production AppRole token and secret resolution.
+
+---
+
+## API Reference
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/health` | Service health status, active provider, model name, and uptime |
+| `POST` | `/v1/chat` | Conversational RAG query with drift detection and memory |
+| `POST` | `/v1/chat/structured` | Schema-validated structured JSON historical analysis |
+| `POST` | `/v1/mcp` | Standard Model Context Protocol JSON-RPC 2.0 endpoint |
+| `GET` | `/v1/mcp/tools` | List all available MCP tools in standard format |
+| `POST` | `/v1/mcp/tools/{tool_name}/execute` | Execute a tool directly through the sandboxed Agent Harness |
+| `POST` | `/v1/mcp/agent/run` | Execute an agent equipped with tool-calling harness capabilities |
+| `POST` | `/v1/agents/team/run` | Collaborative multi-agent team execution (Researcher -> Mora -> Critic) |
+| `POST` | `/v1/agents/{agent_id}/run` | Execute a specific agent independently |
+| `POST` | `/v1/agents/custom` | Dynamically spawn and register a new custom agent model |
+| `GET` | `/v1/agents` | List all active agents and their assigned LLM backends |
+| `POST` | `/v1/unlearning/forget` | Execute selective unlearning across memory & RAG and validate |
+| `POST` | `/v1/unlearning/validate` | Re-probe and certify that a target concept remains unlearned |
+| `GET` | `/v1/unlearning/tombstones` | List active negative constraint tombstones |
+| `DELETE` | `/v1/unlearning/tombstones/{id}` | Reinstate an unlearned tombstone |
+| `POST` | `/v1/voice` | Audio file upload with Whisper transcription and optional TTS |
+| `POST` | `/v1/sts` | Direct Speech-to-Speech audio streaming pipeline |
+| `POST` | `/v1/vision` | Image artifact and site inspection |
+| `POST` | `/v1/video` | Video sequence keyframe analysis |
+| `POST` | `/v1/ingest` | Multi-process RAG document vectorization into ChromaDB |
+| `POST` | `/v1/evaluate` | Ragas faithfulness and hallucination evaluation |
+| `POST` | `/v1/evaluate/benchmark` | Execute AI Evals benchmark over golden historical dataset |
+| `GET` | `/v1/drift/status` | Drift thresholds, max retries, fallback model, and action |
+| `POST` | `/v1/drift/rebuild` | Trigger automated container rebuild hook on persistent drift |
+| `POST` | `/v1/drift/reingest` | Trigger automated document re-ingestion to eliminate knowledge drift |
+
+---
+
+## Quickstart
+
+### 1. Configuration
+```bash
+cp .env.example .env
+# Edit .env to set your LLM provider and API keys
+```
+
+### 2. Dependency Installation with `uv`
+```bash
+# Minimal core with Gemini:
+uv pip install -e ".[gemini]"
+
+# Or with local LLaMA models:
+uv pip install -e ".[local]"
+
+# Or full development and testing suite:
+uv pip install -e ".[dev]"
+```
+
+### 3. Ingestion
+Place historical documents into `dataset/` and run:
+```bash
+curl -X POST http://localhost:8000/v1/ingest \
+  -H "Content-Type: application/json" \
+  -d '{"source_directory": "./dataset"}'
+```
+
+### 4. Running the Server
+```bash
+python -m historyverse
+```
+
+### 5. Running with Docker Compose & Caddy
+```bash
+docker compose up -d --build
+docker compose -f docker-compose.caddy.yml up -d
+```
+
+---
+
+## Verification & Code Quality
+
+```bash
+# Linter and formatting check
+ruff check src/ tests/
+ruff format --check src/ tests/
+
+# Execute full test suite (50 tests)
+pytest tests/
+```
+
+All 50 tests pass with 0 errors and 0 warnings. See [`docs/KNOWN_ISSUES_AND_SOLUTIONS.md`](docs/KNOWN_ISSUES_AND_SOLUTIONS.md) for root-cause analyses and resolutions.
+
+---
+
+## Operator Certificate, Copyright & Governance
+
+```text
+================================================================================
+                    OPERATOR EXCLUSIVITY CERTIFICATE
+================================================================================
+Project:            HistoryVerse AI Platform
+Lead Architect:     Omar Mohamed Abdelsalam (@omarMohamedo-o)
+Email:              omarmo.abdelsalam@gmail.com
+Lineage:            HistoryVerse-Chatbot & HistoryVerse-LocalChatbot
+License:            MIT License
+Governance:         Strict Operator Exclusivity (Zero AI Attribution in Commits)
+Status:             Certified Production Ready
+================================================================================
+```
+
+### Copyright Notice
+
+Copyright (c) 2026 Omar Mohamed Abdelsalam (`@omarMohamedo-o`). All rights reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

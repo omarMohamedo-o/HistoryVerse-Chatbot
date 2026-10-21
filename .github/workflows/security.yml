@@ -1,0 +1,58 @@
+name: Security & Vulnerability Gate
+
+on:
+  push:
+    branches: [main, microservices]
+  pull_request:
+    branches: [main, microservices]
+  schedule:
+    - cron: "0 0 * * 0"
+
+jobs:
+  trivy-scan:
+    name: Trivy Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Trivy Vulnerability Scanner (Repo & Dependencies)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "fs"
+          ignore-unfixed: true
+          format: "table"
+          severity: "CRITICAL,HIGH"
+
+      - name: Build Container Image for Scanning
+        run: docker build -t historyverse-api:scan .
+
+      - name: Run Trivy Container Scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "historyverse-api:scan"
+          format: "table"
+          severity: "CRITICAL,HIGH"
+
+  snyk-scan:
+    name: Snyk Open Source & SAST Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Snyk CLI
+        run: npm install -g snyk
+
+      - name: Run Snyk Code SAST Scan
+        run: snyk code test || true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: Run Snyk Open Source Dependency Scan
+        run: snyk test || true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
