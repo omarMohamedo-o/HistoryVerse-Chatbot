@@ -42,11 +42,11 @@ with st.sidebar:
     mode = st.radio(
         "Choose Mode:",
         [
-            "🤖 Multi-Domain Agent Hub (Custom Domain Models)",
-            "🏛️ Historical Guide (Mora Preset)",
-            "🏺 AR Mode (Statue & Artifact Tour)",
-            "📜 Chat with Domain Documents",
-            "🖼️ Multimodal Vision Analysis",
+            "🏛️ HistoryVerse (Mora Assistant)",
+            "🏺 HistoryVerse AR (Mora AR Guide)",
+            "🤖 Multi-Domain Agent Hub (Medicine, Law, Custom)",
+            "📜 Chat with Documents",
+            "🖼️ Historical Vision Analysis",
         ],
     )
 
@@ -66,9 +66,9 @@ if "ar_active_artifact" not in st.session_state:
 
 
 # -------------------------------------------------------------
-# Mode 1: HistoryVerse Chat (Mora Persona)
+# Mode 1: HistoryVerse (Mora Assistant)
 # -------------------------------------------------------------
-if mode == "🏛️ HistoryVerse Chat":
+if mode == "🏛️ HistoryVerse (Mora Assistant)":
     st.subheader("🏛️ HistoryVerse Historical Dialogue")
     st.caption("Converse with Mora, your AI historical research assistant.")
 
@@ -115,9 +115,9 @@ if mode == "🏛️ HistoryVerse Chat":
 
 
 # -------------------------------------------------------------
-# Mode 2: HistoryVerse AR Mode (Statues & Artifacts)
+# Mode 2: HistoryVerse AR (Mora AR Guide)
 # -------------------------------------------------------------
-elif mode == "🏺 HistoryVerse AR Mode":
+elif mode == "🏺 HistoryVerse AR (Mora AR Guide)":
     st.subheader("🏺 HistoryVerse AR Mode: Guided Artifact Exploration")
     st.caption(
         "Anchor your tour guide Mora to a detected statue, monument, or historical artifact."
