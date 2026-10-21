@@ -47,6 +47,12 @@ class Settings(BaseSettings):
     llm_context_window: int = 4096
     ollama_base_url: str = "http://localhost:11434"
     agent_persona_name: str = "Mora"
+    agent_persona_id: str = "historyverse-mora"
+    prompts_dir: str = "configs/prompts"
+    outputs_dir: str = "outputs"
+    imagen_model: str = "imagen-3.0-generate-002"
+    redis_timeout_seconds: float = 2.0
+    min_disk_free_gb: float = 0.5
 
     google_api_key: SecretStr = Field(default=SecretStr(""))
     openai_api_key: SecretStr = Field(default=SecretStr(""))

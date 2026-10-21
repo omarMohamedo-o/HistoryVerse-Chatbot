@@ -12,5 +12,6 @@ template: |
   Enhanced Visual Prompt:
 variables:
   - assistant_name
+  - model_name
   - prompt
 

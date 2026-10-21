@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from historyverse.core.base import BaseLLMProvider
 from historyverse.services.agents.base import AgentResponse, BaseAgent, TeamExecutionResponse
+
+if TYPE_CHECKING:
+    from historyverse.config.settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +56,10 @@ class CustomAgent(BaseAgent):
 class AgentOrchestrator:
     """Orchestrates individual agent invocations or collaborative multi-agent team pipelines."""
 
-    def __init__(self) -> None:
+    def __init__(self, settings: Settings | None = None) -> None:
+        from historyverse.config.settings import get_settings
+
+        self._settings = settings or get_settings()
         self._registry: dict[str, BaseAgent] = {}
 
     def register_agent(self, agent: BaseAgent) -> None:
@@ -111,9 +117,10 @@ class AgentOrchestrator:
         agent_pipeline: list[str] | None = None,
     ) -> TeamExecutionResponse:
         """Execute a collaborative multi-agent workflow where agents build upon each other's work."""
+        primary_id = self._settings.agent_persona_id
         pipeline = agent_pipeline or [
             "archival-researcher",
-            "historyverse-mora",
+            primary_id,
             "historical-critic",
         ]
         contributions: list[AgentResponse] = []
@@ -132,14 +139,21 @@ class AgentOrchestrator:
             if agent.agent_id == "archival-researcher":
                 shared_context["context"] = step_response.output
                 shared_context["evidence"] = [step_response.output]
-            elif agent.agent_id == "historyverse-mora":
+            elif agent.agent_id == primary_id or agent.name == self._settings.agent_persona_name:
                 shared_context["draft_answer"] = step_response.output
 
-        # Final answer is taken from the primary domain agent (Mora) or the last answering agent
-        mora_contrib = next((c for c in contributions if c.agent_id == "historyverse-mora"), None)
+        # Final answer is taken from the primary domain agent or the last answering agent
+        primary_contrib = next(
+            (
+                c
+                for c in contributions
+                if c.agent_id == primary_id or c.agent_name == self._settings.agent_persona_name
+            ),
+            None,
+        )
         final_answer = (
-            mora_contrib.output
-            if mora_contrib
+            primary_contrib.output
+            if primary_contrib
             else (contributions[-1].output if contributions else "No output generated.")
         )
 

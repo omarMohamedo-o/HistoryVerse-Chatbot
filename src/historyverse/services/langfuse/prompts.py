@@ -21,7 +21,7 @@ class PromptManager:
 
     def __init__(self, settings: Settings | None = None) -> None:
         self._settings = settings or get_settings()
-        self._prompts_dir = "configs/prompts"
+        self._prompts_dir = self._settings.prompts_dir
         self._cache: dict[str, str] = {}
 
     def get_prompt(
@@ -77,10 +77,19 @@ class PromptManager:
         """Render a versioned prompt with provided variable substitutions."""
         template = self.get_prompt(name, version=version)
         persona_name = (
-            kwargs.get("assistant_name") or kwargs.get("name") or self._settings.agent_persona_name
+            kwargs.get("assistant_name")
+            or kwargs.get("name")
+            or kwargs.get("persona_name")
+            or self._settings.agent_persona_name
+        )
+        model_name = (
+            kwargs.get("model_name") or kwargs.get("model") or self._settings.llm_model_name
         )
         kwargs.setdefault("assistant_name", persona_name)
         kwargs.setdefault("name", persona_name)
+        kwargs.setdefault("persona_name", persona_name)
+        kwargs.setdefault("model_name", model_name)
+        kwargs.setdefault("model", model_name)
         try:
             return template.format(**kwargs)
         except KeyError:

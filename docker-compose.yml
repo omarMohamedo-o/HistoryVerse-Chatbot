@@ -117,9 +117,28 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:latest
+    container_name: historyverse-mlflow
+    restart: unless-stopped
+    profiles: ["experiments"]
+    ports:
+      - "5000:5000"
+    command: ["mlflow", "server", "--backend-store-uri", "sqlite:////mlflow/mlflow.db", "--default-artifact-root", "/mlflow/artifacts", "--host", "0.0.0.0", "--port", "5000"]
+    volumes:
+      - mlflow_data:/mlflow
+    networks:
+      - historyverse-network
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+
 volumes:
   redis_data:
   ollama_data:
+  mlflow_data:
 
 networks:
   historyverse-network:

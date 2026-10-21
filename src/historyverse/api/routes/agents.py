@@ -12,6 +12,7 @@ from historyverse.api.dependencies import (
     get_llm_provider,
     get_retriever,
 )
+from historyverse.config.settings import get_settings
 from historyverse.core.base import BaseLLMProvider
 from historyverse.services.agents.critic import CriticAgent
 from historyverse.services.agents.historical import HistoryVerseAgent
@@ -56,7 +57,11 @@ class RunTeamRequest(BaseModel):
         ..., min_length=2, description="User prompt for collaborative team execution"
     )
     pipeline: list[str] = Field(
-        default_factory=lambda: ["archival-researcher", "historyverse-mora", "historical-critic"],
+        default_factory=lambda: [
+            "archival-researcher",
+            get_settings().agent_persona_id,
+            "historical-critic",
+        ],
         description="Ordered sequence of agent IDs to execute",
     )
 

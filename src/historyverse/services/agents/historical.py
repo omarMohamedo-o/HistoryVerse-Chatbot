@@ -22,7 +22,7 @@ class HistoryVerseAgent(BaseAgent):
     def __init__(
         self,
         llm_provider: BaseLLMProvider,
-        agent_id: str = "historyverse-mora",
+        agent_id: str | None = None,
         name: str | None = None,
         role: str = "Classical & Egyptian Historical Expert",
         system_prompt: str | None = None,
@@ -30,7 +30,9 @@ class HistoryVerseAgent(BaseAgent):
     ) -> None:
         from historyverse.config.settings import get_settings
 
-        assigned_name = name or get_settings().agent_persona_name
+        settings = get_settings()
+        assigned_name = name or settings.agent_persona_name
+        assigned_id = agent_id or settings.agent_persona_id
         prompt = (
             system_prompt
             if system_prompt is not None
@@ -41,7 +43,7 @@ class HistoryVerseAgent(BaseAgent):
             )
         )
         super().__init__(
-            agent_id=agent_id,
+            agent_id=assigned_id,
             name=assigned_name,
             role=role,
             system_prompt=prompt,

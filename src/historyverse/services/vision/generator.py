@@ -33,7 +33,7 @@ class ImageGenerator:
         self._llm = llm_provider
         self._prompts = prompt_manager or PromptManager(self._settings)
         self._model = self._settings.image_generation_model
-        self._outputs_dir = "outputs"
+        self._outputs_dir = self._settings.outputs_dir
 
     async def generate_historical_image(
         self,

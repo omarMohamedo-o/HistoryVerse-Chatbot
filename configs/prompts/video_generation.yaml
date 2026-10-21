@@ -12,5 +12,6 @@ template: |
   Enhanced Video Generation Prompt:
 variables:
   - assistant_name
+  - model_name
   - prompt
 

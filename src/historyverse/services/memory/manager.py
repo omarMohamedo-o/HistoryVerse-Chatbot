@@ -35,11 +35,12 @@ class ConversationMemory:
         try:
             import redis
 
+            timeout = getattr(self._settings, "redis_timeout_seconds", 2.0)
             client = redis.Redis.from_url(
                 self._redis_url,
                 decode_responses=True,
-                socket_timeout=2.0,
-                socket_connect_timeout=2.0,
+                socket_timeout=timeout,
+                socket_connect_timeout=timeout,
             )
             client.ping()
             self._redis_client = client

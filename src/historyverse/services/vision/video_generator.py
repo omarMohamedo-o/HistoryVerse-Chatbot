@@ -33,7 +33,7 @@ class VideoGenerator:
         self._llm = llm_provider
         self._prompts = prompt_manager or PromptManager(self._settings)
         self._model = self._settings.video_generation_model
-        self._outputs_dir = os.path.join("outputs", "videos")
+        self._outputs_dir = os.path.join(self._settings.outputs_dir, "videos")
 
     async def generate_historical_video(
         self,

@@ -51,9 +51,10 @@ class GeminiProvider(BaseLLMProvider):
 
         try:
             logger.info("Using Gemini Imagen integration for direct image creation.")
+            img_model = kwargs.pop("model", self._settings.imagen_model)
             response = await litellm.aimage_generation(
                 prompt=prompt,
-                model="imagen-3.0-generate-002",
+                model=img_model,
                 api_key=self._api_key,
                 **kwargs,
             )

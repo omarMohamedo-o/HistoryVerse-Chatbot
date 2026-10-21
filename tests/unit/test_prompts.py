@@ -111,3 +111,31 @@ def test_prompt_manager_fallback_template_uses_dynamic_persona():
     )
     assert "Your name is Thoth." in rendered
     assert "Mora" not in rendered
+
+
+def test_all_yaml_templates_declare_model_name():
+    """Verify that all prompt templates declare model_name as an available variable."""
+    prompt_files = glob.glob("configs/prompts/*.yaml")
+    for file_path in prompt_files:
+        with open(file_path, encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+        variables = data.get("variables", [])
+        assert "model_name" in variables, f"File {file_path} missing model_name in variables!"
+
+
+def test_prompt_manager_injects_model_name_variable():
+    """Verify PromptManager automatically injects model_name from settings or overrides."""
+    settings = Settings(agent_persona_name="Mora", llm_model_name="gemini/gemini-1.5-pro")
+    manager = PromptManager(settings)
+
+    manager._cache["test_model_prompt:v1.0"] = (
+        "Assistant {assistant_name} running on model {model_name}."
+    )
+    rendered = manager.render("test_model_prompt")
+    assert rendered == "Assistant Mora running on model gemini/gemini-1.5-pro."
+
+    # With explicit override
+    override_rendered = manager.render(
+        "test_model_prompt", assistant_name="Athena", model_name="gpt-4o"
+    )
+    assert override_rendered == "Assistant Athena running on model gpt-4o."

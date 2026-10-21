@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from historyverse.api.dependencies import get_llm_provider, get_retriever
+from historyverse.config.settings import get_settings
 from historyverse.core.base import BaseLLMProvider
 from historyverse.services.agents.historical import HistoryVerseAgent
 from historyverse.services.mcp.harness import AgentHarness
@@ -61,7 +62,7 @@ class HarnessAgentRunRequest(BaseModel):
     """Payload to execute an agent equipped with tool-calling harness capabilities."""
 
     query: str = Field(..., min_length=1)
-    agent_id: str = "historyverse-mora"
+    agent_id: str = Field(default_factory=lambda: get_settings().agent_persona_id)
     max_turns: int = Field(default=3, ge=1, le=5)
 
 

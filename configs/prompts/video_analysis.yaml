@@ -12,5 +12,6 @@ template: |
   Sequential Historical Evaluation:
 variables:
   - assistant_name
+  - model_name
   - query
 

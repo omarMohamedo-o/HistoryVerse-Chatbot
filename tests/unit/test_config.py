@@ -36,6 +36,12 @@ def test_secret_masking():
 def test_settings_agent_persona_name():
     settings_default = Settings()
     assert settings_default.agent_persona_name == "Mora"
+    assert settings_default.agent_persona_id == "historyverse-mora"
+    assert settings_default.prompts_dir == "configs/prompts"
+    assert settings_default.outputs_dir == "outputs"
+    assert settings_default.redis_timeout_seconds > 0.0
+    assert settings_default.min_disk_free_gb > 0.0
 
-    settings_custom = Settings(agent_persona_name="Clio")
+    settings_custom = Settings(agent_persona_name="Clio", outputs_dir="custom_outputs")
     assert settings_custom.agent_persona_name == "Clio"
+    assert settings_custom.outputs_dir == "custom_outputs"

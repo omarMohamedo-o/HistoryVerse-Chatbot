@@ -27,11 +27,10 @@ class GTTSTextToSpeech(BaseTTSProvider):
         if not cleaned:
             raise VoiceError("Cannot synthesize empty text.")
 
-        os.makedirs("outputs", exist_ok=True)
+        out_dir = self._settings.outputs_dir
+        os.makedirs(out_dir, exist_ok=True)
         target = (
-            output_path
-            if output_path
-            else os.path.join("outputs", f"tts_{os.urandom(4).hex()}.mp3")
+            output_path if output_path else os.path.join(out_dir, f"tts_{os.urandom(4).hex()}.mp3")
         )
 
         lang = self._detect_language(cleaned)

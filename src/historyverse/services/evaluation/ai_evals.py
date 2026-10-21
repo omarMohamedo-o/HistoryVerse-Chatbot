@@ -7,10 +7,14 @@ import logging
 import math
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
 
 from historyverse.core.base import BaseLLMProvider
+
+if TYPE_CHECKING:
+    from historyverse.config.settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -119,8 +123,11 @@ class AIEvalsEngine:
         "could",
     )
 
-    def __init__(self, llm_provider: BaseLLMProvider) -> None:
+    def __init__(self, llm_provider: BaseLLMProvider, settings: Settings | None = None) -> None:
+        from historyverse.config.settings import get_settings
+
         self.llm = llm_provider
+        self._settings = settings or get_settings()
 
     def evaluate_context_relevance(self, question: str, contexts: list[str]) -> float:
         """Measure how relevant retrieved contexts are to the user query."""
@@ -343,6 +350,10 @@ class AIEvalsEngine:
         cm = report.confusion_matrix
         lm = report.loss_metrics
 
+        target_faith = getattr(self._settings, "ragas_min_faithfulness", 0.70)
+        target_relev = getattr(self._settings, "ragas_min_answer_relevancy", 0.70)
+        target_ctx = getattr(self._settings, "ragas_min_context_precision", 0.65)
+
         lines = [
             "# AI Evaluation Benchmark Summary",
             "",
@@ -354,10 +365,10 @@ class AIEvalsEngine:
             "",
             "| Metric | Mean Score | Target | Status |",
             "|---|---|---|---|",
-            f"| **Faithfulness / Groundedness** | `{report.mean_faithfulness:.2f}` | `>= 0.75` | {'PASS' if report.mean_faithfulness >= 0.75 else 'FAIL'} |",
-            f"| **Answer Relevance** | `{report.mean_answer_relevance:.2f}` | `>= 0.75` | {'PASS' if report.mean_answer_relevance >= 0.75 else 'FAIL'} |",
-            f"| **Context Relevance** | `{report.mean_context_relevance:.2f}` | `>= 0.70` | {'PASS' if report.mean_context_relevance >= 0.70 else 'FAIL'} |",
-            f"| **Factual Accuracy** | `{report.mean_factual_accuracy:.2f}` | `>= 0.70` | {'PASS' if report.mean_factual_accuracy >= 0.70 else 'FAIL'} |",
+            f"| **Faithfulness / Groundedness** | `{report.mean_faithfulness:.2f}` | `>= {target_faith:.2f}` | {'PASS' if report.mean_faithfulness >= target_faith else 'FAIL'} |",
+            f"| **Answer Relevance** | `{report.mean_answer_relevance:.2f}` | `>= {target_relev:.2f}` | {'PASS' if report.mean_answer_relevance >= target_relev else 'FAIL'} |",
+            f"| **Context Relevance** | `{report.mean_context_relevance:.2f}` | `>= {target_ctx:.2f}` | {'PASS' if report.mean_context_relevance >= target_ctx else 'FAIL'} |",
+            f"| **Factual Accuracy** | `{report.mean_factual_accuracy:.2f}` | `>= {target_faith:.2f}` | {'PASS' if report.mean_factual_accuracy >= target_faith else 'FAIL'} |",
             f"| **Unlearning Compliance** | `{report.unlearning_compliance_rate * 100:.1f}%` | `100.0%` | {'PASS' if report.unlearning_compliance_rate >= 1.0 else 'FAIL'} |",
             "",
             "## Confusion Matrix (Grounded vs. Hallucinated / Unlearned)",

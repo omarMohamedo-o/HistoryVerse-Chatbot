@@ -11,5 +11,6 @@ template: |
   Historical Analysis:
 variables:
   - assistant_name
+  - model_name
   - query
 

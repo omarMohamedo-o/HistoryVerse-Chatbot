@@ -51,9 +51,10 @@ class OpenAIProvider(BaseLLMProvider):
 
         try:
             logger.info("Using OpenAI DALL-E integration for direct image creation.")
+            img_model = kwargs.pop("model", self._settings.image_generation_model)
             response = await litellm.aimage_generation(
                 prompt=prompt,
-                model="dall-e-3",
+                model=img_model,
                 size=size,
                 quality=quality,
                 api_key=self._api_key,

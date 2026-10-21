@@ -44,7 +44,7 @@ async def check_readiness(
 
     _, _, free = shutil.disk_usage("/")
     free_gb = round(free / (1024**3), 2)
-    disk_healthy = free_gb > 0.5
+    disk_healthy = free_gb > settings.min_disk_free_gb
 
     all_healthy = provider_available and disk_healthy
 
