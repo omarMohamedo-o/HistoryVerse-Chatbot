@@ -29,11 +29,13 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "get_agent_memory_manager",
     "get_app_settings",
+    "get_ar_agent",
     "get_conversation_memory",
     "get_document_ingestor",
     "get_drift_detector",
     "get_file_chat_service",
     "get_hallucination_detector",
+    "get_historyverse_ar_mode_agent",
     "get_image_analyzer",
     "get_image_generator",
     "get_llm_provider",
@@ -260,3 +262,24 @@ def get_unlearning_engine(
             retriever=retriever,
         )
     return _SINGLETON_CACHE["unlearning_engine"]
+
+
+def get_historyverse_ar_mode_agent(
+    provider: BaseLLMProvider = Depends(get_llm_provider),
+    memory_manager: Any = Depends(get_agent_memory_manager),
+) -> Any:
+    """Return the HistoryVerse AR Mode artifact guide agent."""
+    if "historyverse_ar_mode_agent" not in _SINGLETON_CACHE:
+        from historyverse.services.agents.historyverse_ar_mode import (
+            HistoryVerseARModeAgent,
+        )
+
+        scoped_memory = memory_manager.get_agent_memory("historyverse-ar-mode")
+        _SINGLETON_CACHE["historyverse_ar_mode_agent"] = HistoryVerseARModeAgent(
+            llm_provider=provider,
+            memory=scoped_memory,
+        )
+    return _SINGLETON_CACHE["historyverse_ar_mode_agent"]
+
+
+get_ar_agent = get_historyverse_ar_mode_agent
