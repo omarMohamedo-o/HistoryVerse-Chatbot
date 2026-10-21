@@ -1,4 +1,4 @@
-"""API routes for multi-agent execution, dynamic agent generation, and team orchestration."""
+"""API routes for multi-agent execution, dynamic domain agent generation, and team orchestration."""
 
 from __future__ import annotations
 
@@ -67,35 +67,77 @@ class RunTeamRequest(BaseModel):
 
 
 class CreateAgentRequest(BaseModel):
-    agent_id: str = Field(..., min_length=2)
-    name: str = Field(..., min_length=2)
-    role: str = Field(..., min_length=2)
-    system_prompt: str = Field(..., min_length=10)
+    agent_id: str = Field(
+        ..., min_length=2, description="Unique agent identifier (e.g. 'medical-diagnostic')"
+    )
+    name: str = Field(..., min_length=2, description="Agent persona name (e.g. 'Dr. Sarah')")
+    role: str = Field(
+        ...,
+        min_length=2,
+        description="Agent professional role (e.g. 'Clinical Diagnostic Consultant')",
+    )
+    domain: str = Field(
+        default="general",
+        description="Knowledge domain (e.g. 'medicine', 'history', 'law', 'finance')",
+    )
+    system_prompt: str = Field(
+        ..., min_length=10, description="System instructions and domain behavioral guardrails"
+    )
+    provider: str | None = Field(
+        default=None,
+        description="Optional LLM provider engine ('openai', 'gemini', 'ollama', 'local')",
+    )
+    model_name: str | None = Field(
+        default=None,
+        description="Optional model identifier override (e.g. 'gpt-4o', 'gemini-1.5-flash', 'llama3')",
+    )
+    temperature: float | None = Field(
+        default=None, ge=0.0, le=2.0, description="Optional temperature parameter"
+    )
+    api_key: str | None = Field(default=None, description="Optional provider API key override")
 
 
 @router.get("", summary="List all active agents")
 async def list_agents(
     orchestrator: AgentOrchestrator = Depends(get_agent_orchestrator),
-) -> list[dict[str, str]]:
-    """List all registered agents and their assigned model engines."""
+) -> list[dict[str, Any]]:
+    """List all registered agents and their assigned domain and model engines."""
     return orchestrator.list_agents()
 
 
-@router.post("/custom", summary="Dynamically spawn a new specialized agent")
+@router.post("/custom", summary="Dynamically spawn a new specialized domain agent")
 async def create_custom_agent(
     req: CreateAgentRequest,
     llm: BaseLLMProvider = Depends(get_llm_provider),
     orchestrator: AgentOrchestrator = Depends(get_agent_orchestrator),
-) -> dict[str, str]:
-    """Dynamically register a new specialized agent model."""
-    orchestrator.create_custom_agent(
+) -> dict[str, Any]:
+    """Dynamically register a new specialized domain agent model with customizable settings and provider."""
+    use_default_llm = (
+        req.provider is None
+        and req.model_name is None
+        and req.temperature is None
+        and req.api_key is None
+    )
+    agent = orchestrator.create_custom_agent(
         agent_id=req.agent_id,
         name=req.name,
         role=req.role,
+        domain=req.domain,
         system_prompt=req.system_prompt,
-        llm_provider=llm,
+        llm_provider=llm if use_default_llm else None,
+        provider_name=req.provider,
+        model_name=req.model_name,
+        temperature=req.temperature,
+        api_key=req.api_key,
     )
-    return {"status": "created", "agent_id": req.agent_id, "name": req.name}
+    return {
+        "status": "created",
+        "agent_id": agent.agent_id,
+        "name": agent.name,
+        "role": agent.role,
+        "domain": agent.domain,
+        "model_used": agent.llm_provider.model_name,
+    }
 
 
 @router.post("/{agent_id}/run", summary="Execute a single agent individually")

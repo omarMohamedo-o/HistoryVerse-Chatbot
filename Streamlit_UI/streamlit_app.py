@@ -43,6 +43,7 @@ with st.sidebar:
         [
             "🏛️ HistoryVerse Chat",
             "🏺 HistoryVerse AR Mode",
+            "🤖 Multi-Domain Agent Hub (Custom Domain Models)",
             "📜 Chat with Documents",
             "🖼️ Historical Vision Analysis",
         ],
@@ -283,3 +284,120 @@ elif mode == "🖼️ Historical Vision Analysis":
                         st.error(f"Vision analysis failed: {resp.text}")
                 except Exception as exc:
                     st.error(f"Vision request error: {exc}")
+
+
+# -------------------------------------------------------------
+# Mode 5: Multi-Domain Agent Hub (Medicine, Law, Custom)
+# -------------------------------------------------------------
+elif mode == "🤖 Multi-Domain Agent Hub (Medicine, Law, Custom)":
+    st.subheader("🤖 Domain-Agnostic Multi-Agent Hub")
+    st.caption(
+        "Spawn and execute specialized agents for ANY domain (Medicine, History, Law, Science, Local RAG) with distinct providers."
+    )
+
+    tab1, tab2 = st.tabs(["💬 Query Domain Agents", "➕ Spawn Custom Domain Agent"])
+
+    with tab1:
+        st.markdown("#### Active Registered Agents")
+        agents_data = []
+        try:
+            r = requests.get(f"{API_URL}/v1/agents", timeout=5)
+            if r.status_code == 200:
+                agents_data = r.json()
+        except Exception as e:
+            st.warning(f"Could not fetch agents: {e}")
+
+        if agents_data:
+            agent_options = {
+                f"{a['name']} ({a['role']}) - [{a.get('domain', 'general').upper()}]": a["agent_id"]
+                for a in agents_data
+            }
+            selected_label = st.selectbox(
+                "Select Agent to Converse With:", list(agent_options.keys())
+            )
+            selected_agent_id = agent_options[selected_label]
+
+            agent_info = next(a for a in agents_data if a["agent_id"] == selected_agent_id)
+            st.info(
+                f"**Domain**: `{agent_info.get('domain', 'general')}` | **Model**: `{agent_info.get('model_used', 'default')}`"
+            )
+
+            agent_query = st.text_area("Question or Task for this Agent:", height=100)
+            if st.button("🚀 Run Agent Task") and agent_query:
+                with st.spinner(f"Agent {agent_info['name']} is generating response..."):
+                    try:
+                        resp = requests.post(
+                            f"{API_URL}/v1/agents/{selected_agent_id}/run",
+                            json={"query": agent_query},
+                            timeout=60,
+                        )
+                        if resp.status_code == 200:
+                            res_json = resp.json()
+                            st.markdown(f"### {res_json.get('agent_name', 'Agent')} Response:\n")
+                            st.markdown(res_json.get("output", ""))
+                            st.caption(
+                                f"Confidence: {res_json.get('confidence', 0.95)} | Model: {res_json.get('model_used')}"
+                            )
+                        else:
+                            st.error(f"Error {resp.status_code}: {resp.text}")
+                    except Exception as ex:
+                        st.error(f"Execution failed: {ex}")
+        else:
+            st.info("No agents discovered. Spawn one below!")
+
+    with tab2:
+        st.markdown("#### Spawn a Specialized Domain Model")
+        st.caption(
+            "Create a domain agent using any cloud provider (Gemini, OpenAI) or offline local engine (Ollama, Local GGUF)."
+        )
+
+        c1, c2 = st.columns(2)
+        with c1:
+            new_agent_id = st.text_input("Unique Agent ID:", value="domain-expert-ai")
+            new_agent_name = st.text_input("Persona Name:", value="ExpertGuide")
+            new_agent_role = st.text_input("Role Title:", value="Domain Specialist")
+            new_agent_domain = st.text_input("Domain:", value="history")
+        with c2:
+            new_provider = st.selectbox(
+                "LLM Provider Engine (Cloud or Local):",
+                ["gemini", "openai", "ollama", "local"],
+                index=0,
+            )
+            new_model = st.text_input(
+                "Model Identifier / Path (optional override):",
+                value="",
+                placeholder="e.g. gpt-4o, llama3, or ./models/model.gguf",
+            )
+            new_temp = st.slider("Temperature:", min_value=0.0, max_value=2.0, value=0.3, step=0.1)
+
+        new_prompt = st.text_area(
+            "System Prompt / Behavioral Guardrails:",
+            value="You are an expert specialist in your domain. Analyze user queries with structured, accurate reasoning.",
+            height=120,
+        )
+
+        if st.button("✨ Create and Register Agent"):
+            payload = {
+                "agent_id": new_agent_id,
+                "name": new_agent_name,
+                "role": new_agent_role,
+                "domain": new_agent_domain,
+                "system_prompt": new_prompt,
+                "provider": new_provider,
+                "model_name": new_model if new_model else None,
+                "temperature": new_temp,
+            }
+            with st.spinner("Registering custom domain agent..."):
+                try:
+                    create_resp = requests.post(
+                        f"{API_URL}/v1/agents/custom", json=payload, timeout=10
+                    )
+                    if create_resp.status_code == 200:
+                        st.success(
+                            f"Agent '{new_agent_name}' ({new_agent_id}) registered in domain '{new_agent_domain}' using provider '{new_provider}'!"
+                        )
+                        st.rerun()
+                    else:
+                        st.error(f"Failed to register agent: {create_resp.text}")
+                except Exception as ex:
+                    st.error(f"Creation failed: {ex}")
