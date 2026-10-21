@@ -5,7 +5,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from fastapi import Depends
+from fastapi import Depends, Header, HTTPException, Security, status
+from fastapi.security import APIKeyHeader
 
 from agent.config.settings import Settings, get_settings
 from agent.core.base import BaseLLMProvider
@@ -28,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 __all__ = [
     "get_agent_memory_manager",
+    "get_agent_registry_store",
     "get_app_settings",
     "get_ar_agent",
     "get_conversation_memory",
@@ -43,10 +45,13 @@ __all__ = [
     "get_rag_pipeline",
     "get_ragas_evaluator",
     "get_retriever",
+    "get_streaming_stt_provider",
+    "get_streaming_tts_provider",
     "get_stt_provider",
     "get_tts_provider",
     "get_unlearning_engine",
     "get_video_generator",
+    "verify_api_key",
 ]
 
 # Process-level singleton cache for heavy microservice components
@@ -290,3 +295,74 @@ def get_historyverse_ar_mode_agent(
 
 
 get_ar_agent = get_historyverse_ar_mode_agent
+
+
+def get_agent_registry_store(
+    settings: Settings = Depends(get_app_settings),
+) -> Any:
+    """Return persistent custom agent store."""
+    if "agent_registry_store" not in _SINGLETON_CACHE:
+        from agent.services.agents.registry_store import AgentRegistryStore
+
+        _SINGLETON_CACHE["agent_registry_store"] = AgentRegistryStore(settings=settings)
+    return _SINGLETON_CACHE["agent_registry_store"]
+
+
+def get_streaming_stt_provider(
+    settings: Settings = Depends(get_app_settings),
+    stt: WhisperSTT = Depends(get_stt_provider),
+) -> Any:
+    """Return incremental Speech-to-Text streaming provider."""
+    if "streaming_stt" not in _SINGLETON_CACHE:
+        from agent.services.voice.streaming_stt import IncrementalSTT
+
+        _SINGLETON_CACHE["streaming_stt"] = IncrementalSTT(base_stt=stt, settings=settings)
+    return _SINGLETON_CACHE["streaming_stt"]
+
+
+def get_streaming_tts_provider(
+    settings: Settings = Depends(get_app_settings),
+    tts: GTTSTextToSpeech = Depends(get_tts_provider),
+) -> Any:
+    """Return sentence-chunked streaming Text-to-Speech provider."""
+    if "streaming_tts" not in _SINGLETON_CACHE:
+        from agent.services.voice.streaming_tts import StreamingTTS
+
+        _SINGLETON_CACHE["streaming_tts"] = StreamingTTS(base_tts=tts, settings=settings)
+    return _SINGLETON_CACHE["streaming_tts"]
+
+
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
+async def verify_api_key(
+    x_api_key: str | None = Security(api_key_header),
+    authorization: str | None = Header(default=None),
+    settings: Settings = Depends(get_app_settings),
+) -> bool:
+    """Validate API key when auth_enabled is set to True.
+
+    Allows bypass when auth_enabled is False for dev/testing backwards compatibility.
+    Accepts X-API-Key header or Authorization: Bearer <key>.
+    """
+    if not settings.auth_enabled:
+        return True
+
+    expected_key = settings.api_key.get_secret_value() if settings.api_key else ""
+    provided_key = x_api_key
+    if not provided_key and authorization and authorization.lower().startswith("bearer "):
+        provided_key = authorization[7:].strip()
+
+    if not provided_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing API Key. Provide 'X-API-Key' header or 'Authorization: Bearer <token>'.",
+        )
+
+    if expected_key and provided_key != expected_key:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid API Key.",
+        )
+
+    return True

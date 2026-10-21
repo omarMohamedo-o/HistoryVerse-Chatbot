@@ -6,6 +6,7 @@ import json
 import logging
 import re
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator
 from typing import Any, TypeVar
 
 from PIL import Image
@@ -20,6 +21,8 @@ __all__ = [
     "BaseEvaluationProvider",
     "BaseLLMProvider",
     "BaseSTTProvider",
+    "BaseStreamingSTTProvider",
+    "BaseStreamingTTSProvider",
     "BaseTTSProvider",
 ]
 
@@ -46,6 +49,25 @@ class BaseLLMProvider(ABC):
         **kwargs: Any,
     ) -> str:
         """Generate a completion for the provided prompt."""
+
+    async def stream(
+        self,
+        prompt: str,
+        *,
+        images: list[Image.Image] | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        **kwargs: Any,
+    ) -> AsyncIterator[str]:
+        """Asynchronously stream response tokens. Default fallback yields full generation."""
+        output = await self.generate(
+            prompt,
+            images=images,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            **kwargs,
+        )
+        yield output
 
     @abstractmethod
     async def is_available(self) -> bool:
@@ -236,12 +258,40 @@ class BaseSTTProvider(ABC):
         """Transcribe an audio file to text."""
 
 
+class BaseStreamingSTTProvider(BaseSTTProvider):
+    """Abstract interface for real-time incremental Speech-to-Text streaming."""
+
+    @abstractmethod
+    async def feed_audio_chunk(self, chunk: bytes) -> tuple[str, bool]:
+        """Process incoming audio bytes. Returns (current_transcript, is_final)."""
+
+    @abstractmethod
+    async def finish(self) -> str:
+        """Finalize the current stream and return final transcript."""
+
+    @abstractmethod
+    async def reset(self) -> None:
+        """Reset internal buffers for a new conversational turn."""
+
+
 class BaseTTSProvider(ABC):
     """Abstract interface for Text-to-Speech audio synthesis."""
 
     @abstractmethod
     def synthesize(self, text: str, output_path: str | None = None) -> str:
         """Synthesize text into speech audio and return the file path."""
+
+
+class BaseStreamingTTSProvider(BaseTTSProvider):
+    """Abstract interface for real-time streaming Text-to-Speech."""
+
+    @abstractmethod
+    async def synthesize_chunk(self, text_chunk: str) -> bytes | None:
+        """Synthesize a text chunk (e.g. sentence/clause) into audio bytes."""
+
+    @abstractmethod
+    async def stream_speech(self, text_stream: AsyncIterator[str]) -> AsyncIterator[bytes]:
+        """Stream audio bytes as text tokens or sentences arrive."""
 
 
 class BaseEvaluationProvider(ABC):

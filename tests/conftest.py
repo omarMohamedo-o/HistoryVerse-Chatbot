@@ -79,6 +79,22 @@ class MockLLMProvider(BaseLLMProvider):
             return "I cannot answer this question."
         return "The Greco-Roman Museum in Alexandria houses ancient classical artifacts."
 
+    async def stream(
+        self,
+        prompt: str,
+        *,
+        images: list[Image.Image] | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        **kwargs,
+    ):
+        full_text = await self.generate(
+            prompt, images=images, temperature=temperature, max_tokens=max_tokens, **kwargs
+        )
+        words = full_text.split(" ")
+        for i, word in enumerate(words):
+            yield word + (" " if i < len(words) - 1 else "")
+
 
 @pytest.fixture
 def test_settings() -> Settings:
@@ -92,7 +108,20 @@ def test_settings() -> Settings:
         source_documents_dir="./test_dataset",
         drift_confidence_threshold=0.6,
         drift_max_retries=2,
+        agent_registry_db_path=":memory:",
     )
+
+
+@pytest.fixture(autouse=True)
+def isolate_agent_registry_db(tmp_path, monkeypatch):
+    """Ensure every test runs with an isolated agent registry DB."""
+    test_db = str(tmp_path / "isolated_reg.db")
+    monkeypatch.setenv("AGENT_REGISTRY_DB_PATH", test_db)
+    from agent.config.settings import get_settings
+
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
 
 
 @pytest.fixture

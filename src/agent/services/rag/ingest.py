@@ -282,8 +282,13 @@ class DocumentIngestor:
             )
             return HuggingFaceEmbeddingStrategy().create(self._settings)
 
-    def ingest(self, source_dir: str | None = None) -> IngestResponse:
-        """Run the complete ingestion pipeline and save into ChromaDB."""
+    def ingest(
+        self,
+        source_dir: str | None = None,
+        agent_id: str | None = None,
+        tenant_id: str | None = None,
+    ) -> IngestResponse:
+        """Run the complete ingestion pipeline and save into ChromaDB with tenant metadata."""
         start_time = time.perf_counter()
         target_dir = source_dir or self._source_dir
 
@@ -312,7 +317,20 @@ class DocumentIngestor:
         if python_docs:
             texts.extend(python_splitter.split_documents(python_docs))
 
-        logger.info("Split %d documents into %d chunks", len(documents), len(texts))
+        if agent_id or tenant_id:
+            for doc in texts:
+                if agent_id:
+                    doc.metadata["agent_id"] = agent_id
+                if tenant_id:
+                    doc.metadata["tenant_id"] = tenant_id
+
+        logger.info(
+            "Split %d documents into %d chunks [agent=%s, tenant=%s]",
+            len(documents),
+            len(texts),
+            agent_id,
+            tenant_id,
+        )
 
         embeddings = self.get_embeddings()
 

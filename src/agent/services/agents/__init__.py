@@ -9,12 +9,15 @@ from agent.services.agents.base import (
 from agent.services.agents.critic import CriticAgent
 from agent.services.agents.domain import DomainAgent
 from agent.services.agents.orchestrator import AgentOrchestrator, CustomAgent
+from agent.services.agents.registry_store import AgentRegistryStore
 from agent.services.agents.researcher import ResearcherAgent
+from agent.services.agents.team_store import TeamRegistryStore
 from agent.services.agents.template import AgentTemplate, TemplatedAgent
 
 __all__ = [
     "AgentMessage",
     "AgentOrchestrator",
+    "AgentRegistryStore",
     "AgentResponse",
     "AgentTemplate",
     "BaseAgent",
@@ -23,5 +26,6 @@ __all__ = [
     "DomainAgent",
     "ResearcherAgent",
     "TeamExecutionResponse",
+    "TeamRegistryStore",
     "TemplatedAgent",
 ]

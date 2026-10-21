@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+from typing import Any
 
 from langchain_core.documents import Document
 
@@ -50,16 +51,37 @@ class ChromaRetriever:
             logger.error("Failed to connect to ChromaDB: %s", exc)
             return None
 
-    def retrieve(self, query: str, top_k: int | None = None) -> list[Document]:
-        """Perform similarity search and return relevant context documents."""
+    def retrieve(
+        self,
+        query: str,
+        top_k: int | None = None,
+        agent_id: str | None = None,
+        tenant_id: str | None = None,
+    ) -> list[Document]:
+        """Perform similarity search with optional per-agent and per-tenant isolation."""
         store = self._ensure_vectorstore()
         if store is None:
             logger.info("Vector store unavailable or uninitialized. Returning empty context.")
             return []
 
         k = top_k or self._top_k
+        filter_expr: dict[str, Any] | None = None
+        filter_clauses: list[dict[str, Any]] = []
+        if agent_id:
+            filter_clauses.append({"agent_id": agent_id})
+        if tenant_id:
+            filter_clauses.append({"tenant_id": tenant_id})
+
+        if len(filter_clauses) == 1:
+            filter_expr = filter_clauses[0]
+        elif len(filter_clauses) > 1:
+            filter_expr = {"$and": filter_clauses}
+
         try:
-            results = store.similarity_search(query, k=k)
+            if filter_expr:
+                results = store.similarity_search(query, k=k, filter=filter_expr)
+            else:
+                results = store.similarity_search(query, k=k)
             from agent.services.unlearning.registry import get_tombstone_registry
 
             tombstone_registry = get_tombstone_registry()
@@ -67,14 +89,26 @@ class ChromaRetriever:
                 doc for doc in results if not tombstone_registry.is_forbidden(doc.page_content)[0]
             ]
             logger.info(
-                "Retrieved %d context documents (%d after tombstone filter) for query.",
+                "Retrieved %d context documents (%d after tombstone filter) for query [agent=%s tenant=%s].",
                 len(results),
                 len(filtered_results),
+                agent_id,
+                tenant_id,
             )
             return filtered_results
         except Exception as exc:
             logger.error("Similarity search failed: %s", exc)
             raise RetrieverError(str(exc)) from exc
+
+    async def retrieve_async(
+        self,
+        query: str,
+        top_k: int | None = None,
+        agent_id: str | None = None,
+        tenant_id: str | None = None,
+    ) -> list[Document]:
+        """Asynchronously perform similarity search with optional tenant isolation."""
+        return await asyncio.to_thread(self.retrieve, query, top_k, agent_id, tenant_id)
 
     def delete_documents_by_keywords(self, keywords: list[str]) -> int:
         """Purge indexed document chunks matching unlearned keywords using native ChromaDB filtering."""

@@ -48,6 +48,9 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
     agent_persona_name: str = "Mora"
     agent_persona_id: str = "agent-mora"
+    agent_registry_db_path: str = "data/agent_registry.db"
+    auth_enabled: bool = False
+    api_key: SecretStr = Field(default=SecretStr(""))
     prompts_dir: str = "configs/prompts"
     default_agent_template: str = "historical_guide"
     default_ar_template: str = "ar_mode"

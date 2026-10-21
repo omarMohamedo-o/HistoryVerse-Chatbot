@@ -109,3 +109,37 @@ class GeminiProvider(BaseLLMProvider):
         except Exception as exc:
             logger.error("Gemini generation failed: %s", exc, exc_info=True)
             raise LLMProviderError(str(exc), provider="gemini") from exc
+
+    async def stream(
+        self,
+        prompt: str,
+        *,
+        images: list[Image.Image] | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        **kwargs: Any,
+    ):
+        if not self._api_key:
+            raise LLMProviderError("Google API key is not configured.", provider="gemini")
+
+        temp = temperature if temperature is not None else self._settings.llm_temperature
+        tokens = max_tokens if max_tokens is not None else self._settings.llm_max_tokens
+
+        messages: list[dict[str, Any]] = [{"role": "user", "content": prompt}]
+        try:
+            response = await litellm.acompletion(
+                model=self._model_name,
+                messages=messages,
+                temperature=temp,
+                max_tokens=tokens,
+                api_key=self._api_key,
+                stream=True,
+                **kwargs,
+            )
+            async for chunk in response:
+                delta = getattr(chunk.choices[0].delta, "content", None) or ""
+                if delta:
+                    yield delta
+        except Exception as exc:
+            logger.error("Gemini stream failed: %s", exc)
+            raise LLMProviderError(str(exc), provider="gemini") from exc

@@ -8,6 +8,7 @@ declarative YAML template definitions.
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -280,3 +281,39 @@ class TemplatedAgent(BaseAgent):
             confidence=0.95,
             metadata=resp_metadata,
         )
+
+    async def stream(self, query: str, context: dict[str, Any] | None = None) -> AsyncIterator[str]:
+        """Stream token responses asynchronously and record complete exchange into isolated memory."""
+        ctx_data = context or {}
+        context_str = ctx_data.get("context", "")
+        session_id = ctx_data.get("session_id")
+        history_str = (
+            self.memory.get_formatted_history(session_id)
+            if session_id and self.memory.get_history(session_id)
+            else ""
+        )
+        system_base = self.build_effective_system_prompt()
+
+        parts = [system_base]
+        if history_str:
+            parts.append(f"Conversation History:\n{history_str}")
+        if context_str:
+            parts.append(f"Context:\n{context_str}")
+        parts.append(f"User Query:\n{query}")
+        formatted_prompt = "\n\n".join(parts)
+
+        logger.info(
+            "Streaming templated agent [%s] in domain '%s' for query: %s",
+            self.name,
+            self.domain,
+            query[:50],
+        )
+        accumulated_chunks: list[str] = []
+        try:
+            async for token in self.llm_provider.stream(formatted_prompt):
+                accumulated_chunks.append(token)
+                yield token
+        finally:
+            full_answer = "".join(accumulated_chunks).strip()
+            if session_id and full_answer:
+                self.memory.add_exchange(session_id, query, full_answer)

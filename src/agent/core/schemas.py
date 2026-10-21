@@ -166,6 +166,12 @@ class IngestRequest(BaseModel):
     )
     chunk_size: int = Field(default=1000, gt=0, description="Character chunk size")
     chunk_overlap: int = Field(default=200, ge=0, description="Overlap between consecutive chunks")
+    agent_id: str | None = Field(
+        default=None, description="Optional agent ID to bind ingested knowledge"
+    )
+    tenant_id: str | None = Field(
+        default=None, description="Optional tenant identifier for strict multi-tenancy"
+    )
 
 
 class IngestResponse(BaseModel):
