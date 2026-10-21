@@ -107,26 +107,42 @@ class TeamRegistryStore:
         logger.info("Persisted team '%s' (%s) with strategy '%s'", name, team_id, strategy)
         return self.get_team(team_id) or {}
 
-    def get_team(self, team_id: str) -> dict[str, Any] | None:
-        """Fetch a team by its unique identifier."""
+    def get_team(self, team_id: str, tenant_id: str | None = None) -> dict[str, Any] | None:
+        """Fetch a team by its unique identifier with optional tenant verification."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM multi_agent_teams WHERE team_id = ?", (team_id,))
             row = cursor.fetchone()
             if not row:
                 return None
-            return self._team_row_to_dict(row)
+            data = self._team_row_to_dict(row)
+            if tenant_id and data.get("config", {}).get("tenant_id") != tenant_id:
+                return None
+            return data
 
-    def list_teams(self) -> list[dict[str, Any]]:
-        """List all persisted multi-agent teams."""
+    def list_teams(self, tenant_id: str | None = None) -> list[dict[str, Any]]:
+        """List all persisted multi-agent teams with optional tenant filtering."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM multi_agent_teams ORDER BY created_at DESC")
             rows = cursor.fetchall()
-            return [self._team_row_to_dict(r) for r in rows]
+            results = [self._team_row_to_dict(r) for r in rows]
+            if tenant_id:
+                results = [t for t in results if t.get("config", {}).get("tenant_id") == tenant_id]
+            return results
 
-    def delete_team(self, team_id: str) -> bool:
-        """Delete a multi-agent team."""
+    def delete_team(self, team_id: str, tenant_id: str | None = None) -> bool:
+        """Delete a multi-agent team with tenant boundary enforcement."""
+        if tenant_id:
+            existing = self.get_team(team_id)
+            if not existing or existing.get("config", {}).get("tenant_id") != tenant_id:
+                logger.warning(
+                    "Tenant isolation violation: tenant '%s' attempted to delete team '%s'",
+                    tenant_id,
+                    team_id,
+                )
+                return False
+
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("DELETE FROM multi_agent_teams WHERE team_id = ?", (team_id,))

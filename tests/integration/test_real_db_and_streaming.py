@@ -95,6 +95,52 @@ def test_real_chroma_db_tenant_isolation_and_purges(tmp_path):
     assert len(remaining) == 0
 
 
+def test_real_chroma_db_cross_tenant_delete_isolation(tmp_path):
+    """Verify that deleting keyword in Tenant 1 strictly NEVER deletes documents of Tenant 2."""
+    from chromadb.config import Settings as ChromaSettings
+    from langchain_chroma import Chroma
+
+    persist_dir = str(tmp_path / "real_chroma_delete_isolation")
+    os.makedirs(persist_dir, exist_ok=True)
+
+    embeddings = DeterministicEmbeddings()
+    chroma_settings = ChromaSettings(anonymized_telemetry=False, is_persistent=True)
+
+    vectorstore = Chroma(
+        persist_directory=persist_dir,
+        embedding_function=embeddings,
+        client_settings=chroma_settings,
+        collection_name="tenant_delete_test",
+    )
+
+    doc_t1 = Document(
+        page_content="Greek mythology records tales of Mount Olympus.",
+        metadata={"agent_id": "agent_greek", "tenant_id": "tenant_1"},
+    )
+    doc_t2 = Document(
+        page_content="Egyptian mythology records tales of Ra and Osiris.",
+        metadata={"agent_id": "agent_egypt", "tenant_id": "tenant_2"},
+    )
+    vectorstore.add_documents([doc_t1, doc_t2])
+
+    settings = Settings(chroma_persist_dir=persist_dir, retrieval_top_k=5)
+    retriever = ChromaRetriever(settings=settings)
+    retriever._vectorstore = vectorstore
+
+    # Purge keyword 'mythology' scoped strictly to tenant_1
+    purged = retriever.delete_documents_by_keywords(["mythology"], tenant_id="tenant_1")
+    assert purged >= 1
+
+    # Tenant 1 document should be purged
+    res_t1 = retriever.retrieve("Olympus", tenant_id="tenant_1")
+    assert len(res_t1) == 0
+
+    # Tenant 2 document must remain completely intact
+    res_t2 = retriever.retrieve("Osiris", tenant_id="tenant_2")
+    assert len(res_t2) == 1
+    assert "Egyptian mythology" in res_t2[0].page_content
+
+
 @pytest.mark.asyncio
 async def test_real_streaming_generator_and_sentence_chunking():
     """Verify live async generator token consumption and sentence-chunked streaming TTS."""

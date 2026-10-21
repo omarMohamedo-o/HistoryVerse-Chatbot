@@ -110,26 +110,44 @@ class AgentRegistryStore:
         logger.info("Persisted custom agent '%s' (%s) to registry store", name, agent_id)
         return self.get_agent(agent_id) or {}
 
-    def get_agent(self, agent_id: str) -> dict[str, Any] | None:
-        """Fetch a single custom agent record by identifier."""
+    def get_agent(self, agent_id: str, tenant_id: str | None = None) -> dict[str, Any] | None:
+        """Fetch a single custom agent record by identifier with optional tenant verification."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM custom_agents WHERE agent_id = ?", (agent_id,))
             row = cursor.fetchone()
             if not row:
                 return None
-            return self._row_to_dict(row)
+            data = self._row_to_dict(row)
+            if tenant_id and data.get("metadata", {}).get("tenant_id") != tenant_id:
+                return None
+            return data
 
-    def list_agents(self) -> list[dict[str, Any]]:
-        """List all persisted custom agents."""
+    def list_agents(self, tenant_id: str | None = None) -> list[dict[str, Any]]:
+        """List all persisted custom agents, optionally filtered by tenant_id."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM custom_agents ORDER BY created_at ASC")
             rows = cursor.fetchall()
-            return [self._row_to_dict(r) for r in rows]
+            results = [self._row_to_dict(r) for r in rows]
+            if tenant_id:
+                results = [
+                    r for r in results if r.get("metadata", {}).get("tenant_id") == tenant_id
+                ]
+            return results
 
-    def delete_agent(self, agent_id: str) -> bool:
-        """Delete a custom agent record by identifier."""
+    def delete_agent(self, agent_id: str, tenant_id: str | None = None) -> bool:
+        """Delete a custom agent record by identifier, enforcing tenant isolation when tenant_id is provided."""
+        if tenant_id:
+            existing = self.get_agent(agent_id)
+            if not existing or existing.get("metadata", {}).get("tenant_id") != tenant_id:
+                logger.warning(
+                    "Tenant isolation violation: tenant '%s' attempted to delete agent '%s'",
+                    tenant_id,
+                    agent_id,
+                )
+                return False
+
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("DELETE FROM custom_agents WHERE agent_id = ?", (agent_id,))
@@ -145,15 +163,43 @@ class AgentRegistryStore:
         data.pop("metadata_json", None)
         return data
 
-    def _sanitize_metadata(self, meta: dict[str, Any]) -> dict[str, Any]:
-        """Mask potential credentials or keys from metadata."""
-        sanitized = {}
-        sensitive_keys = {"api_key", "secret", "password", "token", "auth"}
+    def _sanitize_metadata(self, meta: Any) -> Any:
+        """Mask potential credentials or keys from metadata across arbitrary nesting and collections."""
+        if not isinstance(meta, dict):
+            return meta
+
+        sanitized: dict[str, Any] = {}
+        sensitive_keys = {
+            "api_key",
+            "apikey",
+            "secret",
+            "password",
+            "passwd",
+            "token",
+            "auth",
+            "bearer",
+            "credential",
+            "private_key",
+            "client_secret",
+        }
         for k, v in meta.items():
-            if any(s in k.lower() for s in sensitive_keys):
+            k_lower = str(k).lower()
+            if any(s in k_lower for s in sensitive_keys):
                 sanitized[k] = "******"
             elif isinstance(v, dict):
                 sanitized[k] = self._sanitize_metadata(v)
+            elif isinstance(v, list):
+                sanitized[k] = [
+                    self._sanitize_metadata(item)
+                    if isinstance(item, dict)
+                    else (
+                        "******"
+                        if isinstance(item, str)
+                        and any(s in item.lower() for s in ["sk-", "bearer ", "secret_"])
+                        else item
+                    )
+                    for item in v
+                ]
             else:
                 sanitized[k] = v
         return sanitized

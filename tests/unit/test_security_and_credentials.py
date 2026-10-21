@@ -209,3 +209,118 @@ def test_team_execution_tenant_isolation(tmp_path):
     runs_med = store.list_executions(team_id="health_team")
     assert len(runs_med) == 1
     assert runs_med[0]["query"] == "Blood pressure guidance"
+
+
+def test_cross_tenant_negative_security_checks(tmp_path):
+    """Negative security test: Verify tenant cannot read, list, or delete another tenant's agents or teams."""
+    agent_store = AgentRegistryStore(db_path=str(tmp_path / "agents_sec.db"))
+    team_store = TeamRegistryStore(db_path=str(tmp_path / "teams_sec.db"))
+
+    # 1. Tenant A creates custom agent
+    agent_store.save_agent(
+        agent_id="tenant_a_agent",
+        name="Alpha Auditor",
+        role="Auditor",
+        system_prompt="Tenant A private logic.",
+        metadata={"tenant_id": "tenant_alpha", "confidential": "alpha_data"},
+    )
+
+    # Tenant B tries to fetch Tenant A's agent
+    assert agent_store.get_agent("tenant_a_agent", tenant_id="tenant_beta") is None
+    # Tenant A can fetch its own agent
+    assert agent_store.get_agent("tenant_a_agent", tenant_id="tenant_alpha") is not None
+
+    # Tenant B lists agents -> must NOT see Tenant A's agent
+    agents_b = agent_store.list_agents(tenant_id="tenant_beta")
+    assert len(agents_b) == 0
+
+    # Tenant B attempts malicious deletion of Tenant A's agent -> Refused
+    delete_breach = agent_store.delete_agent("tenant_a_agent", tenant_id="tenant_beta")
+    assert delete_breach is False
+    assert agent_store.get_agent("tenant_a_agent") is not None
+
+    # 2. Tenant A creates team
+    team_store.save_team(
+        team_id="tenant_a_team",
+        name="Alpha Team",
+        strategy="sequential",
+        members=["tenant_a_agent"],
+        config={"tenant_id": "tenant_alpha"},
+    )
+
+    # Tenant B tries to fetch Tenant A's team
+    assert team_store.get_team("tenant_a_team", tenant_id="tenant_beta") is None
+    # Tenant A can fetch its own team
+    assert team_store.get_team("tenant_a_team", tenant_id="tenant_alpha") is not None
+
+    # Tenant B lists teams -> must NOT see Tenant A's team
+    teams_b = team_store.list_teams(tenant_id="tenant_beta")
+    assert len(teams_b) == 0
+
+    # Tenant B attempts malicious deletion of Tenant A's team -> Refused
+    team_breach = team_store.delete_team("tenant_a_team", tenant_id="tenant_beta")
+    assert team_breach is False
+    assert team_store.get_team("tenant_a_team") is not None
+
+    # Legitimate deletion by Tenant A succeeds
+    assert agent_store.delete_agent("tenant_a_agent", tenant_id="tenant_alpha") is True
+    assert team_store.delete_team("tenant_a_team", tenant_id="tenant_alpha") is True
+
+
+def test_nested_metadata_and_secret_variants_sanitization(tmp_path):
+    """Verify deep recursive metadata sanitization across lists, nested dicts, and casing variations."""
+    store = AgentRegistryStore(db_path=str(tmp_path / "agents_nest.db"))
+
+    complex_metadata = {
+        "regular_info": "public project",
+        "UPPERCASE_KEY": "public value",
+        "API_KEY": "sk-top-secret-9988",
+        "AUTH_BEARER": "bearer token-123",
+        "nested_layer": {
+            "client_secret": "xyz_secret",
+            "private_key": "-----BEGIN PRIVATE KEY-----",
+            "safe_property": 42,
+            "deep_nested": {
+                "PassWord": "SuperStrongPassword!",
+            },
+        },
+        "credentials_list": ["secret1", "secret2"],
+        "service_endpoints": [
+            {"API_KEY": "sk-nested-in-list"},
+            {"public_note": "ok"},
+            "sk-raw-token-in-list",
+            "bearer raw-bearer-in-list",
+            "safe string in list",
+        ],
+    }
+
+    saved = store.save_agent(
+        agent_id="deep-sanitized-agent",
+        name="Deep Sanitized",
+        role="Security Test",
+        system_prompt="Check nested credentials sanitization.",
+        metadata=complex_metadata,
+    )
+
+    meta = saved["metadata"]
+    assert meta["regular_info"] == "public project"
+    assert meta["UPPERCASE_KEY"] == "public value"
+    assert meta["API_KEY"] == "******"
+    assert meta["AUTH_BEARER"] == "******"
+
+    # Entire list masked when key contains 'credential'
+    assert meta["credentials_list"] == "******"
+
+    # Nested dict masking
+    assert meta["nested_layer"]["client_secret"] == "******"
+    assert meta["nested_layer"]["private_key"] == "******"
+    assert meta["nested_layer"]["safe_property"] == 42
+    assert meta["nested_layer"]["deep_nested"]["PassWord"] == "******"
+
+    # List of dicts and secret strings masking within neutral list key
+    assert meta["service_endpoints"][0]["API_KEY"] == "******"
+    assert meta["service_endpoints"][1]["public_note"] == "ok"
+    assert meta["service_endpoints"][2] == "******"
+    assert meta["service_endpoints"][3] == "******"
+    assert meta["service_endpoints"][4] == "safe string in list"
+
