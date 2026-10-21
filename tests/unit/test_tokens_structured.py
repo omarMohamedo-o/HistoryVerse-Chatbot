@@ -2,7 +2,7 @@
 
 import pytest
 
-from historyverse.core.schemas import StructuredHistoricalAnalysis
+from agentverse.core.schemas import StructuredHistoricalAnalysis
 from tests.conftest import MockLLMProvider
 
 

@@ -12,22 +12,22 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from historyverse.config.settings import Settings
-from historyverse.core.enums import UnlearningStatus
-from historyverse.core.schemas import UnlearningRequest
-from historyverse.services.agents.historical import HistoryVerseAgent
-from historyverse.services.agents.researcher import ResearcherAgent
-from historyverse.services.evaluation.ai_evals import AIEvalsEngine
-from historyverse.services.mcp.harness import AgentHarness
-from historyverse.services.mcp.tools import (
+from agentverse.config.settings import Settings
+from agentverse.core.enums import UnlearningStatus
+from agentverse.core.schemas import UnlearningRequest
+from agentverse.services.agents.researcher import ResearcherAgent
+from agentverse.services.agents.template import AgentTemplate, TemplatedAgent
+from agentverse.services.evaluation.ai_evals import AIEvalsEngine
+from agentverse.services.mcp.harness import AgentHarness
+from agentverse.services.mcp.tools import (
     ArtifactInspectionTool,
     HistoricalSearchTool,
     ToolRegistry,
 )
-from historyverse.services.memory.agent_memory import AgentMemoryManager
-from historyverse.services.rag.retriever import ChromaRetriever
-from historyverse.services.unlearning.engine import UnlearningEngine
-from historyverse.services.unlearning.registry import TombstoneRegistry
+from agentverse.services.memory.agent_memory import AgentMemoryManager
+from agentverse.services.rag.retriever import ChromaRetriever
+from agentverse.services.unlearning.engine import UnlearningEngine
+from agentverse.services.unlearning.registry import TombstoneRegistry
 from tests.conftest import MockLLMProvider
 
 
@@ -44,7 +44,8 @@ async def test_end_to_end_complete_platform_lifecycle():
     llm_mora = MockLLMProvider("The Great Library of Alexandria was founded under Ptolemy I.")
     llm_researcher = MockLLMProvider("Archival papyri cataloged at Oxford reference Oxyrhynchus.")
 
-    mora_agent = HistoryVerseAgent(llm_mora, memory=mem_mora)
+    template = AgentTemplate.from_yaml("configs/prompts/historical_guide.yaml")
+    mora_agent = TemplatedAgent(template=template, llm_provider=llm_mora, memory=mem_mora)
     researcher_agent = ResearcherAgent(llm_researcher, memory=mem_researcher)
 
     # Mora turn
@@ -99,7 +100,8 @@ async def test_end_to_end_complete_platform_lifecycle():
         query="Who planned the street layout of Alexandria?",
         max_turns=2,
     )
-    assert harness_agent_res.agent_id == "historyverse-mora"
+    assert harness_agent_res.agent_name == "Mora"
+    assert harness_agent_res.agent_id == mora_agent.agent_id
     assert harness_agent_res.output is not None
 
     # Step 3: Selective Machine Unlearning & Adversarial Validation

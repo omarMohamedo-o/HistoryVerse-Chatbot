@@ -2,11 +2,11 @@
 
 import pytest
 
-from historyverse.core.enums import UnlearningStatus
-from historyverse.core.schemas import UnlearningRequest
-from historyverse.services.unlearning.engine import UnlearningEngine
-from historyverse.services.unlearning.registry import TombstoneRegistry
-from historyverse.services.unlearning.validator import UnlearningValidator
+from agentverse.core.enums import UnlearningStatus
+from agentverse.core.schemas import UnlearningRequest
+from agentverse.services.unlearning.engine import UnlearningEngine
+from agentverse.services.unlearning.registry import TombstoneRegistry
+from agentverse.services.unlearning.validator import UnlearningValidator
 from tests.conftest import MockLLMProvider
 
 

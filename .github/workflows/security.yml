@@ -24,12 +24,12 @@ jobs:
           severity: "CRITICAL,HIGH"
 
       - name: Build Container Image for Scanning
-        run: docker build -t historyverse-api:scan .
+        run: docker build -t agentverse-api:scan .
 
       - name: Run Trivy Container Scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: "historyverse-api:scan"
+          image-ref: "agentverse-api:scan"
           format: "table"
           severity: "CRITICAL,HIGH"
 

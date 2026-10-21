@@ -5,10 +5,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 from langchain_core.documents import Document
 
-from historyverse.config.settings import Settings
-from historyverse.core.enums import EmbeddingProvider
-from historyverse.core.exceptions import RetrieverError
-from historyverse.services.rag.ingest import (
+from agentverse.config.settings import Settings
+from agentverse.core.enums import EmbeddingProvider
+from agentverse.core.exceptions import RetrieverError
+from agentverse.services.rag.ingest import (
     DocumentIngestor,
     EmbeddingStrategyFactory,
     GoogleEmbeddingStrategy,
@@ -17,7 +17,7 @@ from historyverse.services.rag.ingest import (
     load_document_batch,
     load_single_document,
 )
-from historyverse.services.rag.retriever import ChromaRetriever
+from agentverse.services.rag.retriever import ChromaRetriever
 
 
 def test_embedding_strategy_factory_selection():
@@ -88,7 +88,7 @@ def test_retriever_retrieve_with_tombstone_filtering():
 
     retriever._vectorstore = mock_store
 
-    with patch("historyverse.services.unlearning.registry.get_tombstone_registry") as mock_tb_reg:
+    with patch("agentverse.services.unlearning.registry.get_tombstone_registry") as mock_tb_reg:
         mock_registry = MagicMock()
         mock_registry.is_forbidden.side_effect = lambda content: (
             (True, "Secret Tunnel") if "tunnel" in content else (False, None)

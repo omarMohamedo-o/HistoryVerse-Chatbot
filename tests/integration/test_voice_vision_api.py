@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from fastapi.testclient import TestClient
 
-from historyverse.api.app import create_app
-from historyverse.api.dependencies import (
+from agentverse.api.app import create_app
+from agentverse.api.dependencies import (
     get_app_settings,
     get_image_analyzer,
     get_image_generator,
@@ -18,18 +18,18 @@ from historyverse.api.dependencies import (
     get_tts_provider,
     get_video_generator,
 )
-from historyverse.config.settings import Settings
-from historyverse.core.schemas import (
+from agentverse.config.settings import Settings
+from agentverse.core.schemas import (
     ChatResponse,
     ImageGenerationResponse,
     VideoGenerationResponse,
 )
-from historyverse.services.rag.pipeline import RAGPipeline
-from historyverse.services.vision.analyzer import ImageAnalyzer
-from historyverse.services.vision.generator import ImageGenerator
-from historyverse.services.vision.video_generator import VideoGenerator
-from historyverse.services.voice.stt import WhisperSTT
-from historyverse.services.voice.tts import GTTSTextToSpeech
+from agentverse.services.rag.pipeline import RAGPipeline
+from agentverse.services.vision.analyzer import ImageAnalyzer
+from agentverse.services.vision.generator import ImageGenerator
+from agentverse.services.vision.video_generator import VideoGenerator
+from agentverse.services.voice.stt import WhisperSTT
+from agentverse.services.voice.tts import GTTSTextToSpeech
 
 
 @pytest.fixture

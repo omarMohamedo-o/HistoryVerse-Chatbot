@@ -37,7 +37,7 @@ def create_changelog(title: str) -> str:
 {title}
 
 ## Impacted Modules
-- `src/historyverse/`
+- `src/agentverse/`
 
 ## Deployment & Verification
 - Tests passed: unit & integration

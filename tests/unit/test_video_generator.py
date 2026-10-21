@@ -5,10 +5,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from historyverse.config.settings import Settings
-from historyverse.core.base import BaseLLMProvider
-from historyverse.core.exceptions import VisionError
-from historyverse.services.vision.video_generator import VideoGenerator
+from agentverse.config.settings import Settings
+from agentverse.core.base import BaseLLMProvider
+from agentverse.core.exceptions import VisionError
+from agentverse.services.vision.video_generator import VideoGenerator
 
 
 class MockVideoLLM(BaseLLMProvider):

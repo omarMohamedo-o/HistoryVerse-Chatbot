@@ -1,7 +1,7 @@
 services:
   caddy:
     image: caddy:2.8-alpine
-    container_name: historyverse-caddy
+    container_name: agentverse-caddy
     restart: unless-stopped
     ports:
       - "80:80"
@@ -16,9 +16,9 @@ services:
       - caddy_data:/data
       - caddy_config:/config
     networks:
-      - historyverse-net
+      - agentverse-net
     depends_on:
-      historyverse-api:
+      agentverse-api:
         condition: service_healthy
 
 volumes:
@@ -26,5 +26,5 @@ volumes:
   caddy_config:
 
 networks:
-  historyverse-net:
+  agentverse-net:
     external: true

@@ -53,7 +53,7 @@ def test_chat_endpoint_with_tts_speak_response(client: TestClient):
     from unittest.mock import patch
 
     with patch(
-        "historyverse.services.voice.tts.GTTSTextToSpeech.synthesize",
+        "agentverse.services.voice.tts.GTTSTextToSpeech.synthesize",
         return_value="/tmp/test_speech.mp3",
     ):
         payload = {"query": "Tell me about the Serapeum of Alexandria", "speak_response": True}

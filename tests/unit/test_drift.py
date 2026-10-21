@@ -2,9 +2,9 @@
 
 import pytest
 
-from historyverse.config.settings import Settings
-from historyverse.core.enums import DriftAction
-from historyverse.services.llm.drift import DriftDetector
+from agentverse.config.settings import Settings
+from agentverse.core.enums import DriftAction
+from agentverse.services.llm.drift import DriftDetector
 from tests.conftest import MockLLMProvider
 
 
@@ -73,7 +73,7 @@ def test_drift_detector_trigger_reingest(monkeypatch):
         def ingest(self):
             ingest_called.append(True)
 
-    import historyverse.services.rag.ingest as ingest_mod
+    import agentverse.services.rag.ingest as ingest_mod
 
     monkeypatch.setattr(ingest_mod, "DocumentIngestor", DummyIngestor)
 

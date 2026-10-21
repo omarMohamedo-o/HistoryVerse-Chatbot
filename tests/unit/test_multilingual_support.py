@@ -2,11 +2,11 @@
 
 import pytest
 
-from historyverse.config.settings import Settings
-from historyverse.services.memory.manager import ConversationMemory
-from historyverse.services.rag.embeddings import EmbeddingModelRegistry
-from historyverse.services.unlearning.validator import UnlearningValidator
-from historyverse.utils.multilingual import (
+from agentverse.config.settings import Settings
+from agentverse.services.memory.manager import ConversationMemory
+from agentverse.services.rag.embeddings import EmbeddingModelRegistry
+from agentverse.services.unlearning.validator import UnlearningValidator
+from agentverse.utils.multilingual import (
     detect_script,
     expand_multilingual_keywords,
     fuzzy_token_match,

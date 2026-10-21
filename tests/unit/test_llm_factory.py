@@ -1,12 +1,12 @@
 """Unit tests for the LLMFactory."""
 
-from historyverse.config.settings import Settings
-from historyverse.core.enums import LLMProvider
-from historyverse.services.llm.factory import LLMFactory
-from historyverse.services.llm.providers.gemini import GeminiProvider
-from historyverse.services.llm.providers.local import LocalProvider
-from historyverse.services.llm.providers.ollama_provider import OllamaProvider
-from historyverse.services.llm.providers.openai_provider import OpenAIProvider
+from agentverse.config.settings import Settings
+from agentverse.core.enums import LLMProvider
+from agentverse.services.llm.factory import LLMFactory
+from agentverse.services.llm.providers.gemini import GeminiProvider
+from agentverse.services.llm.providers.local import LocalProvider
+from agentverse.services.llm.providers.ollama_provider import OllamaProvider
+from agentverse.services.llm.providers.openai_provider import OpenAIProvider
 
 
 def test_factory_creates_gemini():

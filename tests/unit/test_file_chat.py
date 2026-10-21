@@ -7,10 +7,10 @@ import pytest
 from fastapi.testclient import TestClient
 from langchain_core.documents import Document
 
-from historyverse.api.app import create_app
-from historyverse.api.dependencies import get_llm_provider
-from historyverse.config.settings import Settings
-from historyverse.services.rag.file_chat import FileChatService
+from agentverse.api.app import create_app
+from agentverse.api.dependencies import get_llm_provider
+from agentverse.config.settings import Settings
+from agentverse.services.rag.file_chat import FileChatService
 from tests.conftest import MockLLMProvider
 
 
@@ -185,7 +185,7 @@ def test_load_documents_from_source_url(file_chat_service, monkeypatch):
 
 
 def test_load_documents_nonexistent_file_raises(file_chat_service):
-    from historyverse.core.exceptions import RAGError
+    from agentverse.core.exceptions import RAGError
 
     with pytest.raises(RAGError, match="does not exist"):
         file_chat_service.load_documents_from_source("nonexistent_path_xyz.txt")
@@ -193,7 +193,7 @@ def test_load_documents_nonexistent_file_raises(file_chat_service):
 
 @pytest.mark.asyncio
 async def test_chat_with_documents_empty_raises(file_chat_service):
-    from historyverse.core.exceptions import RAGError
+    from agentverse.core.exceptions import RAGError
 
     with pytest.raises(RAGError, match="No documents provided"):
         await file_chat_service.chat_with_documents([], "Question?")

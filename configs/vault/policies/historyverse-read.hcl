@@ -1,7 +1,7 @@
-path "historyverse/data/app" {
+path "agentverse/data/app" {
   capabilities = ["read"]
 }
 
-path "historyverse/data/+/app" {
+path "agentverse/data/+/app" {
   capabilities = ["read"]
 }

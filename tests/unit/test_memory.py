@@ -2,8 +2,8 @@
 
 from unittest.mock import MagicMock
 
-from historyverse.config.settings import Settings
-from historyverse.services.memory.manager import ConversationMemory
+from agentverse.config.settings import Settings
+from agentverse.services.memory.manager import ConversationMemory
 
 
 def test_conversation_memory_history():
