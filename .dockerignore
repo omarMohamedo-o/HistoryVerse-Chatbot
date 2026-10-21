@@ -22,3 +22,5 @@ extracted/*
 docs
 tests
 *.md
+!README.md
+
