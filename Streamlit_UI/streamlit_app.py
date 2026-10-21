@@ -1,10 +1,11 @@
-"""HistoryVerse Streamlit UI.
+"""AgentVerse Streamlit UI.
 
 Provides an interactive user interface for:
-- HistoryVerse Chat (Persona Mora)
-- HistoryVerse AR Mode (Statue & Artifact Guided Tour)
-- Chat with Historical Documents
-- Historical Vision & Artifact Analysis
+- Multi-Domain Agent Hub (Dynamic Domain Models)
+- Historical Guide (Mora Persona Preset)
+- AR Mode (Statue & Artifact Guided Tour)
+- Chat with Domain Documents (RAG)
+- Multimodal Vision & Artifact Analysis
 """
 
 import os
@@ -13,16 +14,16 @@ import uuid
 import requests
 import streamlit as st
 
-API_URL = os.getenv("HISTORYVERSE_API_URL", "http://localhost:8000").rstrip("/")
+API_URL = os.getenv("AGENTVERSE_API_URL", os.getenv("HISTORYVERSE_API_URL", "http://localhost:8000")).rstrip("/")
 
 st.set_page_config(
-    page_title="HistoryVerse AI",
-    page_icon="🏛️",
+    page_title="AgentVerse AI",
+    page_icon="🌌",
     layout="wide",
 )
 
-st.title("🏛️ HistoryVerse AI Portal")
-st.markdown("Model-agnostic Historical AI Assistant & Augmented Reality Guide")
+st.title("🌌 AgentVerse AI Portal")
+st.markdown("Domain-Agnostic, Multi-Provider Multimodal AI Agent Platform")
 
 # Sidebar navigation and backend status
 with st.sidebar:
@@ -41,11 +42,11 @@ with st.sidebar:
     mode = st.radio(
         "Choose Mode:",
         [
-            "🏛️ HistoryVerse Chat",
-            "🏺 HistoryVerse AR Mode",
             "🤖 Multi-Domain Agent Hub (Custom Domain Models)",
-            "📜 Chat with Documents",
-            "🖼️ Historical Vision Analysis",
+            "🏛️ Historical Guide (Mora Preset)",
+            "🏺 AR Mode (Statue & Artifact Tour)",
+            "📜 Chat with Domain Documents",
+            "🖼️ Multimodal Vision Analysis",
         ],
     )
 
@@ -147,7 +148,7 @@ elif mode == "🏺 HistoryVerse AR Mode":
                     "speak_response": speak_ar_audio,
                 }
                 resp = requests.post(
-                    f"{API_URL}/v1/historyverse-ar-mode/start",
+                    f"{API_URL}/v1/ar/start",
                     json=start_payload,
                     timeout=60,
                 )
@@ -187,7 +188,7 @@ elif mode == "🏺 HistoryVerse AR Mode":
                     "speak_response": speak_ar_audio,
                 }
                 resp = requests.post(
-                    f"{API_URL}/v1/historyverse-ar-mode/chat",
+                    f"{API_URL}/v1/ar/chat",
                     json=chat_payload,
                     timeout=60,
                 )

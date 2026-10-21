@@ -46,7 +46,7 @@ jobs:
 
       - name: Run Pytest
         run: |
-          pytest --cov=historyverse --cov-report=term-missing
+          pytest --cov=agentverse --cov-report=term-missing
 
   docker:
     name: Docker Build Check
@@ -63,4 +63,4 @@ jobs:
         with:
           context: .
           push: false
-          tags: historyverse-api:test
+          tags: agentverse-api:test

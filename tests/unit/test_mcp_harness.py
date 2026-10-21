@@ -2,11 +2,11 @@
 
 import pytest
 
-from historyverse.services.agents.historical import HistoryVerseAgent
-from historyverse.services.mcp.harness import AgentHarness
-from historyverse.services.mcp.schemas import MCPRequest
-from historyverse.services.mcp.server import MCPServer
-from historyverse.services.mcp.tools import (
+from agentverse.services.agents.template import TemplatedAgent
+from agentverse.services.mcp.harness import AgentHarness
+from agentverse.services.mcp.schemas import MCPRequest
+from agentverse.services.mcp.server import MCPServer
+from agentverse.services.mcp.tools import (
     ArtifactInspectionTool,
     HistoricalSearchTool,
     ToolRegistry,
@@ -85,7 +85,7 @@ async def test_agent_harness_defensive_engineering():
 async def test_agent_harness_react_loop():
     harness = AgentHarness()
     mock_llm = MockLLMProvider()
-    agent = HistoryVerseAgent(llm_provider=mock_llm)
+    agent = TemplatedAgent.from_yaml("configs/prompts/historical_guide.yaml", llm_provider=mock_llm)
 
     response = await harness.execute_agent_with_harness(
         agent=agent,
@@ -93,7 +93,7 @@ async def test_agent_harness_react_loop():
         max_turns=2,
     )
 
-    assert response.agent_id == "historyverse-mora"
+    assert response.agent_name == "Mora"
     assert "Serapeum" in response.output
     assert "turns_taken" in response.metadata
 

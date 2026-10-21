@@ -2,8 +2,8 @@
 
 import pytest
 
-from historyverse.config.settings import Settings
-from historyverse.services.evaluation.ragas_eval import RagasEvaluator
+from agentverse.config.settings import Settings
+from agentverse.services.evaluation.ragas_eval import RagasEvaluator
 
 
 @pytest.mark.asyncio

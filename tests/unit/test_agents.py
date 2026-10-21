@@ -2,30 +2,36 @@
 
 import pytest
 
-from historyverse.services.agents.critic import CriticAgent
-from historyverse.services.agents.historical import HistoryVerseAgent
-from historyverse.services.agents.orchestrator import AgentOrchestrator, CustomAgent
-from historyverse.services.agents.researcher import ResearcherAgent
-from historyverse.services.agents.template import AgentTemplate, TemplatedAgent
+from agentverse.services.agents.critic import CriticAgent
+from agentverse.services.agents.orchestrator import AgentOrchestrator, CustomAgent
+from agentverse.services.agents.researcher import ResearcherAgent
+from agentverse.services.agents.template import AgentTemplate, TemplatedAgent
 from tests.conftest import MockLLMProvider
 
 
 @pytest.mark.asyncio
-async def test_historyverse_mora_agent_execution():
+async def test_historical_templated_agent_execution():
     llm = MockLLMProvider("mock-gemini")
-    agent = HistoryVerseAgent(llm_provider=llm)
+    template = AgentTemplate.from_yaml("configs/prompts/historical_guide.yaml")
+    agent = TemplatedAgent(template=template, llm_provider=llm)
 
     response = await agent.run("Tell me about the Serapeum")
-    assert response.agent_id == "historyverse-mora"
     assert response.agent_name == "Mora"
     assert "Classical" in response.role
     assert "Serapeum" in response.output
 
 
 @pytest.mark.asyncio
-async def test_historyverse_agent_name_assigned_separately():
+async def test_templated_agent_name_assigned_separately():
     llm = MockLLMProvider("mock-gemini")
-    agent = HistoryVerseAgent(llm_provider=llm, name="Athena")
+    template = AgentTemplate(
+        agent_id="guide-athena",
+        name="Athena",
+        role="Classical Wisdom Guide",
+        domain="history",
+        system_prompt_template="Your name is {name}. You are an expert AI guide.",
+    )
+    agent = TemplatedAgent(template=template, llm_provider=llm)
     assert agent.name == "Athena"
     assert "Your name is Athena" in agent.system_prompt
 
@@ -60,7 +66,8 @@ async def test_agent_orchestrator_individual_and_team():
     orchestrator = AgentOrchestrator()
     llm = MockLLMProvider("mock-llm")
 
-    mora = HistoryVerseAgent(llm_provider=llm)
+    template = AgentTemplate.from_yaml("configs/prompts/historical_guide.yaml")
+    mora = TemplatedAgent(template=template, llm_provider=llm)
     researcher = ResearcherAgent(llm_provider=llm)
     critic = CriticAgent(llm_provider=llm)
 
@@ -73,7 +80,7 @@ async def test_agent_orchestrator_individual_and_team():
     assert len(agents) == 3
 
     # 2. Test Individual Run
-    ind_res = await orchestrator.run_individual("historyverse-mora", "Who was Cleopatra?")
+    ind_res = await orchestrator.run_individual(mora.agent_id, "Who was Cleopatra?")
     assert ind_res.agent_name == "Mora"
 
     # 3. Test Collaborative Team Pipeline
@@ -133,8 +140,8 @@ async def test_domain_agnostic_agent_template_instantiation():
 async def test_orchestrator_spawns_custom_domain_agent_with_provider_settings():
     from fastapi.testclient import TestClient
 
-    from historyverse.api.app import create_app
-    from historyverse.api.dependencies import get_llm_provider
+    from agentverse.api.app import create_app
+    from agentverse.api.dependencies import get_llm_provider
 
     mock_llm = MockLLMProvider("mock-fastapi-provider")
     app = create_app()

@@ -5,10 +5,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from historyverse.config.settings import Settings
-from historyverse.core.enums import DeviceType, LLMProvider
-from historyverse.core.exceptions import LLMProviderError, ModelNotFoundError
-from historyverse.services.llm.providers.local import LocalProvider
+from agentverse.config.settings import Settings
+from agentverse.core.enums import DeviceType, LLMProvider
+from agentverse.core.exceptions import LLMProviderError, ModelNotFoundError
+from agentverse.services.llm.providers.local import LocalProvider
 
 
 def test_local_provider_gguf_routing(tmp_path):

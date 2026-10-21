@@ -1,10 +1,10 @@
 services:
-  historyverse-api:
+  agentverse-api:
     build:
       context: .
       dockerfile: Dockerfile
-    image: historyverse-api:latest
-    container_name: historyverse-api
+    image: agentverse-api:latest
+    container_name: agentverse-api
     restart: unless-stopped
     ports:
       - "8000:8000"
@@ -21,7 +21,7 @@ services:
       - ./models:/app/models
       - ./outputs:/app/outputs
     networks:
-      - historyverse-network
+      - agentverse-network
     depends_on:
       redis:
         condition: service_healthy
@@ -47,7 +47,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: historyverse-redis
+    container_name: agentverse-redis
     restart: unless-stopped
     ports:
       - "6379:6379"
@@ -55,7 +55,7 @@ services:
     volumes:
       - redis_data:/data
     networks:
-      - historyverse-network
+      - agentverse-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -74,14 +74,14 @@ services:
 
   ollama:
     image: ollama/ollama:latest
-    container_name: historyverse-ollama
+    container_name: agentverse-ollama
     restart: unless-stopped
     ports:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
     networks:
-      - historyverse-network
+      - agentverse-network
     deploy:
       resources:
         limits:
@@ -94,7 +94,7 @@ services:
 
   chromadb:
     image: chromadb/chroma:latest
-    container_name: historyverse-chromadb
+    container_name: agentverse-chromadb
     restart: unless-stopped
     ports:
       - "8001:8000"
@@ -105,7 +105,7 @@ services:
       - PERSIST_DIRECTORY=/chroma/chroma
       - ANONYMIZED_TELEMETRY=FALSE
     networks:
-      - historyverse-network
+      - agentverse-network
     deploy:
       resources:
         limits:
@@ -119,7 +119,7 @@ services:
 
   mlflow:
     image: ghcr.io/mlflow/mlflow:latest
-    container_name: historyverse-mlflow
+    container_name: agentverse-mlflow
     restart: unless-stopped
     profiles: ["experiments"]
     ports:
@@ -128,7 +128,7 @@ services:
     volumes:
       - mlflow_data:/mlflow
     networks:
-      - historyverse-network
+      - agentverse-network
     deploy:
       resources:
         limits:
@@ -141,6 +141,6 @@ volumes:
   mlflow_data:
 
 networks:
-  historyverse-network:
-    name: historyverse-net
+  agentverse-network:
+    name: agentverse-net
     driver: bridge

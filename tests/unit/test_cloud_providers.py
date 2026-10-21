@@ -5,11 +5,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from pydantic import SecretStr
 
-from historyverse.config.settings import Settings
-from historyverse.core.enums import LLMProvider
-from historyverse.core.exceptions import LLMProviderError
-from historyverse.services.llm.providers.gemini import GeminiProvider
-from historyverse.services.llm.providers.openai_provider import OpenAIProvider
+from agentverse.config.settings import Settings
+from agentverse.core.enums import LLMProvider
+from agentverse.core.exceptions import LLMProviderError
+from agentverse.services.llm.providers.gemini import GeminiProvider
+from agentverse.services.llm.providers.openai_provider import OpenAIProvider
 
 
 @pytest.mark.asyncio

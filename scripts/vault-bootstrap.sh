@@ -3,9 +3,9 @@ set -euo pipefail
 
 ENVIRONMENT="${1:-production}"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-POLICY_FILE="$ROOT_DIR/configs/vault/policies/historyverse-read.hcl"
-POLICY_NAME="historyverse-deploy-${ENVIRONMENT}"
-ROLE_NAME="historyverse-deploy-${ENVIRONMENT}"
+POLICY_FILE="$ROOT_DIR/configs/vault/policies/agentverse-read.hcl"
+POLICY_NAME="agentverse-deploy-${ENVIRONMENT}"
+ROLE_NAME="agentverse-deploy-${ENVIRONMENT}"
 MOUNT="${VAULT_KV_MOUNT:-historyverse}"
 
 command -v vault >/dev/null || { echo "vault CLI not found in PATH" >&2; exit 1; }

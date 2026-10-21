@@ -3,7 +3,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from historyverse.services.evaluation.ai_evals import AIEvalsEngine, EvalSample
+from agentverse.services.evaluation.ai_evals import AIEvalsEngine, EvalSample
 from tests.conftest import MockLLMProvider
 
 
