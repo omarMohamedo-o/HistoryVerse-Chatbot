@@ -85,7 +85,7 @@ async def test_agent_harness_defensive_engineering():
 async def test_agent_harness_react_loop():
     harness = AgentHarness()
     mock_llm = MockLLMProvider()
-    agent = TemplatedAgent.from_yaml("configs/prompts/historical_guide.yaml", llm_provider=mock_llm)
+    agent = TemplatedAgent.create("historical_guide", llm_provider=mock_llm)
 
     response = await harness.execute_agent_with_harness(
         agent=agent,

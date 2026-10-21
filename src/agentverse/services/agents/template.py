@@ -80,6 +80,37 @@ class AgentTemplate(BaseModel):
             temperature=data.get("temperature"),
         )
 
+    @classmethod
+    def resolve(
+        cls,
+        template_name: str | None = None,
+        prompts_dir: str | Path | None = None,
+    ) -> AgentTemplate:
+        """Dynamically resolve and instantiate an AgentTemplate by name without hardcoded paths."""
+        from agentverse.config.settings import get_settings
+
+        settings = get_settings()
+        base_dir = Path(prompts_dir or settings.prompts_dir)
+        target_name = template_name or settings.default_agent_template
+
+        candidate_paths = [
+            base_dir / f"{target_name}.yaml",
+            base_dir / f"{target_name}.yml",
+            base_dir / target_name,
+            Path(target_name),
+        ]
+        for candidate in candidate_paths:
+            if candidate.is_file():
+                return cls.from_yaml(candidate)
+
+        return cls(
+            agent_id=settings.agent_persona_id,
+            name=settings.agent_persona_name,
+            role="Specialized Domain Assistant",
+            domain="general",
+            system_prompt_template="Your name is {assistant_name}. You are an AI assistant specialized in analyzing questions accurately.",
+        )
+
 
 class TemplatedAgent(BaseAgent):
     """Concrete agent instantiated from an AgentTemplate."""
@@ -122,6 +153,29 @@ class TemplatedAgent(BaseAgent):
         return cls(
             template=template,
             llm_provider=llm_provider,
+            memory=memory,
+            variable_overrides=variable_overrides,
+            metadata=metadata,
+        )
+
+    @classmethod
+    def create(
+        cls,
+        template_name: str | None = None,
+        llm_provider: BaseLLMProvider | None = None,
+        memory: AgentMemory | None = None,
+        variable_overrides: dict[str, Any] | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> TemplatedAgent:
+        """Dynamically resolve template and instantiate TemplatedAgent without hardcoded paths."""
+        from agentverse.config.settings import get_settings
+        from agentverse.services.llm.factory import LLMFactory
+
+        template = AgentTemplate.resolve(template_name)
+        provider = llm_provider or LLMFactory.create(get_settings())
+        return cls(
+            template=template,
+            llm_provider=provider,
             memory=memory,
             variable_overrides=variable_overrides,
             metadata=metadata,

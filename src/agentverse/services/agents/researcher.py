@@ -26,17 +26,19 @@ class ResearcherAgent(BaseAgent):
         retriever: ChromaRetriever | None = None,
         agent_id: str = "archival-researcher",
         name: str = "Archivist",
+        role: str = "Archival Evidence Researcher",
+        system_prompt: str | None = None,
         memory: AgentMemory | None = None,
     ) -> None:
-        system_prompt = (
-            "You are an archival research assistant. Extract concise, factual historical evidence "
-            "from the provided context documents to ground the answer in historical records."
+        effective_prompt = system_prompt or (
+            "You are a research assistant. Extract concise, factual evidence "
+            "from the provided context documents to ground the answer in verified records."
         )
         super().__init__(
             agent_id=agent_id,
             name=name,
-            role="Archival Evidence Researcher",
-            system_prompt=system_prompt,
+            role=role,
+            system_prompt=effective_prompt,
             llm_provider=llm_provider,
             memory=memory,
         )

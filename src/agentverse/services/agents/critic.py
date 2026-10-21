@@ -26,18 +26,20 @@ class CriticAgent(BaseAgent):
         hallucination_detector: HallucinationDetector | None = None,
         agent_id: str = "historical-critic",
         name: str = "Critic",
+        role: str = "Peer Reviewer & Fact Verifier",
+        system_prompt: str | None = None,
         memory: AgentMemory | None = None,
     ) -> None:
-        system_prompt = (
-            "You are a rigorous historical peer reviewer and critic. Analyze the drafted answer for "
-            "anachronisms, factual hallucinations, and unverifiable claims. Verify whether the claims "
-            "are grounded in known historical facts."
+        effective_prompt = system_prompt or (
+            "You are a rigorous peer reviewer and critic. Analyze the drafted answer for "
+            "factual hallucinations, inconsistencies, and unverifiable claims. Verify whether the claims "
+            "are grounded in provided evidence and facts."
         )
         super().__init__(
             agent_id=agent_id,
             name=name,
-            role="Peer Reviewer & Fact Verifier",
-            system_prompt=system_prompt,
+            role=role,
+            system_prompt=effective_prompt,
             llm_provider=llm_provider,
             memory=memory,
         )

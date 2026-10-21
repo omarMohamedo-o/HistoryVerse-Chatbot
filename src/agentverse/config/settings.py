@@ -49,6 +49,8 @@ class Settings(BaseSettings):
     agent_persona_name: str = "Mora"
     agent_persona_id: str = "agent-mora"
     prompts_dir: str = "configs/prompts"
+    default_agent_template: str = "historical_guide"
+    default_ar_template: str = "ar_mode"
     outputs_dir: str = "outputs"
     imagen_model: str = "imagen-3.0-generate-002"
     redis_timeout_seconds: float = 2.0

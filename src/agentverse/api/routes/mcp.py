@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from agentverse.api.dependencies import get_llm_provider, get_retriever
-from agentverse.config.settings import get_settings
+from agentverse.config.settings import Settings, get_settings
 from agentverse.core.base import BaseLLMProvider
 from agentverse.services.agents.template import AgentTemplate, TemplatedAgent
 from agentverse.services.mcp.harness import AgentHarness
@@ -102,22 +101,12 @@ async def run_harness_agent(
     payload: HarnessAgentRunRequest,
     llm: BaseLLMProvider = Depends(get_llm_provider),
     server: MCPServer = Depends(get_mcp_server),
+    settings: Settings = Depends(get_settings),
 ) -> dict[str, Any]:
     """Execute an agent equipped with tool-calling capabilities via the harness."""
-    yaml_path = Path("configs/prompts/historical_guide.yaml")
-    if yaml_path.exists():
-        template = AgentTemplate.from_yaml(yaml_path)
-        if payload.agent_id:
-            template = template.model_copy(update={"agent_id": payload.agent_id})
-    else:
-        settings = get_settings()
-        template = AgentTemplate(
-            agent_id=payload.agent_id or settings.agent_persona_id,
-            name=settings.agent_persona_name,
-            role="Specialized AI Assistant",
-            domain="general",
-            system_prompt_template="Your name is {name}. You are an AI assistant equipped with tools.",
-        )
+    template = AgentTemplate.resolve(settings.default_agent_template, settings.prompts_dir)
+    if payload.agent_id:
+        template = template.model_copy(update={"agent_id": payload.agent_id})
     agent = TemplatedAgent(template=template, llm_provider=llm)
     response = await server.harness.execute_agent_with_harness(
         agent=agent,

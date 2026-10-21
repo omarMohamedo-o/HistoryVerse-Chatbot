@@ -1,6 +1,5 @@
 """Unit and API tests for Augmented Reality Guide Agent loaded from AgentTemplate."""
 
-from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
@@ -27,18 +26,7 @@ def mock_provider() -> MockLLMProvider:
 def ar_mode_agent(mock_provider: MockLLMProvider) -> TemplatedAgent:
     backend = ConversationMemory(Settings())
     agent_memory = AgentMemory("ar-mode-agent", backend=backend)
-    yaml_path = Path("configs/prompts/ar_mode.yaml")
-    if yaml_path.exists():
-        template = AgentTemplate.from_yaml(yaml_path)
-    else:
-        template = AgentTemplate(
-            agent_id="ar-mode-agent",
-            name="Mora",
-            role="Augmented Reality Artifact Guide",
-            domain="augmented-reality",
-            system_prompt_template="Your name is {name}. You are an expert guide specialized in '{artifact_label}'.",
-            default_variables={"artifact_label": "Statue of Serapis"},
-        )
+    template = AgentTemplate.resolve("ar_mode")
     return TemplatedAgent(
         template=template,
         llm_provider=mock_provider,

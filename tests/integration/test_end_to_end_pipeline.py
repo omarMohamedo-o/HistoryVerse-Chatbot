@@ -44,7 +44,7 @@ async def test_end_to_end_complete_platform_lifecycle():
     llm_mora = MockLLMProvider("The Great Library of Alexandria was founded under Ptolemy I.")
     llm_researcher = MockLLMProvider("Archival papyri cataloged at Oxford reference Oxyrhynchus.")
 
-    template = AgentTemplate.from_yaml("configs/prompts/historical_guide.yaml")
+    template = AgentTemplate.resolve("historical_guide")
     mora_agent = TemplatedAgent(template=template, llm_provider=llm_mora, memory=mem_mora)
     researcher_agent = ResearcherAgent(llm_researcher, memory=mem_researcher)
 

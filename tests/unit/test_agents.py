@@ -182,3 +182,26 @@ async def test_orchestrator_spawns_custom_domain_agent_with_provider_settings():
     run_data = run_resp.json()
     assert run_data["agent_name"] == "PalaeoExpert"
     assert run_data["metadata"]["domain"] == "palaeography"
+
+
+def test_agent_template_resolve_existing_and_fallback():
+    # Resolves existing template by name
+    tmpl = AgentTemplate.resolve("historical_guide")
+    assert tmpl.agent_id == "agent-mora"
+    assert tmpl.role == "Classical & Egyptian Historical Expert"
+
+    # Resolves with extension
+    tmpl_ext = AgentTemplate.resolve("ar_mode.yaml")
+    assert tmpl_ext.agent_id == "ar-mode-agent"
+
+    # Fallback when file doesn't exist
+    fallback = AgentTemplate.resolve("non_existent_domain_template_xyz")
+    assert fallback.agent_id == "agent-mora"
+    assert fallback.domain == "general"
+
+
+def test_templated_agent_create_helper():
+    mock_llm = MockLLMProvider("mock-provider")
+    agent = TemplatedAgent.create("historical_guide", llm_provider=mock_llm)
+    assert agent.template.agent_id == "agent-mora"
+    assert agent.name == "Mora"

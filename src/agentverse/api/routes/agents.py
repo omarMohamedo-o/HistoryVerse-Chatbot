@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -13,7 +12,7 @@ from agentverse.api.dependencies import (
     get_llm_provider,
     get_retriever,
 )
-from agentverse.config.settings import get_settings
+from agentverse.config.settings import Settings, get_settings
 from agentverse.core.base import BaseLLMProvider
 from agentverse.services.agents.critic import CriticAgent
 from agentverse.services.agents.orchestrator import AgentOrchestrator
@@ -33,23 +32,13 @@ def get_agent_orchestrator(
     llm: BaseLLMProvider = Depends(get_llm_provider),
     retriever: ChromaRetriever = Depends(get_retriever),
     hallucination: HallucinationDetector = Depends(get_hallucination_detector),
+    settings: Settings = Depends(get_settings),
 ) -> AgentOrchestrator:
     """Dependency providing the agent orchestrator populated with default agents."""
     global _INITIALIZED
     if not _INITIALIZED:
-        yaml_path = Path("configs/prompts/historical_guide.yaml")
-        if yaml_path.exists():
-            default_agent = TemplatedAgent.from_yaml(yaml_path, llm_provider=llm)
-        else:
-            settings = get_settings()
-            template = AgentTemplate(
-                agent_id=settings.agent_persona_id,
-                name=settings.agent_persona_name,
-                role="Domain Expert Guide",
-                domain="general",
-                system_prompt_template="Your name is {name}. You are an expert AI specialized in analyzing questions accurately.",
-            )
-            default_agent = TemplatedAgent(template=template, llm_provider=llm)
+        template = AgentTemplate.resolve(settings.default_agent_template, settings.prompts_dir)
+        default_agent = TemplatedAgent(template=template, llm_provider=llm)
 
         researcher = ResearcherAgent(llm_provider=llm, retriever=retriever)
         critic = CriticAgent(llm_provider=llm, hallucination_detector=hallucination)

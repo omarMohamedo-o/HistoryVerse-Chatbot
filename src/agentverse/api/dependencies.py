@@ -267,31 +267,24 @@ def get_unlearning_engine(
 def get_historyverse_ar_mode_agent(
     provider: BaseLLMProvider = Depends(get_llm_provider),
     memory_manager: Any = Depends(get_agent_memory_manager),
+    settings: Settings = Depends(get_settings),
 ) -> Any:
-    """Return the AR Mode artifact guide agent instantiated from AgentTemplate."""
+    """Return the AR Mode artifact guide agent instantiated dynamically from AgentTemplate."""
     if "ar_mode_agent" not in _SINGLETON_CACHE:
-        from pathlib import Path
-
         from agentverse.services.agents.template import AgentTemplate, TemplatedAgent
 
-        yaml_path = Path("configs/prompts/ar_mode.yaml")
-        scoped_memory = memory_manager.get_agent_memory("ar-mode-agent")
-        if yaml_path.exists():
-            template = AgentTemplate.from_yaml(yaml_path)
-        else:
-            template = AgentTemplate(
-                agent_id="ar-mode-agent",
-                name="Mora",
-                role="Augmented Reality Artifact Guide",
-                domain="augmented-reality",
-                system_prompt_template="Your name is {name}. You are an expert historical guide specialized in the monument or historical artifact: '{artifact_label}'.",
-                default_variables={"artifact_label": "Ancient Artifact"},
-            )
+        template = AgentTemplate.resolve(settings.default_ar_template, settings.prompts_dir)
+        scoped_memory = memory_manager.get_agent_memory(template.agent_id)
         _SINGLETON_CACHE["ar_mode_agent"] = TemplatedAgent(
             template=template,
             llm_provider=provider,
             memory=scoped_memory,
-            metadata={"artifact_label": "Ancient Artifact", "agent_type": "ARMode"},
+            metadata={
+                "artifact_label": template.default_variables.get(
+                    "artifact_label", "Ancient Artifact"
+                ),
+                "agent_type": "ARMode",
+            },
         )
     return _SINGLETON_CACHE["ar_mode_agent"]
 
