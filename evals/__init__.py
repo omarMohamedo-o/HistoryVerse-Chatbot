@@ -1,1 +1,1 @@
-"""AI Evals Benchmark Framework for HistoryVerse."""
+"""AI Evals Benchmark Framework for AgentVerse."""

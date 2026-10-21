@@ -1,4 +1,4 @@
-"""HistoryVerse CLI runner."""
+"""AgentVerse CLI runner."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ def main() -> None:
         level=getattr(logging, settings.log_level.upper(), logging.INFO),
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     )
-    logger.info("Launching HistoryVerse on %s:%d", settings.api_host, settings.api_port)
+    logger.info("Launching AgentVerse on %s:%d", settings.api_host, settings.api_port)
 
     uvicorn.run(
         "agentverse.api.app:create_app",

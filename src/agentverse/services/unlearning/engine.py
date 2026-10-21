@@ -1,4 +1,4 @@
-"""Core Machine Unlearning Orchestrator for HistoryVerse AI."""
+"""Core Machine Unlearning Orchestrator for AgentVerse AI."""
 
 from __future__ import annotations
 

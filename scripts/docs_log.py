@@ -82,7 +82,7 @@ def create_bug(bug_id: str, title: str) -> str:
 
 def main() -> None:
     """CLI entry point for docs_log utility."""
-    parser = argparse.ArgumentParser(description="HistoryVerse Docs & Changelog Utility")
+    parser = argparse.ArgumentParser(description="AgentVerse Docs & Changelog Utility")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     new_parser = subparsers.add_parser("new", help="Create a new fragment")

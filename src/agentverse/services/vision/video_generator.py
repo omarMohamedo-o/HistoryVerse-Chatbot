@@ -177,7 +177,7 @@ class VideoGenerator:
                 frame = np.full((height, width, 3), (30, intensity // 2, intensity), dtype=np.uint8)
                 cv2.putText(
                     frame,
-                    "HistoryVerse AI Reconstruction",
+                    "AgentVerse AI Reconstruction",
                     (20, 50),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.7,
