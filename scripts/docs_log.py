@@ -9,7 +9,6 @@ import argparse
 import logging
 import os
 import re
-import sys
 from datetime import datetime, timezone
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")

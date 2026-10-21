@@ -20,7 +20,7 @@ def get_heartbeat_url() -> str:
         return HEARTBEAT_URL.strip()
     if os.path.exists(HEARTBEAT_URL_FILE):
         try:
-            with open(HEARTBEAT_URL_FILE, "r", encoding="utf-8") as f:
+            with open(HEARTBEAT_URL_FILE, encoding="utf-8") as f:
                 return f.read().strip()
         except Exception:
             return ""
@@ -39,7 +39,9 @@ def check_prometheus_ready() -> bool:
 
 def ping_heartbeat(url: str) -> bool:
     try:
-        req = urllib.request.Request(url, method="GET", headers={"User-Agent": "HistoryVerse-Heartbeat/1.0"})
+        req = urllib.request.Request(
+            url, method="GET", headers={"User-Agent": "HistoryVerse-Heartbeat/1.0"}
+        )
         with urllib.request.urlopen(req, timeout=10) as resp:
             logger.info("Heartbeat ping dispatched successfully (HTTP %d)", resp.status)
             return True
@@ -59,7 +61,9 @@ def main() -> None:
             if prom_ok:
                 ping_heartbeat(url)
             else:
-                logger.warning("Internal health checks not passing; withholding heartbeat ping to trigger external alert.")
+                logger.warning(
+                    "Internal health checks not passing; withholding heartbeat ping to trigger external alert."
+                )
 
         time.sleep(POLL_INTERVAL_SECONDS)
 

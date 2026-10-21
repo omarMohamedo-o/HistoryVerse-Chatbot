@@ -40,9 +40,10 @@ class RagasEvaluator(BaseEvaluationProvider):
         contexts: list[str],
         ground_truth: str | None = None,
     ) -> dict[str, float]:
-        from datasets import Dataset
         from ragas import evaluate
         from ragas.metrics import answer_relevancy, faithfulness
+
+        from datasets import Dataset
 
         data = {
             "question": [question],

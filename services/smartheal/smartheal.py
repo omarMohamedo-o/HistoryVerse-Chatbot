@@ -28,7 +28,7 @@ DEPENDENCIES: dict[str, list[str]] = {
 def load_state() -> dict[str, Any]:
     if os.path.exists(STATE_PATH):
         try:
-            with open(STATE_PATH, "r", encoding="utf-8") as f:
+            with open(STATE_PATH, encoding="utf-8") as f:
                 return json.load(f)
         except Exception:
             return {}
@@ -83,14 +83,22 @@ def main() -> None:
             for container in unhealthy:
                 c_state = state.setdefault(container, {"restarts": [], "quarantined_until": 0})
                 if now < c_state["quarantined_until"]:
-                    logger.warning("Container %s is in quarantine until %s; skipping restart.", container, c_state["quarantined_until"])
+                    logger.warning(
+                        "Container %s is in quarantine until %s; skipping restart.",
+                        container,
+                        c_state["quarantined_until"],
+                    )
                     continue
 
                 recent_restarts = [t for t in c_state["restarts"] if now - t < WINDOW_SECONDS]
                 if len(recent_restarts) >= MAX_RESTARTS_IN_WINDOW:
                     quarantine_until = now + 1800
                     c_state["quarantined_until"] = quarantine_until
-                    logger.error("Container %s exceeded max restarts (%d). Quarantining for 30m.", container, len(recent_restarts))
+                    logger.error(
+                        "Container %s exceeded max restarts (%d). Quarantining for 30m.",
+                        container,
+                        len(recent_restarts),
+                    )
                     save_state(state)
                     continue
 

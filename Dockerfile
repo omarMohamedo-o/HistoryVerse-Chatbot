@@ -15,12 +15,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN pip install --no-cache-dir uv
 
-COPY pyproject.toml .
+COPY pyproject.toml README.md ./
+COPY src/ ./src/
 
 RUN uv venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-RUN uv pip install --no-cache -e ".[gemini,voice,monitoring]"
+RUN uv pip install --no-cache ".[gemini,voice,monitoring]"
 
 FROM python:3.11-slim-bookworm AS runtime
 
@@ -50,7 +51,7 @@ RUN groupadd -g 10001 appgroup && \
 
 COPY --from=builder --chown=appuser:appgroup /opt/venv /opt/venv
 
-COPY --chown=appuser:appgroup pyproject.toml .
+COPY --chown=appuser:appgroup pyproject.toml README.md ./
 COPY --chown=appuser:appgroup configs ./configs
 COPY --chown=appuser:appgroup src ./src
 COPY --chown=appuser:appgroup dataset ./dataset
