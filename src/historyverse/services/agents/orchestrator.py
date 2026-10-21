@@ -36,7 +36,12 @@ class AgentOrchestrator:
     def register_agent(self, agent: BaseAgent) -> None:
         """Register an agent instance in the orchestrator registry."""
         self._registry[agent.agent_id] = agent
-        logger.info("Registered agent: %s (%s) [domain: %s]", agent.name, agent.agent_id, getattr(agent, "domain", "general"))
+        logger.info(
+            "Registered agent: %s (%s) [domain: %s]",
+            agent.name,
+            agent.agent_id,
+            getattr(agent, "domain", "general"),
+        )
 
     def get_agent(self, agent_id: str) -> BaseAgent | None:
         """Retrieve an agent by its unique identifier."""
@@ -47,7 +52,9 @@ class AgentOrchestrator:
         results = []
         for a in self._registry.values():
             provider_type = "unknown"
-            if hasattr(a.llm_provider, "settings") and hasattr(a.llm_provider.settings, "llm_provider"):
+            if hasattr(a.llm_provider, "settings") and hasattr(
+                a.llm_provider.settings, "llm_provider"
+            ):
                 provider_type = str(a.llm_provider.settings.llm_provider)
             results.append(
                 {

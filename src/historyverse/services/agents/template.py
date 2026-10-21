@@ -32,11 +32,23 @@ class AgentTemplate(BaseModel):
 
     agent_id: str = Field(..., description="Unique agent identifier")
     name: str = Field(..., description="Persona name of the agent (e.g. 'Mora', 'Athena')")
-    role: str = Field(..., description="Role and job title (e.g. 'Historical Guide', 'AR Museum Tour Guide')")
-    domain: str = Field(default="general", description="Operational domain (e.g. 'history', 'augmented-reality', 'custom')")
-    system_prompt_template: str = Field(..., description="Prompt template with optional variable placeholders")
-    default_variables: dict[str, Any] = Field(default_factory=dict, description="Default variables to interpolate into prompt")
-    provider_type: str | None = Field(default=None, description="Optional provider override ('gemini', 'openai', 'ollama', 'local')")
+    role: str = Field(
+        ..., description="Role and job title (e.g. 'Historical Guide', 'AR Museum Tour Guide')"
+    )
+    domain: str = Field(
+        default="general",
+        description="Operational domain (e.g. 'history', 'augmented-reality', 'custom')",
+    )
+    system_prompt_template: str = Field(
+        ..., description="Prompt template with optional variable placeholders"
+    )
+    default_variables: dict[str, Any] = Field(
+        default_factory=dict, description="Default variables to interpolate into prompt"
+    )
+    provider_type: str | None = Field(
+        default=None,
+        description="Optional provider override ('gemini', 'openai', 'ollama', 'local')",
+    )
     model_name: str | None = Field(default=None, description="Optional model identifier override")
     temperature: float | None = Field(default=None, ge=0.0, le=2.0)
 

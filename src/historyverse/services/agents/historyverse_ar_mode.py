@@ -83,13 +83,9 @@ class HistoryVerseARModeAgent(TemplatedAgent):
         self.set_artifact_label(label)
 
         if language == "ar" or is_arabic(label):
-            intro_query = (
-                f"قدم نبذة تاريخية شاملة وموجزة (في حدود 10 أسطر أو أقل) عن {label} وأهميتها التاريخية والأثرية."
-            )
+            intro_query = f"قدم نبذة تاريخية شاملة وموجزة (في حدود 10 أسطر أو أقل) عن {label} وأهميتها التاريخية والأثرية."
         else:
-            intro_query = (
-                f"Tell me everything you can about {label}, but try to keep it brief (10 lines or less)."
-            )
+            intro_query = f"Tell me everything you can about {label}, but try to keep it brief (10 lines or less)."
 
         context: dict[str, Any] = {"session_id": session_id} if session_id else {}
         response = await self.run(intro_query, context=context)
