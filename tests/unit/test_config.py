@@ -38,10 +38,19 @@ def test_settings_agent_persona_name():
     assert settings_default.agent_persona_name == "Mora"
     assert settings_default.agent_persona_id == "agent-mora"
     assert settings_default.prompts_dir == "configs/prompts"
+    assert settings_default.default_agent_template == "historical_guide"
+    assert settings_default.default_ar_template == "ar_mode"
     assert settings_default.outputs_dir == "outputs"
     assert settings_default.redis_timeout_seconds > 0.0
     assert settings_default.min_disk_free_gb > 0.0
 
-    settings_custom = Settings(agent_persona_name="Clio", outputs_dir="custom_outputs")
+    settings_custom = Settings(
+        agent_persona_name="Clio",
+        outputs_dir="custom_outputs",
+        default_agent_template="custom_guide",
+        default_ar_template="custom_ar",
+    )
     assert settings_custom.agent_persona_name == "Clio"
     assert settings_custom.outputs_dir == "custom_outputs"
+    assert settings_custom.default_agent_template == "custom_guide"
+    assert settings_custom.default_ar_template == "custom_ar"

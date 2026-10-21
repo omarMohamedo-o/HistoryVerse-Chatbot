@@ -65,8 +65,8 @@ class PromptManager:
                 logger.error("Error reading local prompt file %s: %s", yaml_path, exc)
 
         return (
-            "Your name is {assistant_name}. You are an expert AI historian specializing in "
-            "Egypt, Alexandria, and world history.\n"
+            "Your name is {assistant_name}. You are an expert AI assistant specializing in "
+            "domain analysis and accurate question answering.\n"
             "Context: {context}\n"
             "History: {history}\n"
             "Question: {question}\n"
