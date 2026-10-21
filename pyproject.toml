@@ -60,6 +60,10 @@ evaluation = [
     "langfuse>=2.50.0",
 ]
 
+experiments = [
+    "mlflow>=2.15.0",
+]
+
 monitoring = [
     "prometheus-client>=0.20.0",
     "prometheus-fastapi-instrumentator>=7.0.0",
@@ -80,7 +84,7 @@ dev = [
 ]
 
 all = [
-    "historyverse[gemini,openai,local,voice,evaluation,monitoring,loaders,dev]",
+    "historyverse[gemini,openai,local,voice,evaluation,experiments,monitoring,loaders,dev]",
 ]
 
 [build-system]

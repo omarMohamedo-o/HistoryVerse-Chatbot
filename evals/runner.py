@@ -17,6 +17,9 @@ if str(REPO_ROOT) not in sys.path:
 
 from historyverse.config.settings import get_settings  # noqa: E402
 from historyverse.services.evaluation.ai_evals import AIEvalsEngine  # noqa: E402
+from historyverse.services.evaluation.mlflow_tracker import (  # noqa: E402
+    MLflowExperimentTracker,
+)
 from historyverse.services.llm.factory import LLMFactory  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -47,6 +50,17 @@ async def main() -> None:
         type=str,
         default=None,
         help="Override LLM provider (e.g. gemini, openai, local, ollama)",
+    )
+    parser.add_argument(
+        "--mlflow",
+        action="store_true",
+        help="Log evaluation benchmark metrics, parameters, and reports to MLflow",
+    )
+    parser.add_argument(
+        "--experiment-name",
+        type=str,
+        default=None,
+        help="Custom MLflow experiment name override",
     )
     args = parser.parse_args()
 
@@ -79,6 +93,26 @@ async def main() -> None:
     md_content = engine.generate_markdown_report(report)
     with open(md_path, "w", encoding="utf-8") as f:
         f.write(md_content)
+
+    if args.mlflow:
+        settings = get_settings()
+        settings.mlflow_enabled = True
+        tracker = MLflowExperimentTracker(
+            settings=settings,
+            experiment_name=args.experiment_name,
+        )
+        params = {
+            "provider": getattr(llm, "provider_type", "mock"),
+            "model_name": llm.model_name,
+        }
+        run_id = tracker.log_eval_benchmark(
+            report=report,
+            dataset_path=args.dataset,
+            parameters=params,
+            artifacts_dir=args.output_dir,
+        )
+        if run_id:
+            logger.info("Benchmark logged to MLflow with run ID: %s", run_id)
 
     print("\n" + md_content + "\n")
     logger.info("Benchmark complete! Reports saved to %s and %s", json_path, md_path)

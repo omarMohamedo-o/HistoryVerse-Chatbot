@@ -110,6 +110,10 @@ class Settings(BaseSettings):
         "docker compose build historyverse-api && docker compose up -d historyverse-api"
     )
 
+    mlflow_enabled: bool = False
+    mlflow_tracking_uri: str = "sqlite:///mlflow.db"
+    mlflow_experiment_name: str = "historyverse-experiments"
+
     max_conversation_history: int = 50
     redis_url: str = ""
     redis_ttl_seconds: int = 86400
