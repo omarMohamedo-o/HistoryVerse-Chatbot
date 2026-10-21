@@ -56,15 +56,31 @@ def test_chat_endpoint_with_tts_speak_response(client: TestClient):
         "agent.services.voice.tts.GTTSTextToSpeech.synthesize",
         return_value="/tmp/test_speech.mp3",
     ):
-        payload = {"query": "Tell me about the Serapeum of Alexandria", "speak_response": True}
+        payload = {
+            "query": "Tell me about the Serapeum of Alexandria",
+            "speak_response": True,
+            "temperature": 0.7,
+        }
         response = client.post("/v1/chat", json=payload)
         assert response.status_code == 200
         data = response.json()
         assert data["audio_url"] == "/tmp/test_speech.mp3"
 
+    # TTS synthesis failure fallback
+    with patch(
+        "agent.services.voice.tts.GTTSTextToSpeech.synthesize",
+        side_effect=Exception("TTS Failure"),
+    ):
+        payload = {"query": "Tell me about Alexandria", "speak_response": True}
+        response = client.post("/v1/chat", json=payload)
+        assert response.status_code == 200
+        assert response.json()["audio_url"] is None
+
 
 def test_chat_websocket_live_stream(client: TestClient):
     with client.websocket_connect("/v1/ws/chat") as websocket:
+        # Empty text frame is skipped
+        websocket.send_text("   ")
         websocket.send_text("Who ruled ancient Egypt during the Hellenistic era?")
         data = websocket.receive_json()
         assert "answer" in data
@@ -125,13 +141,23 @@ def test_chat_file_upload_and_source(client: TestClient):
         assert resp.status_code == 200
         assert "dynasties" in resp.json()["answer"]
 
-    with patch(
-        "agent.services.rag.file_chat.FileChatService.chat_with_file_bytes",
-        new_callable=AsyncMock,
-        return_value=mock_chat_res,
+    with (
+        patch(
+            "agent.services.rag.file_chat.FileChatService.chat_with_file_bytes",
+            new_callable=AsyncMock,
+            return_value=mock_chat_res,
+        ),
+        patch(
+            "agent.services.voice.tts.GTTSTextToSpeech.synthesize",
+            side_effect=Exception("File Chat TTS Fail"),
+        ),
     ):
         files = {"file": ("sample.txt", b"Mock document content", "text/plain")}
-        data = {"query": "What is this file?", "speak_response": "false"}
+        data = {
+            "query": "What is this file?",
+            "speak_response": "true",
+            "temperature": "0.8",
+        }
         resp2 = client.post("/v1/chat/file", files=files, data=data)
         assert resp2.status_code == 200
         assert "dynasties" in resp2.json()["answer"]

@@ -207,13 +207,19 @@ class TeamRegistryStore:
                 return None
             return self._exec_row_to_dict(row)
 
-    def list_executions(self, limit: int = 50) -> list[dict[str, Any]]:
-        """List recent workflow execution runs."""
+    def list_executions(self, limit: int = 50, team_id: str | None = None) -> list[dict[str, Any]]:
+        """List recent workflow execution runs with optional team_id filtering."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(
-                "SELECT * FROM workflow_executions ORDER BY created_at DESC LIMIT ?", (limit,)
-            )
+            if team_id:
+                cursor.execute(
+                    "SELECT * FROM workflow_executions WHERE team_id = ? ORDER BY created_at DESC LIMIT ?",
+                    (team_id, limit),
+                )
+            else:
+                cursor.execute(
+                    "SELECT * FROM workflow_executions ORDER BY created_at DESC LIMIT ?", (limit,)
+                )
             rows = cursor.fetchall()
             return [self._exec_row_to_dict(r) for r in rows]
 

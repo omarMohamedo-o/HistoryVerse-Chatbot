@@ -36,3 +36,43 @@ async def test_structured_output_generation():
     assert structured_result.historical_period == "Greco-Roman"
     assert len(structured_result.key_entities) > 0
     assert structured_result.confidence_score >= 0.9
+
+
+@pytest.mark.asyncio
+async def test_base_provider_defaults_and_confidence():
+    from unittest.mock import patch
+
+    # Defaults on base provider
+    provider = MockLLMProvider("gemini-1.5-pro")
+    assert await provider.generate_image("A pyramid") is None
+    assert provider.supports_video_generation is False
+    assert await provider.generate_video("A pyramid timelapse") is None
+    assert provider.get_context_window() == 1000000
+
+    provider_mistral = MockLLMProvider("mistral-large")
+    assert provider_mistral.get_context_window() == 32768
+
+    provider_llama = MockLLMProvider("llama-3-8b")
+    assert provider_llama.get_context_window() == 8192
+
+    # Confidence estimation low-confidence penalties
+    conf_low = provider.estimate_confidence(
+        "Who built the Great Pyramid?",
+        "I don't know the exact details.",
+    )
+    assert conf_low < 0.65
+
+    # Token counting fallback when tiktoken is unavailable
+    with patch.dict("sys.modules", {"tiktoken": None}):
+        count_fallback = provider.count_tokens("Four score and seven years ago")
+        assert count_fallback > 0
+
+    # Structured JSON extraction with conversational preamble
+    preamble_output = (
+        "Certainly! Here is your requested JSON response:\n"
+        '{"topic": "Ptolemaic Dynasty", "historical_period": "Hellenistic", '
+        '"confidence_score": 0.95, "key_entities": [{"name": "Ptolemy I", "era": "Hellenistic", "significance": "Founder of Ptolemaic Dynasty"}], '
+        '"summary": "Egyptian dynasty", "sources": []}'
+    )
+    parsed = provider._parse_structured_json(preamble_output, StructuredHistoricalAnalysis)
+    assert parsed.topic == "Ptolemaic Dynasty"

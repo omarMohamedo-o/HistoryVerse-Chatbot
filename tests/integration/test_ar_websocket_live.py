@@ -104,3 +104,54 @@ def test_ar_websocket_live_barge_in_interruption():
         ws.send_json({"event": "ping"})
         pong_msg = ws.receive_json()
         assert pong_msg["event"] == "pong"
+
+
+def test_ar_routes_audio_and_websocket_edge_cases():
+    import base64
+    from unittest.mock import patch
+
+    mock_llm = MockLLMProvider()
+    app = create_app()
+    app.dependency_overrides[get_llm_provider] = lambda: mock_llm
+
+    client = TestClient(app)
+
+    # 1. /ar/start and /ar/chat with TTS failure
+    with patch(
+        "agent.services.voice.tts.GTTSTextToSpeech.synthesize", side_effect=Exception("TTS Failure")
+    ):
+        r_start = client.post(
+            "/v1/ar/start",
+            json={"artifact_name": "Karnak Column", "speak_response": True},
+        )
+        assert r_start.status_code == 200
+        assert r_start.json()["audio_url"] is None
+
+        r_chat = client.post(
+            "/v1/ar/chat",
+            json={
+                "artifact_name": "Karnak Column",
+                "query": "How tall is it?",
+                "speak_response": True,
+            },
+        )
+        assert r_chat.status_code == 200
+        assert r_chat.json()["audio_url"] is None
+
+    # 2. WebSocket audio input and malformed frames
+    with client.websocket_connect("/v1/ar/live") as ws:
+        # Invalid JSON text frame
+        ws.send_text("MALFORMED JSON STRING")
+
+        # Binary frame audio PCM
+        dummy_pcm = b"\x00\x01" * 1600
+        ws.send_bytes(dummy_pcm)
+
+        # Base64 audio chunk event
+        b64_pcm = base64.b64encode(dummy_pcm).decode("utf-8")
+        ws.send_json({"event": "audio_chunk", "data": b64_pcm})
+
+        # Ping/pong to verify connection stays healthy
+        ws.send_json({"event": "ping"})
+        pong = ws.receive_json()
+        assert pong["event"] == "pong"

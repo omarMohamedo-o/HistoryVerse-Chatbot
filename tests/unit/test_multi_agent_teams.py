@@ -423,3 +423,130 @@ def test_agent_api_routes_404_coverage():
         headers=headers,
     )
     assert r9.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_extended_branches(tmp_path):
+    from unittest.mock import patch
+
+    from agent.services.agents.orchestrator import AgentOrchestrator
+    from agent.services.agents.registry_store import AgentRegistryStore
+    from agent.services.agents.team_store import TeamRegistryStore
+    from tests.conftest import MockLLMProvider
+
+    mock_llm = MockLLMProvider("mock-model")
+    orchestrator = AgentOrchestrator(
+        store=AgentRegistryStore(db_path=str(tmp_path / "agents.db")),
+        team_store=TeamRegistryStore(db_path=str(tmp_path / "teams.db")),
+    )
+
+    # 1. agent_store property
+    assert orchestrator.agent_store is not None
+
+    # 2. create custom agent with explicit provider configs
+    with patch("agent.services.llm.factory.LLMFactory.create", return_value=mock_llm):
+        a_openai = orchestrator.create_custom_agent(
+            agent_id="custom-openai",
+            name="OpenAI Agent",
+            role="Specialist",
+            system_prompt="Analyze with OpenAI standards.",
+            provider_name="openai",
+            model_name="gpt-4o",
+            temperature=0.7,
+            api_key="sk-test-secret-key-12345",
+        )
+        assert a_openai.agent_id == "custom-openai"
+
+        a_gemini = orchestrator.create_custom_agent(
+            agent_id="custom-gemini",
+            name="Gemini Agent",
+            role="Specialist",
+            system_prompt="Analyze with Gemini standards.",
+            provider_name="gemini",
+            model_name="gemini-1.5-flash",
+            temperature=0.2,
+            api_key="goog-test-secret-key-12345",
+        )
+        assert a_gemini.agent_id == "custom-gemini"
+
+    # 3. list_agents includes provider_type
+    agents_list = orchestrator.list_agents()
+    assert len(agents_list) >= 2
+    assert any(a["agent_id"] == "custom-openai" for a in agents_list)
+
+    # 4. rehydrate with duplicate agent (skipped) and error injection
+    orchestrator.agent_store.save_agent(
+        agent_id="broken-agent",
+        name="Broken",
+        role="Crash",
+        system_prompt="Will fail",
+    )
+    with patch.object(
+        orchestrator, "create_custom_agent", side_effect=Exception("Instantiation error")
+    ):
+        loaded = orchestrator.rehydrate()
+        assert loaded == 0
+
+    # 5. run_team with missing step agent (logs warning and skips)
+    team_res = await orchestrator.run_team(
+        "Query", agent_pipeline=["missing-agent-123", "custom-openai"]
+    )
+    assert team_res.final_answer is not None
+
+    # 6. run_parallel with missing aggregator agent
+    par_res = await orchestrator.run_parallel(
+        "Parallel query",
+        agent_ids=["custom-openai", "custom-gemini"],
+        aggregator_agent_id="nonexistent-aggregator",
+    )
+    assert par_res.final_answer is not None
+
+    # 7. run_supervisor with max_steps hit
+    sup_res = await orchestrator.run_supervisor(
+        "Supervisor query",
+        supervisor_id="custom-openai",
+        worker_ids=["custom-gemini"],
+        max_steps=0,
+    )
+    assert sup_res.metadata["steps"] == 0
+
+    # 8. run_team_workflow for parallel, supervisor, conditional, and failure
+    orchestrator.team_store.save_team(
+        team_id="team-par",
+        name="Parallel Team",
+        strategy="parallel",
+        members=["custom-openai", "custom-gemini"],
+    )
+    exec_par = await orchestrator.run_team_workflow("team-par", "Parallel task")
+    assert exec_par["status"] == "COMPLETED"
+
+    orchestrator.team_store.save_team(
+        team_id="team-sup",
+        name="Supervisor Team",
+        strategy="supervisor",
+        members=["custom-openai", "custom-gemini"],
+        config={"supervisor_id": "custom-openai"},
+    )
+    exec_sup = await orchestrator.run_team_workflow("team-sup", "Supervisor task")
+    assert exec_sup["status"] == "COMPLETED"
+
+    orchestrator.team_store.save_team(
+        team_id="team-cond",
+        name="Conditional Team",
+        strategy="conditional",
+        members=["custom-openai", "custom-gemini"],
+        config={"router_id": "custom-openai", "branches": {"query": "custom-gemini"}},
+    )
+    exec_cond = await orchestrator.run_team_workflow("team-cond", "Conditional query")
+    assert exec_cond["status"] == "COMPLETED"
+
+    # 9. run_team_workflow error recovery
+    with patch.object(orchestrator, "run_team", side_effect=RuntimeError("Workflow crash")):
+        orchestrator.team_store.save_team(
+            team_id="team-fail",
+            name="Failing Team",
+            strategy="sequential",
+            members=["custom-openai"],
+        )
+        with pytest.raises(RuntimeError, match="Workflow crash"):
+            await orchestrator.run_team_workflow("team-fail", "Will crash")

@@ -7,7 +7,6 @@ from pydantic import SecretStr
 
 from agent.config.settings import Settings
 from agent.services.alerting.notifier import AlertNotifier
-from agent.services.monitoring import metrics
 
 
 @pytest.mark.asyncio
@@ -49,11 +48,20 @@ async def test_alert_notifier_with_webhook():
 
 
 def test_prometheus_metrics_stubs():
-    metrics.REQUEST_COUNT.labels(endpoint="/v1/chat", status="200").inc()
-    metrics.REQUEST_LATENCY.labels(endpoint="/v1/chat").observe(0.125)
-    metrics.DRIFT_EVENTS.labels(action="reingest").inc()
-    metrics.HALLUCINATION_SCORES.observe(0.05)
-    metrics.LLM_LATENCY.labels(model="gemini-1.5-flash").observe(0.45)
+    import importlib
+
+    import agent.services.monitoring.metrics as m
+
+    importlib.reload(m)
+    m.REQUEST_COUNT.labels(endpoint="/v1/chat", status="200").inc()
+    m.REQUEST_LATENCY.labels(endpoint="/v1/chat").observe(0.125)
+    m.DRIFT_EVENTS.labels(action="reingest").inc()
+    m.HALLUCINATION_SCORES.observe(0.05)
+    m.LLM_LATENCY.labels(model="gemini-1.5-flash").observe(0.45)
+    m.VOICE_SESSIONS_ACTIVE.inc()
+    m.VOICE_TTFA.observe(0.3)
+    m.VOICE_BARGE_IN_EVENTS.inc()
+    m.VOICE_STT_DURATION.observe(0.2)
 
 
 @pytest.mark.asyncio

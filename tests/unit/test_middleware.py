@@ -49,3 +49,16 @@ def test_error_handling_middleware_unexpected_error():
     resp = client.get("/crash")
     assert resp.status_code == 500
     assert resp.json()["error"] == "InternalServerError"
+
+
+def test_request_logging_middleware_exception():
+    app = FastAPI()
+    app.add_middleware(RequestLoggingMiddleware)
+
+    @app.get("/throw")
+    def throw():
+        raise ValueError("Simulated dispatch failure")
+
+    client = TestClient(app, raise_server_exceptions=False)
+    resp = client.get("/throw")
+    assert resp.status_code == 500
