@@ -144,3 +144,78 @@ async def test_local_provider_litellm_fallback_failure(tmp_path):
         pytest.raises(LLMProviderError, match="llama-cpp-python is not installed"),
     ):
         await provider.generate("Query")
+
+
+@pytest.mark.asyncio
+async def test_local_provider_ollama_and_mps_branches(tmp_path):
+    # 1. Ollama mode detection via LLMProvider setting
+    local_ollama = LocalProvider(
+        settings=Settings(llm_provider=LLMProvider.OLLAMA, llm_model_name="llama3.2")
+    )
+    assert local_ollama._use_ollama is True
+
+    # 2. Ollama mode via model prefix
+    local_prefix = LocalProvider(
+        settings=Settings(llm_provider=LLMProvider.LOCAL, llm_model_name="ollama/mistral")
+    )
+    assert local_prefix._use_ollama is True
+
+    assert local_ollama._format_llama_prompt("[INST] Context [/INST]") == "[INST] Context [/INST]"
+
+    # 3. Ollama provider delegation for is_available and generate
+    mock_ollama_sub = MagicMock()
+    mock_ollama_sub.is_available = AsyncMock(return_value=True)
+    mock_ollama_sub.generate = AsyncMock(return_value="Ollama generated text")
+    local_ollama._ollama_provider = mock_ollama_sub
+    assert await local_ollama.is_available() is True
+    assert await local_ollama.generate("Tell me a story") == "Ollama generated text"
+
+    # 4. Ensure GGUF download exception handling
+    with patch.dict(
+        "sys.modules",
+        {
+            "huggingface_hub": MagicMock(
+                hf_hub_download=MagicMock(side_effect=Exception("Download failed"))
+            )
+        },
+    ):
+        local_gguf = LocalProvider(
+            settings=Settings(
+                llm_provider=LLMProvider.LOCAL,
+                llm_model_name="TheBloke/Llama-2-7b-Chat-GGUF",
+                llm_model_basename="llama-2-7b-chat.Q4_K_M.gguf",
+                llm_local_model_path=str(tmp_path),
+                llm_auto_download=True,
+            )
+        )
+        local_gguf._ensure_gguf_available()
+
+    # 5. MPS device and llama_cpp exception
+    model_weight_file = tmp_path / "custom.gguf"
+    model_weight_file.write_text("dummy gguf weights")
+    local_mps = LocalProvider(
+        settings=Settings(
+            llm_provider=LLMProvider.LOCAL,
+            llm_model_name="custom.gguf",
+            llm_model_basename="custom.gguf",
+            llm_local_model_path=str(tmp_path),
+            llm_device_type=DeviceType.MPS,
+            llm_auto_download=False,
+        )
+    )
+    mock_llama_inst = MagicMock(return_value={"choices": [{"text": "Generated response text"}]})
+    with patch.dict(
+        "sys.modules",
+        {"llama_cpp": MagicMock(Llama=MagicMock(return_value=mock_llama_inst))},
+    ):
+        ans = await local_mps.generate("Prompt")
+        assert ans == "Generated response text"
+
+    with (
+        patch.dict(
+            "sys.modules",
+            {"llama_cpp": MagicMock(Llama=MagicMock(side_effect=RuntimeError("Inference fail")))},
+        ),
+        pytest.raises(LLMProviderError),
+    ):
+        await local_mps.generate("Prompt")

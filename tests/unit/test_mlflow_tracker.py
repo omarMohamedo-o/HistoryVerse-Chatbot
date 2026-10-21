@@ -181,3 +181,39 @@ def test_run_chunk_experiment_matrix():
         assert r["total_chunks"] >= 1
         assert r["mean_chars"] > 0
         assert r["duration_seconds"] >= 0.0
+
+
+def test_mlflow_tracker_profiling_and_fallbacks(tmp_path):
+    import json
+    from unittest.mock import MagicMock, patch
+
+    mock_mlflow = MagicMock()
+    mock_run = MagicMock()
+    mock_run.info.run_id = "test-run-12345"
+    mock_mlflow.start_run.return_value.__enter__.return_value = mock_run
+
+    # 1. Dataset profiling on real JSON dataset
+    dataset_file = tmp_path / "benchmark.json"
+    dataset_file.write_text(
+        json.dumps(
+            [
+                {
+                    "question": "What is Alexandria?",
+                    "ground_truth": "Ancient city in Egypt",
+                    "category": "history",
+                }
+            ]
+        )
+    )
+
+    tracker = MLflowExperimentTracker(
+        Settings(mlflow_enabled=True, mlflow_tracking_uri="http://mock-mlflow:5000")
+    )
+    with patch.dict("sys.modules", {"mlflow": mock_mlflow}):
+        profile = tracker.profile_dataset(dataset_file)
+        assert profile.total_samples == 1
+        assert "history" in profile.categories
+
+        # Missing dataset file
+        empty_profile = tracker.profile_dataset(tmp_path / "missing.json")
+        assert empty_profile.total_samples == 0

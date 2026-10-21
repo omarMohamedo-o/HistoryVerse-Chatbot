@@ -144,3 +144,70 @@ async def test_mcp_server_jsonrpc_protocol():
     bad_res = await server.handle_request(bad_req)
     assert bad_res.error is not None
     assert bad_res.error.code == -32601
+
+
+@pytest.mark.asyncio
+async def test_mcp_server_additional_methods_and_errors():
+    server = MCPServer()
+
+    # ping method
+    ping_req = MCPRequest(id=7, method="ping")
+    res_ping = await server.handle_request(ping_req)
+    assert res_ping.error is None
+    assert res_ping.result == {}
+
+    # tools/call with missing tool name
+    empty_tool_req = MCPRequest(id=8, method="tools/call", params={})
+    res_empty = await server.handle_request(empty_tool_req)
+    assert res_empty.error is not None
+    assert "required" in res_empty.error.message
+
+    # resources/read with tombstones
+    tomb_req = MCPRequest(
+        id=9, method="resources/read", params={"uri": "historyverse://tombstones"}
+    )
+    res_tomb = await server.handle_request(tomb_req)
+    assert res_tomb.error is None
+    assert len(res_tomb.result["contents"]) == 1
+
+    # resources/read with unknown uri
+    bad_res_req = MCPRequest(id=10, method="resources/read", params={"uri": "unknown://path"})
+    res_bad = await server.handle_request(bad_res_req)
+    assert res_bad.error is not None
+    assert res_bad.error.code == -32603
+
+
+@pytest.mark.asyncio
+async def test_mcp_harness_action_syntax_and_error_handling():
+    from agent.services.mcp.tools import BaseTool
+
+    reg = ToolRegistry()
+    reg.register(HistoricalSearchTool())
+    harness = AgentHarness(reg)
+
+    # 1. Action: syntax parsing
+    call = harness.extract_tool_call('Action: search_historical_archives(query="Tutankhamun")')
+    assert call is not None
+    assert call.tool_name == "search_historical_archives"
+    assert call.arguments["query"] == "Tutankhamun"
+
+    # 2. Markdown JSON syntax parsing
+    json_text = (
+        '```json\n{"tool": "search_historical_archives", "arguments": {"query": "Luxor"}}\n```'
+    )
+    call_json = harness.extract_tool_call(json_text)
+    assert call_json is not None
+    assert call_json.tool_name == "search_historical_archives"
+
+    # 3. Broken tool execution error logging
+    class BrokenTool(BaseTool):
+        def __init__(self):
+            super().__init__(name="broken_tool", description="Broken", input_schema={})
+
+        async def execute(self, **kwargs):
+            raise RuntimeError("Database failure")
+
+    reg.register(BrokenTool())
+    res = await harness.call_tool("broken_tool", {})
+    assert res.status == "error"
+    assert "Database failure" in res.error_message

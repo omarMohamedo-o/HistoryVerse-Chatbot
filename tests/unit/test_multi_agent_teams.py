@@ -304,3 +304,122 @@ def test_api_teams_and_executions_endpoints(tmp_path):
     )
     assert approve_resp.status_code == 200
     assert approve_resp.json()["status"] == "COMPLETED"
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_multi_agent_strategies_and_edge_cases(tmp_path):
+    from agent.services.agents.registry_store import AgentRegistryStore
+
+    agent_store = AgentRegistryStore(str(tmp_path / "agents.json"))
+    team_store = TeamRegistryStore(str(tmp_path / "teams.json"))
+    llm = MockLLMProvider("Mock multi-agent model")
+
+    orchestrator = AgentOrchestrator(
+        settings=Settings(),
+        store=agent_store,
+        team_store=team_store,
+    )
+
+    orchestrator.create_custom_agent(
+        "worker-1", "Worker One", "Specialist 1", "history", "Prompt 1", llm_provider=llm
+    )
+    orchestrator.create_custom_agent(
+        "worker-2", "Worker Two", "Specialist 2", "history", "Prompt 2", llm_provider=llm
+    )
+    orchestrator.create_custom_agent(
+        "lead-sup", "Supervisor", "Lead", "history", "Prompt Sup", llm_provider=llm
+    )
+
+    with pytest.raises(ValueError, match="not registered"):
+        await orchestrator.run_individual("unregistered-id", "Query")
+
+    par_res = await orchestrator.run_parallel(
+        "Compare ancient cultures",
+        ["worker-1", "worker-2"],
+        aggregator_agent_id="lead-sup",
+    )
+    assert par_res.final_answer is not None
+    assert len(par_res.agent_contributions) == 3
+
+    par_res_no_agg = await orchestrator.run_parallel(
+        "Compare ancient cultures", ["worker-1", "worker-2"]
+    )
+    assert len(par_res_no_agg.agent_contributions) == 2
+
+    with pytest.raises(ValueError, match="No valid agents"):
+        await orchestrator.run_parallel("Query", ["nonexistent-1"])
+
+    sup_res = await orchestrator.run_supervisor(
+        "Plan expedition", "lead-sup", ["worker-1", "worker-2"], max_steps=2
+    )
+    assert sup_res.final_answer is not None
+    assert sup_res.metadata["strategy"] == "supervisor"
+
+    with pytest.raises(ValueError, match="Supervisor agent 'missing' not found"):
+        await orchestrator.run_supervisor("Query", "missing", ["worker-1"])
+
+    with pytest.raises(ValueError, match="No valid worker agents"):
+        await orchestrator.run_supervisor("Query", "lead-sup", ["missing-worker"])
+
+    cond_res = await orchestrator.run_conditional(
+        "military history query",
+        router_agent_id="lead-sup",
+        branches={"military": "worker-1", "cultural": "worker-2"},
+    )
+    assert cond_res.metadata["strategy"] == "conditional"
+
+    with pytest.raises(ValueError, match="Router agent 'missing' not found"):
+        await orchestrator.run_conditional("Query", "missing", {"a": "worker-1"})
+
+    updated_a1 = orchestrator.update_custom_agent(
+        "worker-1",
+        name="Updated Worker One",
+        role="Senior Specialist",
+    )
+    assert updated_a1.name == "Updated Worker One"
+
+    with pytest.raises(ValueError, match="does not exist"):
+        orchestrator.update_custom_agent("nonexistent-worker", name="New Name")
+
+
+def test_agent_api_routes_404_coverage():
+    app = create_app()
+    client = TestClient(app)
+    headers = {"X-API-Key": "dev-insecure-test-key"}
+
+    r1 = client.get("/v1/agents/nonexistent-agent-id", headers=headers)
+    assert r1.status_code == 404
+
+    r2 = client.put("/v1/agents/nonexistent-agent-id", json={"name": "New Name"}, headers=headers)
+    assert r2.status_code == 404
+
+    r3 = client.delete("/v1/agents/nonexistent-agent-id", headers=headers)
+    assert r3.status_code == 404
+
+    r4 = client.post(
+        "/v1/agents/nonexistent-agent-id/run", json={"query": "Hello"}, headers=headers
+    )
+    assert r4.status_code == 404
+
+    r5 = client.get("/v1/agents/teams/nonexistent-team-id", headers=headers)
+    assert r5.status_code == 404
+
+    r6 = client.delete("/v1/agents/teams/nonexistent-team-id", headers=headers)
+    assert r6.status_code == 404
+
+    r7 = client.post(
+        "/v1/agents/teams/nonexistent-team-id/run",
+        json={"query": "Test task"},
+        headers=headers,
+    )
+    assert r7.status_code == 404
+
+    r8 = client.get("/v1/agents/executions/nonexistent-run-id", headers=headers)
+    assert r8.status_code == 404
+
+    r9 = client.post(
+        "/v1/agents/executions/nonexistent-run-id/approve",
+        json={"approved": True},
+        headers=headers,
+    )
+    assert r9.status_code == 404

@@ -139,3 +139,34 @@ def test_prompt_manager_injects_model_name_variable():
         "test_model_prompt", assistant_name="Athena", model_name="gpt-4o"
     )
     assert override_rendered == "Assistant Athena running on model gpt-4o."
+
+
+def test_prompt_manager_fallbacks():
+    from unittest.mock import MagicMock, patch
+
+    mgr = PromptManager()
+
+    # 1. KeyError fallback during render
+    template_with_missing_var = "Hello {custom_var}, your role is {assistant_name}."
+    with patch.object(PromptManager, "get_prompt", return_value=template_with_missing_var):
+        rendered = mgr.render("custom", custom_var="Ahmad")
+        assert "Ahmad" in rendered
+
+    # 2. Langfuse client compile success
+    mock_prompt_obj = MagicMock()
+    mock_prompt_obj.compile.return_value = "Compiled prompt {question}"
+    mock_lf = MagicMock()
+    mock_lf.get_prompt.return_value = mock_prompt_obj
+
+    with patch("agent.services.langfuse.prompts.get_langfuse_client", return_value=mock_lf):
+        pm_client = PromptManager()
+        val = pm_client.get_prompt("dynamic_prompt")
+        assert "Compiled prompt" in val
+
+    # 3. Langfuse client exception fallback
+    mock_lf_err = MagicMock()
+    mock_lf_err.get_prompt.side_effect = Exception("Langfuse API unavailable")
+    with patch("agent.services.langfuse.prompts.get_langfuse_client", return_value=mock_lf_err):
+        pm_err = PromptManager()
+        val2 = pm_err.get_prompt("historical_chat")
+        assert len(val2) > 0

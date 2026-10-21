@@ -217,3 +217,26 @@ def test_select_relevant_chunks_keyword_scoring(file_chat_service):
     )
     assert len(selected) == 2
     assert any("beacon" in c.page_content for c in selected)
+
+
+def test_file_chat_fallbacks(file_chat_service):
+    from unittest.mock import MagicMock, patch
+
+    # PyPDFLoader fallback when pypdf fails
+    mock_pdf_reader = MagicMock(side_effect=Exception("Corrupt pdf"))
+    with (
+        patch.dict("sys.modules", {"pypdf": MagicMock(PdfReader=mock_pdf_reader)}),
+        patch("langchain_community.document_loaders.PyPDFLoader") as mock_loader,
+    ):
+        mock_doc = MagicMock()
+        mock_doc.metadata = {}
+        mock_loader.return_value.load.return_value = [mock_doc]
+        docs = file_chat_service._extract_pdf_pages(b"%PDF-1.4 mock pdf data", "ancient.pdf")
+        assert len(docs) == 1
+        assert docs[0].metadata["source"] == "ancient.pdf"
+
+    # docx2txt failure fallback
+    mock_docx = MagicMock(process=MagicMock(side_effect=Exception("Invalid docx")))
+    with patch.dict("sys.modules", {"docx2txt": mock_docx}):
+        docx_res = file_chat_service._extract_docx(b"PK mock zip docx bytes", "manuscript.docx")
+        assert docx_res == []

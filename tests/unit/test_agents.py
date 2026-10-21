@@ -205,3 +205,53 @@ def test_templated_agent_create_helper():
     agent = TemplatedAgent.create("historical_guide", llm_provider=mock_llm)
     assert agent.template.agent_id == "agent-mora"
     assert agent.name == "Mora"
+
+
+@pytest.mark.asyncio
+async def test_domain_agent_multi_turn_execution():
+    from agent.services.agents.domain import DomainAgent
+
+    mock_llm = MockLLMProvider()
+    agent = DomainAgent(
+        agent_id="doc-1",
+        name="Dr. House",
+        role="Diagnostic Specialist",
+        system_prompt="You diagnose rare diseases.",
+        llm_provider=mock_llm,
+        domain="medicine",
+        metadata={"hospital": "Princeton Plainsboro"},
+    )
+
+    # First turn without history
+    resp1 = await agent.run(
+        query="Patient has autoimmune symptoms.",
+        context={"session_id": "sess_101", "context": "Lab reports pending"},
+    )
+    assert len(resp1.output) > 0
+    assert resp1.metadata["domain"] == "medicine"
+    assert resp1.metadata["hospital"] == "Princeton Plainsboro"
+
+    # Second turn with active history
+    resp2 = await agent.run(
+        query="What treatments are indicated?",
+        context={"session_id": "sess_101"},
+    )
+    assert len(resp2.output) > 0
+    assert len(agent.memory.get_history("sess_101")) == 4
+
+
+@pytest.mark.asyncio
+async def test_researcher_and_critic_memory_recording():
+    llm = MockLLMProvider("mock-provider")
+    researcher = ResearcherAgent(llm_provider=llm)
+    r_res = await researcher.run("Query", context={"session_id": "test_session_id"})
+    assert len(r_res.output) > 0
+    assert len(researcher.memory.get_history("test_session_id")) == 2
+
+    critic = CriticAgent(llm_provider=llm)
+    c_res = await critic.run(
+        "Query",
+        context={"session_id": "test_session_id", "draft_answer": "Draft answer"},
+    )
+    assert len(c_res.output) > 0
+    assert len(critic.memory.get_history("test_session_id")) == 2

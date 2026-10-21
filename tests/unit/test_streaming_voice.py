@@ -129,3 +129,52 @@ async def test_incremental_stt_energy_vad_and_finish(tmp_path):
     final_text = await stt.finish()
     assert final_text == "Rosetta Stone transcription"
     mock_base_stt.transcribe.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_streaming_voice_edge_cases():
+    from unittest.mock import AsyncMock, patch
+
+    from agent.core.exceptions import VoiceError
+
+    mock_base_stt = MagicMock()
+    mock_base_stt.transcribe.return_value = "Valid text"
+
+    stt = IncrementalSTT(base_stt=mock_base_stt)
+    assert stt._compute_rms_energy(b"") == 0.0
+    assert stt._compute_rms_energy(b"\x00\x01\x02\x03") > 0.0
+    assert await stt.finish() == ""
+
+    # Exception in finish returns partial transcript
+    mock_base_stt.transcribe.side_effect = Exception("STT error")
+    stt._buffer.extend(b"\x01\x00" * 16000)
+    err_res = await stt.finish()
+    assert isinstance(err_res, str)
+
+    # Streaming TTS
+    mock_tts = MagicMock()
+    mock_tts.synthesize.return_value = "/tmp/out.mp3"
+    mock_tts._detect_language.return_value = "en"
+    tts = StreamingTTS(base_tts=mock_tts)
+    assert tts.synthesize("Hello") == "/tmp/out.mp3"
+
+    mock_gtts_cls = MagicMock()
+    mock_gtts_cls.return_value.write_to_fp.side_effect = Exception("Net err")
+    with patch.dict("sys.modules", {"gtts": MagicMock(gTTS=mock_gtts_cls)}):
+        chunk = await tts.synthesize_chunk("Fallback audio frame test.")
+        assert chunk is not None
+        assert b"RIFF" in chunk
+
+    with patch("asyncio.get_running_loop") as mock_loop:
+        mock_loop.return_value.run_in_executor = AsyncMock(side_effect=RuntimeError("Err"))
+        with pytest.raises(VoiceError):
+            await tts.synthesize_chunk("Error sentence.")
+
+    chunker = SentenceChunker()
+
+    async def sample_stream():
+        yield "Remainder without punct"
+
+    chunks = [c async for c in chunker.chunk_stream(sample_stream())]
+    assert len(chunks) == 1
+    assert "Remainder" in chunks[0]

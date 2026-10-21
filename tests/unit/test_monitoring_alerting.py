@@ -54,3 +54,30 @@ def test_prometheus_metrics_stubs():
     metrics.DRIFT_EVENTS.labels(action="reingest").inc()
     metrics.HALLUCINATION_SCORES.observe(0.05)
     metrics.LLM_LATENCY.labels(model="gemini-1.5-flash").observe(0.45)
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_alert_notifier_errors():
+    webhook_url = "https://hooks.slack.com/services/T00/B00/X00"
+    settings = Settings(alert_webhook_url=SecretStr(webhook_url), alert_rate_limit_seconds=0)
+    notifier = AlertNotifier(settings)
+
+    # 500 error from webhook
+    respx.post(webhook_url).mock(return_value=httpx.Response(500, text="Internal Error"))
+    assert await notifier.emit_alert("high_drift", "Error test", severity="critical") is False
+
+    # Connection failure
+    respx.post(webhook_url).mock(side_effect=httpx.ConnectError("Connection refused"))
+    assert await notifier.emit_alert("high_drift", "Fail test", severity="critical") is False
+
+
+def test_metrics_dummy_metric_coverage():
+    from agent.services.monitoring.metrics import _DummyMetric
+
+    dummy = _DummyMetric()
+    assert dummy.labels(a="1", b="2") is dummy
+    dummy.inc(2)
+    dummy.dec(1)
+    dummy.set(5)
+    dummy.observe(0.5)
