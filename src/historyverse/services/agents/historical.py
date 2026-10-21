@@ -1,12 +1,12 @@
-"""HistoryVerse Primary Domain Agent (Mora)."""
+"""Historical Domain Agent (HistoryVerse Persona Mora)."""
 
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from historyverse.core.base import BaseLLMProvider
-from historyverse.services.agents.base import AgentResponse, BaseAgent
+from historyverse.services.agents.template import AgentTemplate, TemplatedAgent
 
 if TYPE_CHECKING:
     from historyverse.services.memory.agent_memory import AgentMemory
@@ -16,8 +16,8 @@ logger = logging.getLogger(__name__)
 __all__ = ["HistoryVerseAgent"]
 
 
-class HistoryVerseAgent(BaseAgent):
-    """Primary historical AI agent specialized in Egyptian, Alexandrian, and classical history."""
+class HistoryVerseAgent(TemplatedAgent):
+    """Historical domain agent generated from the base AgentTemplate."""
 
     def __init__(
         self,
@@ -33,55 +33,27 @@ class HistoryVerseAgent(BaseAgent):
         settings = get_settings()
         assigned_name = name or settings.agent_persona_name
         assigned_id = agent_id or settings.agent_persona_id
-        prompt = (
+        prompt_text = (
             system_prompt
             if system_prompt is not None
             else (
-                f"Your name is {assigned_name}. You are an expert AI specialized in analyzing history, "
+                "Your name is {name}. You are an expert AI specialized in analyzing history, "
                 "historical questions, historical images, and historical places throughout the world, "
                 "especially those related to Egypt and Alexandria. Provide deep, accurate classical insights."
             )
         )
-        super().__init__(
+
+        template = AgentTemplate(
             agent_id=assigned_id,
             name=assigned_name,
             role=role,
-            system_prompt=prompt,
+            domain="history",
+            system_prompt_template=prompt_text,
+        )
+
+        super().__init__(
+            template=template,
             llm_provider=llm_provider,
             memory=memory,
-        )
-
-    async def run(self, query: str, context: dict[str, Any] | None = None) -> AgentResponse:
-        ctx_data = context or {}
-        context_str = ctx_data.get("context", "")
-        session_id = ctx_data.get("session_id")
-        history_str = (
-            self.memory.get_formatted_history(session_id)
-            if session_id and self.memory.get_history(session_id)
-            else ""
-        )
-        system_base = self.build_effective_system_prompt()
-
-        parts = [system_base]
-        if history_str:
-            parts.append(f"Conversation History:\n{history_str}")
-        if context_str:
-            parts.append(f"Context:\n{context_str}")
-        parts.append(f"Question:\n{query}")
-        formatted_prompt = "\n\n".join(parts)
-
-        logger.info("Executing agent [%s] for query: %s", self.name, query[:50])
-        response_text = await self.llm_provider.generate(formatted_prompt)
-
-        if session_id:
-            self.memory.add_exchange(session_id, query, response_text)
-
-        return AgentResponse(
-            agent_id=self.agent_id,
-            agent_name=self.name,
-            role=self.role,
-            output=response_text,
-            model_used=self.llm_provider.model_name,
-            confidence=0.95,
             metadata={"specialization": "Alexandria & Classical History"},
         )

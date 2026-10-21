@@ -6,6 +6,7 @@ from historyverse.services.agents.critic import CriticAgent
 from historyverse.services.agents.historical import HistoryVerseAgent
 from historyverse.services.agents.orchestrator import AgentOrchestrator, CustomAgent
 from historyverse.services.agents.researcher import ResearcherAgent
+from historyverse.services.agents.template import AgentTemplate, TemplatedAgent
 from tests.conftest import MockLLMProvider
 
 
@@ -99,3 +100,78 @@ async def test_dynamic_custom_agent_spawn():
 
     res = await orchestrator.run_individual("numismatic-expert", "Identify this bronze drachma.")
     assert res.agent_name == "CoinExpert"
+    assert res.metadata.get("domain") == "general"
+
+
+@pytest.mark.asyncio
+async def test_domain_agnostic_agent_template_instantiation():
+    llm = MockLLMProvider("mock-custom-llm")
+    template = AgentTemplate(
+        agent_id="epigraphy-analyst",
+        name="Epigrapher",
+        role="Hieroglyphic Inscription Analyst",
+        domain="epigraphy",
+        system_prompt_template="Your name is {name}. You are an expert in {role} for domain {domain}.",
+    )
+    templated_agent = TemplatedAgent(
+        template=template,
+        llm_provider=llm,
+    )
+
+    assert templated_agent.domain == "epigraphy"
+    assert templated_agent.name == "Epigrapher"
+    assert templated_agent.role == "Hieroglyphic Inscription Analyst"
+    assert "Your name is Epigrapher" in templated_agent.system_prompt
+
+    response = await templated_agent.run("Transcribe this cartouche.")
+    assert response.agent_id == "epigraphy-analyst"
+    assert response.metadata.get("domain") == "epigraphy"
+    assert response.output != ""
+
+
+@pytest.mark.asyncio
+async def test_orchestrator_spawns_custom_domain_agent_with_provider_settings():
+    from fastapi.testclient import TestClient
+
+    from historyverse.api.app import create_app
+    from historyverse.api.dependencies import get_llm_provider
+
+    mock_llm = MockLLMProvider("mock-fastapi-provider")
+    app = create_app()
+    app.dependency_overrides[get_llm_provider] = lambda: mock_llm
+    client = TestClient(app)
+
+    # Register a customized domain agent via API
+    resp = client.post(
+        "/v1/agents/custom",
+        json={
+            "agent_id": "palaeography-specialist",
+            "name": "PalaeoExpert",
+            "role": "Ancient Manuscript Specialist",
+            "domain": "palaeography",
+            "system_prompt": "Analyze papyrus scripts and handwriting chronology.",
+        },
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "created"
+    assert data["domain"] == "palaeography"
+    assert data["name"] == "PalaeoExpert"
+
+    # Verify agent appears in /v1/agents list
+    list_resp = client.get("/v1/agents")
+    assert list_resp.status_code == 200
+    agents_list = list_resp.json()
+    found = next((a for a in agents_list if a["agent_id"] == "palaeography-specialist"), None)
+    assert found is not None
+    assert found["domain"] == "palaeography"
+
+    # Run the custom domain agent
+    run_resp = client.post(
+        "/v1/agents/palaeography-specialist/run",
+        json={"query": "Examine script ligature in Oxyrhynchus papyri."},
+    )
+    assert run_resp.status_code == 200
+    run_data = run_resp.json()
+    assert run_data["agent_name"] == "PalaeoExpert"
+    assert run_data["metadata"]["domain"] == "palaeography"

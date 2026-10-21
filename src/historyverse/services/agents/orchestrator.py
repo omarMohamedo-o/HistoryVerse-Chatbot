@@ -7,54 +7,25 @@ from typing import TYPE_CHECKING, Any
 
 from historyverse.core.base import BaseLLMProvider
 from historyverse.services.agents.base import AgentResponse, BaseAgent, TeamExecutionResponse
+from historyverse.services.agents.template import AgentTemplate, TemplatedAgent
 
 if TYPE_CHECKING:
     from historyverse.config.settings import Settings
+    from historyverse.services.memory.agent_memory import AgentMemory
 
 logger = logging.getLogger(__name__)
 
 __all__ = ["AgentOrchestrator", "CustomAgent"]
 
-
-class CustomAgent(BaseAgent):
-    """Dynamically generated agent with user-defined prompt and assigned LLM model."""
-
-    async def run(self, query: str, context: dict[str, Any] | None = None) -> AgentResponse:
-        ctx_data = context or {}
-        context_str = ctx_data.get("context", "")
-        session_id = ctx_data.get("session_id")
-        history_str = (
-            self.memory.get_formatted_history(session_id)
-            if session_id and self.memory.get_history(session_id)
-            else ""
-        )
-        system_base = self.build_effective_system_prompt()
-
-        parts = [system_base]
-        if history_str:
-            parts.append(f"Conversation History:\n{history_str}")
-        if context_str:
-            parts.append(f"Context:\n{context_str}")
-        parts.append(f"Query:\n{query}")
-        prompt = "\n\n".join(parts)
-
-        output = await self.llm_provider.generate(prompt)
-
-        if session_id:
-            self.memory.add_exchange(session_id, query, output)
-        return AgentResponse(
-            agent_id=self.agent_id,
-            agent_name=self.name,
-            role=self.role,
-            output=output,
-            model_used=self.llm_provider.model_name,
-            confidence=0.9,
-            metadata=context or {},
-        )
+CustomAgent = TemplatedAgent
 
 
 class AgentOrchestrator:
-    """Orchestrates individual agent invocations or collaborative multi-agent team pipelines."""
+    """Orchestrates individual agent invocations or collaborative multi-agent team pipelines.
+
+    Uses declarative AgentTemplates to spawn domain-agnostic agents with independent
+    customized settings, isolated memories, and decoupled LLM providers.
+    """
 
     def __init__(self, settings: Settings | None = None) -> None:
         from historyverse.config.settings import get_settings
@@ -65,23 +36,30 @@ class AgentOrchestrator:
     def register_agent(self, agent: BaseAgent) -> None:
         """Register an agent instance in the orchestrator registry."""
         self._registry[agent.agent_id] = agent
-        logger.info("Registered agent: %s (%s)", agent.name, agent.agent_id)
+        logger.info("Registered agent: %s (%s) [domain: %s]", agent.name, agent.agent_id, getattr(agent, "domain", "general"))
 
     def get_agent(self, agent_id: str) -> BaseAgent | None:
         """Retrieve an agent by its unique identifier."""
         return self._registry.get(agent_id)
 
-    def list_agents(self) -> list[dict[str, str]]:
-        """Return metadata for all registered agents."""
-        return [
-            {
-                "agent_id": a.agent_id,
-                "name": a.name,
-                "role": a.role,
-                "model_used": a.llm_provider.model_name,
-            }
-            for a in self._registry.values()
-        ]
+    def list_agents(self) -> list[dict[str, Any]]:
+        """Return metadata for all registered agents across all domains."""
+        results = []
+        for a in self._registry.values():
+            provider_type = "unknown"
+            if hasattr(a.llm_provider, "settings") and hasattr(a.llm_provider.settings, "llm_provider"):
+                provider_type = str(a.llm_provider.settings.llm_provider)
+            results.append(
+                {
+                    "agent_id": a.agent_id,
+                    "name": a.name,
+                    "role": a.role,
+                    "domain": getattr(a, "domain", "general"),
+                    "model_used": a.llm_provider.model_name,
+                    "provider": provider_type,
+                }
+            )
+        return results
 
     def create_custom_agent(
         self,
@@ -89,15 +67,67 @@ class AgentOrchestrator:
         name: str,
         role: str,
         system_prompt: str,
-        llm_provider: BaseLLMProvider,
-    ) -> CustomAgent:
-        """Spawn a new custom agent model dynamically and register it."""
-        agent = CustomAgent(
+        domain: str = "general",
+        llm_provider: BaseLLMProvider | None = None,
+        provider_name: str | None = None,
+        model_name: str | None = None,
+        temperature: float | None = None,
+        api_key: str | None = None,
+        memory: AgentMemory | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> TemplatedAgent:
+        """Spawn a new custom domain agent from an AgentTemplate with isolated settings and LLM engine."""
+        if llm_provider is not None:
+            resolved_provider = llm_provider
+        elif provider_name or model_name or temperature is not None or api_key:
+            updates: dict[str, Any] = {}
+            if provider_name:
+                from historyverse.core.enums import LLMProvider
+
+                updates["llm_provider"] = LLMProvider(provider_name.lower())
+            if model_name:
+                updates["llm_model_name"] = model_name
+            if temperature is not None:
+                updates["llm_temperature"] = temperature
+            if api_key:
+                from pydantic import SecretStr
+
+                if provider_name and "openai" in provider_name.lower():
+                    updates["openai_api_key"] = SecretStr(api_key)
+                else:
+                    updates["google_api_key"] = SecretStr(api_key)
+            agent_settings = self._settings.model_copy(update=updates)
+            from historyverse.services.llm.factory import LLMFactory
+
+            resolved_provider = LLMFactory.create(agent_settings)
+        else:
+            from historyverse.services.llm.factory import LLMFactory
+
+            resolved_provider = LLMFactory.create(self._settings)
+
+        if memory is None:
+            from historyverse.services.memory.agent_memory import AgentMemory
+            from historyverse.services.memory.manager import ConversationMemory
+
+            backend = ConversationMemory(self._settings)
+            memory = AgentMemory(agent_id=agent_id, backend=backend)
+
+        template = AgentTemplate(
             agent_id=agent_id,
             name=name,
             role=role,
-            system_prompt=system_prompt,
-            llm_provider=llm_provider,
+            domain=domain,
+            system_prompt_template=system_prompt,
+            provider_type=provider_name,
+            model_name=model_name,
+            temperature=temperature,
+        )
+
+        agent = TemplatedAgent(
+            template=template,
+            llm_provider=resolved_provider,
+            memory=memory,
+            metadata=metadata,
         )
         self.register_agent(agent)
         return agent
