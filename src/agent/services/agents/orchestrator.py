@@ -93,8 +93,12 @@ class AgentOrchestrator:
             getattr(agent, "domain", "general"),
         )
 
-    def get_agent(self, agent_id: str) -> BaseAgent | None:
-        """Retrieve an agent by its unique identifier."""
+    def get_agent(self, agent_id: str, tenant_id: str | None = None) -> BaseAgent | None:
+        """Retrieve an agent by its unique identifier with optional tenant boundary check."""
+        if tenant_id and hasattr(self, "_store"):
+            record = self._store.get_agent(agent_id, tenant_id=tenant_id)
+            if not record and agent_id not in ("historical_agent", "researcher", "critic"):
+                return None
         return self._registry.get(agent_id)
 
     def list_agents(self) -> list[dict[str, Any]]:
@@ -204,8 +208,14 @@ class AgentOrchestrator:
 
         return agent
 
-    def delete_custom_agent(self, agent_id: str) -> bool:
-        """Delete custom agent from memory registry and persistent store."""
+    def delete_custom_agent(self, agent_id: str, tenant_id: str | None = None) -> bool:
+        """Delete custom agent from memory registry and persistent store with tenant boundary."""
+        if tenant_id:
+            store_removed = self._store.delete_agent(agent_id, tenant_id=tenant_id)
+            if store_removed and agent_id in self._registry:
+                del self._registry[agent_id]
+            return store_removed
+
         removed = False
         if agent_id in self._registry:
             del self._registry[agent_id]
@@ -275,10 +285,14 @@ class AgentOrchestrator:
         )
 
     async def run_individual(
-        self, agent_id: str, query: str, context: dict[str, Any] | None = None
+        self,
+        agent_id: str,
+        query: str,
+        context: dict[str, Any] | None = None,
+        tenant_id: str | None = None,
     ) -> AgentResponse:
         """Execute a single agent independently."""
-        agent = self.get_agent(agent_id)
+        agent = self.get_agent(agent_id, tenant_id=tenant_id)
         if not agent:
             raise ValueError(f"Agent '{agent_id}' is not registered in the orchestrator.")
         return await agent.run(query, context)
@@ -503,9 +517,10 @@ class AgentOrchestrator:
         query: str,
         require_human_approval: bool = False,
         run_id: str | None = None,
+        tenant_id: str | None = None,
     ) -> dict[str, Any]:
         """Execute a team workflow with step-by-step auditing, persistent tracking, and optional human approval."""
-        team = self._team_store.get_team(team_id)
+        team = self._team_store.get_team(team_id, tenant_id=tenant_id)
         if not team:
             raise ValueError(f"Team '{team_id}' not found.")
 
@@ -613,9 +628,10 @@ class AgentOrchestrator:
         run_id: str,
         approved: bool,
         user_comment: str | None = None,
+        tenant_id: str | None = None,
     ) -> dict[str, Any]:
-        """Resume or reject a workflow paused at a human approval checkpoint."""
-        record = self._team_store.get_execution(run_id)
+        """Resume or reject a workflow paused at a human approval checkpoint with tenant verification."""
+        record = self._team_store.get_execution(run_id, tenant_id=tenant_id)
         if not record:
             raise ValueError(f"Execution run '{run_id}' not found.")
 

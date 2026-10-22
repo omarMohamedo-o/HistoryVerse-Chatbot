@@ -338,13 +338,10 @@ api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 async def verify_api_key(
     x_api_key: str | None = Security(api_key_header),
     authorization: str | None = Header(default=None),
+    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
     settings: Settings = Depends(get_app_settings),
 ) -> bool:
-    """Validate API key when auth_enabled is set to True.
-
-    Allows bypass when auth_enabled is False for dev/testing backwards compatibility.
-    Accepts X-API-Key header or Authorization: Bearer <key>.
-    """
+    """Validate API key when auth_enabled is set to True and defend against tenant spoofing."""
     if not settings.auth_enabled:
         return True
 
@@ -358,6 +355,16 @@ async def verify_api_key(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Missing API Key. Provide 'X-API-Key' header or 'Authorization: Bearer <token>'.",
         )
+
+    # Check tenant credential binding: if provided_key is formatted as "tenant:secret"
+    if ":" in provided_key:
+        key_tenant, raw_key = provided_key.split(":", 1)
+        if x_tenant_id and x_tenant_id != key_tenant:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Tenant mismatch: Credentials authorized for '{key_tenant}', cannot access '{x_tenant_id}'.",
+            )
+        provided_key = raw_key
 
     if expected_key and provided_key != expected_key:
         raise HTTPException(

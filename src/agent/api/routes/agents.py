@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 
 from agent.api.dependencies import (
@@ -136,6 +136,7 @@ async def create_custom_agent(
     llm: BaseLLMProvider = Depends(get_llm_provider),
     orchestrator: AgentOrchestrator = Depends(get_agent_orchestrator),
     _auth: bool = Depends(verify_api_key),
+    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
 ) -> dict[str, Any]:
     """Dynamically register a new specialized domain agent model with customizable settings and provider."""
     use_default_llm = (
@@ -144,6 +145,7 @@ async def create_custom_agent(
         and req.temperature is None
         and req.api_key is None
     )
+    metadata = {"tenant_id": x_tenant_id} if x_tenant_id else None
     agent = orchestrator.create_custom_agent(
         agent_id=req.agent_id,
         name=req.name,
@@ -155,6 +157,7 @@ async def create_custom_agent(
         model_name=req.model_name,
         temperature=req.temperature,
         api_key=req.api_key,
+        metadata=metadata,
     )
     return {
         "status": "created",
@@ -204,9 +207,10 @@ class ApproveWorkflowRequest(BaseModel):
 @router.get("/teams", summary="List all multi-agent teams")
 async def list_teams(
     orchestrator: AgentOrchestrator = Depends(get_agent_orchestrator),
+    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
 ) -> list[dict[str, Any]]:
     """Retrieve all configured multi-agent teams and their execution strategies."""
-    return orchestrator.team_store.list_teams()
+    return orchestrator.team_store.list_teams(tenant_id=x_tenant_id)
 
 
 @router.post("/teams", summary="Create or register a multi-agent team")
@@ -230,9 +234,10 @@ async def create_team(
 async def get_team(
     team_id: str,
     orchestrator: AgentOrchestrator = Depends(get_agent_orchestrator),
+    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
 ) -> dict[str, Any]:
     """Retrieve details for a specific multi-agent team."""
-    team = orchestrator.team_store.get_team(team_id)
+    team = orchestrator.team_store.get_team(team_id, tenant_id=x_tenant_id)
     if not team:
         raise HTTPException(status_code=404, detail=f"Team '{team_id}' not found.")
     return team
@@ -243,9 +248,10 @@ async def delete_team(
     team_id: str,
     orchestrator: AgentOrchestrator = Depends(get_agent_orchestrator),
     _auth: bool = Depends(verify_api_key),
+    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
 ) -> dict[str, Any]:
     """Remove a multi-agent team definition."""
-    deleted = orchestrator.team_store.delete_team(team_id)
+    deleted = orchestrator.team_store.delete_team(team_id, tenant_id=x_tenant_id)
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Team '{team_id}' not found.")
     return {"status": "deleted", "team_id": team_id}
@@ -257,6 +263,7 @@ async def execute_team_workflow(
     req: RunWorkflowRequest,
     orchestrator: AgentOrchestrator = Depends(get_agent_orchestrator),
     _auth: bool = Depends(verify_api_key),
+    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
 ):
     """Execute team workflow with sequential, parallel, supervisor, or conditional strategy."""
     try:
@@ -264,6 +271,7 @@ async def execute_team_workflow(
             team_id=team_id,
             query=req.query,
             require_human_approval=req.require_human_approval,
+            tenant_id=x_tenant_id,
         )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -273,18 +281,20 @@ async def execute_team_workflow(
 @router.get("/executions", summary="List workflow executions")
 async def list_executions(
     orchestrator: AgentOrchestrator = Depends(get_agent_orchestrator),
+    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
 ) -> list[dict[str, Any]]:
     """List recent workflow execution runs with status and step audits."""
-    return orchestrator.team_store.list_executions()
+    return orchestrator.team_store.list_executions(tenant_id=x_tenant_id)
 
 
 @router.get("/executions/{run_id}", summary="Get workflow execution run details")
 async def get_execution(
     run_id: str,
     orchestrator: AgentOrchestrator = Depends(get_agent_orchestrator),
+    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
 ) -> dict[str, Any]:
     """Retrieve execution status, inter-agent step outputs, and metrics."""
-    record = orchestrator.team_store.get_execution(run_id)
+    record = orchestrator.team_store.get_execution(run_id, tenant_id=x_tenant_id)
     if not record:
         raise HTTPException(status_code=404, detail=f"Execution run '{run_id}' not found.")
     return record
@@ -298,6 +308,7 @@ async def approve_workflow_run(
     req: ApproveWorkflowRequest,
     orchestrator: AgentOrchestrator = Depends(get_agent_orchestrator),
     _auth: bool = Depends(verify_api_key),
+    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
 ) -> dict[str, Any]:
     """Approve or reject a workflow paused at a human-in-the-loop checkpoint."""
     try:
@@ -305,6 +316,7 @@ async def approve_workflow_run(
             run_id=run_id,
             approved=req.approved,
             user_comment=req.comment,
+            tenant_id=x_tenant_id,
         )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
@@ -315,9 +327,10 @@ async def approve_workflow_run(
 async def get_agent_details(
     agent_id: str,
     orchestrator: AgentOrchestrator = Depends(get_agent_orchestrator),
+    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
 ) -> dict[str, Any]:
     """Retrieve details of a registered agent by identifier."""
-    agent = orchestrator.get_agent(agent_id)
+    agent = orchestrator.get_agent(agent_id, tenant_id=x_tenant_id)
     if not agent:
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
     return {
@@ -365,9 +378,10 @@ async def delete_custom_agent(
     agent_id: str,
     orchestrator: AgentOrchestrator = Depends(get_agent_orchestrator),
     _auth: bool = Depends(verify_api_key),
+    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
 ) -> dict[str, Any]:
     """Remove a custom domain agent from the orchestrator and persistent store."""
-    deleted = orchestrator.delete_custom_agent(agent_id)
+    deleted = orchestrator.delete_custom_agent(agent_id, tenant_id=x_tenant_id)
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Agent '{agent_id}' not found.")
     return {"status": "deleted", "agent_id": agent_id}
@@ -379,9 +393,12 @@ async def run_individual_agent(
     req: RunAgentRequest,
     orchestrator: AgentOrchestrator = Depends(get_agent_orchestrator),
     _auth: bool = Depends(verify_api_key),
+    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
 ):
     """Execute a single agent model independently."""
     try:
-        return await orchestrator.run_individual(agent_id, req.query, req.context)
+        return await orchestrator.run_individual(
+            agent_id, req.query, req.context, tenant_id=x_tenant_id
+        )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc

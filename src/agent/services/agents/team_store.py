@@ -213,18 +213,35 @@ class TeamRegistryStore:
             conn.commit()
         return self.get_execution(run_id)
 
-    def get_execution(self, run_id: str) -> dict[str, Any] | None:
-        """Fetch details of a workflow run."""
+    def get_execution(self, run_id: str, tenant_id: str | None = None) -> dict[str, Any] | None:
+        """Fetch details of a workflow run with optional tenant verification."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM workflow_executions WHERE run_id = ?", (run_id,))
             row = cursor.fetchone()
             if not row:
                 return None
-            return self._exec_row_to_dict(row)
+            data = self._exec_row_to_dict(row)
+            if tenant_id and data.get("team_id"):
+                team = self.get_team(data["team_id"])
+                if (
+                    team
+                    and team.get("config", {}).get("tenant_id")
+                    and team["config"]["tenant_id"] != tenant_id
+                ):
+                    logger.warning(
+                        "Tenant isolation violation: tenant '%s' attempted to access execution '%s' belonging to tenant '%s'",
+                        tenant_id,
+                        run_id,
+                        team["config"]["tenant_id"],
+                    )
+                    return None
+            return data
 
-    def list_executions(self, limit: int = 50, team_id: str | None = None) -> list[dict[str, Any]]:
-        """List recent workflow execution runs with optional team_id filtering."""
+    def list_executions(
+        self, limit: int = 50, team_id: str | None = None, tenant_id: str | None = None
+    ) -> list[dict[str, Any]]:
+        """List recent workflow execution runs with optional team_id and tenant_id filtering."""
         with self._get_connection() as conn:
             cursor = conn.cursor()
             if team_id:
@@ -237,7 +254,17 @@ class TeamRegistryStore:
                     "SELECT * FROM workflow_executions ORDER BY created_at DESC LIMIT ?", (limit,)
                 )
             rows = cursor.fetchall()
-            return [self._exec_row_to_dict(r) for r in rows]
+            results = [self._exec_row_to_dict(r) for r in rows]
+            if tenant_id:
+                filtered = []
+                for r in results:
+                    t_id = r.get("team_id")
+                    if t_id:
+                        tm = self.get_team(t_id)
+                        if tm and tm.get("config", {}).get("tenant_id") == tenant_id:
+                            filtered.append(r)
+                return filtered
+            return results
 
     # Helper Serialization
     def _team_row_to_dict(self, row: sqlite3.Row) -> dict[str, Any]:
