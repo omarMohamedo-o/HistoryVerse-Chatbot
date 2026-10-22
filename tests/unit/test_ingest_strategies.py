@@ -1,19 +1,19 @@
 """Unit tests for document ingest strategies, embedding providers, and fallback cascades."""
 
-import contextlib
+import importlib
 import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
 from pydantic import SecretStr
 
+import agent.services.rag.ingest as ingest_mod
 from agent.config.settings import Settings
 from agent.services.rag.ingest import (
     DocumentIngestor,
     GoogleEmbeddingStrategy,
     HuggingFaceEmbeddingStrategy,
     OllamaEmbeddingStrategy,
-    _get_document_map,
 )
 
 
@@ -80,22 +80,36 @@ def test_huggingface_embedding_strategy_fallbacks(monkeypatch):
     mock_comm.FakeEmbeddings.assert_called_once_with(size=384)
 
 
-def test_get_document_map_fallback_on_unstructured_missing(monkeypatch):
+def test_get_document_map_fallback_on_unstructured_missing():
     """Verify fallback to standard TextLoader when unstructured packages fail to import."""
-    with (
-        patch("agent.services.rag.ingest._get_document_map", side_effect=ImportError("unstructured missing")),
-        contextlib.suppress(ImportError),
-    ):
-        _get_document_map()
+    orig_dict = dict(ingest_mod.__dict__)
+    try:
+        with patch("warnings.filterwarnings", side_effect=[RuntimeError("Unstructured loader import fail"), None, None]):
+            importlib.reload(ingest_mod)
+            assert ".png" not in ingest_mod.DOCUMENT_MAP
+            assert ".txt" in ingest_mod.DOCUMENT_MAP
+    finally:
+        ingest_mod.__dict__.clear()
+        ingest_mod.__dict__.update(orig_dict)
 
 
 def test_document_ingestor_batch_exception_handling(tmp_path):
     """Verify DocumentIngestor logs and handles batch worker execution exceptions gracefully."""
+    from concurrent.futures import Future
+
     doc_file = tmp_path / "sample.txt"
     doc_file.write_text("Sample document text for ingestion.")
 
     ingestor = DocumentIngestor()
 
+    # 1. Submission error
     with patch("concurrent.futures.ProcessPoolExecutor.submit", side_effect=RuntimeError("Worker spawn failed")):
         docs = ingestor.load_documents(str(tmp_path))
         assert docs == []
+
+    # 2. Future result error (lines 257-258)
+    real_future = Future()
+    real_future.set_exception(RuntimeError("Worker execution crashed"))
+    with patch("concurrent.futures.ProcessPoolExecutor.submit", return_value=real_future):
+        docs_future_err = ingestor.load_documents(str(tmp_path))
+        assert docs_future_err == []

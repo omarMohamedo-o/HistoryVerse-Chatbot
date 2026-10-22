@@ -3,7 +3,9 @@
 import base64
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
 from fastapi.testclient import TestClient
+from starlette.websockets import WebSocketDisconnect
 
 from agent.api.app import create_app
 from agent.api.dependencies import (
@@ -12,6 +14,7 @@ from agent.api.dependencies import (
     get_streaming_tts_provider,
     reset_dependencies_cache,
 )
+from agent.api.routes.ar import LiveARVoiceSession
 from tests.conftest import MockLLMProvider
 
 
@@ -121,3 +124,89 @@ def test_ar_websocket_turn_error_event():
                 error_found = True
                 break
         assert error_found is True
+
+
+@pytest.mark.asyncio
+async def test_live_ar_voice_session_interrupt_and_turn_branches():
+    """Directly test LiveARVoiceSession state transitions, barge-in, remainder flush, and exceptions."""
+    mock_ws = AsyncMock()
+    mock_agent = MagicMock()
+    mock_stt = MagicMock()
+    mock_stt.feed_audio_chunk = AsyncMock(return_value=("partial", False))
+    mock_stt.reset = AsyncMock()
+    mock_stt.finish = AsyncMock(return_value="finished query")
+
+    mock_tts = MagicMock()
+    mock_tts.synthesize_chunk = AsyncMock(return_value=b"AUDIO_CHUNK")
+
+    # 1. Agent streams token WITHOUT ending punctuation to trigger remainder flush (lines 323-326)
+    async def stream_no_punct(prompt, context=None):
+        yield "An unpunctuated fragment of text"
+
+    mock_agent.stream = stream_no_punct
+    session = LiveARVoiceSession(
+        websocket=mock_ws,
+        agent=mock_agent,
+        stt=mock_stt,
+        tts=mock_tts,
+        session_id="ar_direct_test",
+    )
+
+    # Test _execute_turn directly to hit remainder flush (lines 323-326)
+    await session._execute_turn("Query without punctuation")
+    sent_events = [call.args[0]["event"] for call in mock_ws.send_json.call_args_list]
+    assert "tts_audio" in sent_events
+    assert "turn_complete" in sent_events
+
+    # 2. Test barge-in when state is PROCESSING for binary frame (line 187)
+    session.interrupt = AsyncMock()
+    async def recv_processing_binary():
+        session.state = "PROCESSING"
+        mock_ws.receive = AsyncMock(return_value={"type": "websocket.disconnect"})
+        return {"bytes": b"\x00\x01" * 50}
+
+    mock_ws.receive = AsyncMock(side_effect=recv_processing_binary)
+    await session.run()
+    session.interrupt.assert_called()
+
+    # 3. Test barge-in when state is SPEAKING for text_input (line 244)
+    session.interrupt = AsyncMock()
+    async def recv_speaking_text():
+        session.state = "SPEAKING"
+        mock_ws.receive = AsyncMock(return_value={"type": "websocket.disconnect"})
+        return {"text": '{"event": "text_input", "text": "New prompt"}'}
+
+    mock_ws.receive = AsyncMock(side_effect=recv_speaking_text)
+    await session.run()
+    session.interrupt.assert_called()
+
+    # 4. Test barge-in when state is SPEAKING for audio_chunk (line 252)
+    session.interrupt = AsyncMock()
+    b64 = base64.b64encode(b"audio").decode("ascii")
+    async def recv_speaking_audio():
+        session.state = "SPEAKING"
+        mock_ws.receive = AsyncMock(return_value={"type": "websocket.disconnect"})
+        return {"text": f'{{"event": "audio_chunk", "data": "{b64}"}}'}
+
+    mock_ws.receive = AsyncMock(side_effect=recv_speaking_audio)
+    await session.run()
+    session.interrupt.assert_called()
+
+    # 5. Test _spawn_turn_task when previous task is not done (line 280)
+    fake_active_task = MagicMock()
+    fake_active_task.done.return_value = False
+    session.active_turn_task = fake_active_task
+    session._spawn_turn_task("Second query")
+    fake_active_task.cancel.assert_called_once()
+
+    # 6. Test session.run() catching WebSocketDisconnect (lines 269-270)
+    mock_ws.receive = AsyncMock(side_effect=WebSocketDisconnect(code=1000))
+    await session.run()
+
+    # 7. Test session.run() unexpected Exception and active_turn_task cancellation in finally (lines 271-272, 275)
+    mock_ws.receive = AsyncMock(side_effect=RuntimeError("Socket read failure"))
+    fake_turn_task = MagicMock()
+    fake_turn_task.done.return_value = False
+    session.active_turn_task = fake_turn_task
+    await session.run()
+    fake_turn_task.cancel.assert_called()

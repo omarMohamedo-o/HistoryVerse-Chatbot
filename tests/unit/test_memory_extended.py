@@ -20,9 +20,9 @@ def test_conversation_manager_with_mock_redis(monkeypatch):
 
     # Mock Redis responses
     turn_json = json.dumps([{"role": "user", "content": "Hello Redis"}])
-    mock_client.get.return_value = turn_json
-    mock_client.keys.return_value = ["historyverse:session:conv1"]
-    mock_client.scan_iter.return_value = ["historyverse:session:conv1"]
+    mock_client.get.side_effect = lambda k: None if k == "historyverse:session:empty_key" else turn_json
+    mock_client.keys.return_value = ["historyverse:session:conv1", "historyverse:session:empty_key"]
+    mock_client.scan_iter.return_value = ["historyverse:session:conv1", "historyverse:session:empty_key"]
 
     settings = Settings(redis_url="redis://localhost:6379/0")
     manager = ConversationManager(settings=settings)

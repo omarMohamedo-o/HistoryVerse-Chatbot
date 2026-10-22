@@ -1,5 +1,6 @@
 """Unit tests for RAG pipeline fallback, multilingual utilities, and retriever edge cases."""
 
+import sys
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -122,3 +123,28 @@ def test_file_chat_extract_and_query_fallbacks():
     # 3. Network URL failure raises RAGError
     with pytest.raises(RAGError, match="Failed to fetch document from URL"):
         service.load_documents_from_source("http://127.0.0.1:9999/nonexistent.pdf")
+
+
+def test_file_chat_pdf_fallback_and_exceptions(monkeypatch):
+    """Verify FileChatService._extract_pdf_pages handles pypdf ImportError and PyPDFLoader exceptions."""
+    from agent.services.rag.file_chat import FileChatService
+
+    service = FileChatService(llm_provider=MagicMock())
+
+    # 1. pypdf raises ImportError (line 98) and PyPDFLoader succeeds
+    mock_pdf_loader = MagicMock()
+    mock_loader_instance = MagicMock()
+    mock_loader_instance.load.return_value = [Document(page_content="Page 1 text", metadata={})]
+    mock_pdf_loader.return_value = mock_loader_instance
+
+    monkeypatch.setitem(sys.modules, "pypdf", None)
+    monkeypatch.setattr("langchain_community.document_loaders.PyPDFLoader", mock_pdf_loader)
+
+    docs = service._extract_pdf_pages(b"%PDF-1.4 fake pdf bytes", "test.pdf")
+    assert len(docs) == 1
+    assert docs[0].page_content == "Page 1 text"
+
+    # 2. PyPDFLoader raises Exception (lines 117-118, 123)
+    mock_loader_instance.load.side_effect = RuntimeError("Loader corrupted")
+    docs_empty = service._extract_pdf_pages(b"%PDF-1.4 fake pdf bytes", "test.pdf")
+    assert docs_empty == []

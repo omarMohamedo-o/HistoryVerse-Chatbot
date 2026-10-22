@@ -130,8 +130,8 @@ def test_ai_evals_edge_cases():
     """Verify AIEvalFramework metric scoring edge cases."""
     mock_llm = MagicMock()
     framework = AIEvalFramework(llm_provider=mock_llm)
-    # 1. evaluate_context_relevance when question tokens are empty
-    assert framework.evaluate_context_relevance("is it so?", ["some context"]) == 1.0
+    # 1. evaluate_context_relevance when question tokens are empty (e.g. stopwords only)
+    assert framework.evaluate_context_relevance("what who where", ["some context"]) == 1.0
 
     # 2. evaluate_faithfulness when answer tokens are empty
     assert framework.evaluate_faithfulness("no", ["some context"]) == 1.0

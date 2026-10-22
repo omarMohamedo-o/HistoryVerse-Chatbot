@@ -113,11 +113,17 @@ async def test_video_generator_cloud_dispatch(tmp_path):
 
 @pytest.mark.asyncio
 async def test_video_generator_cloud_dispatch_default_impl():
-    """Verify default _dispatch_cloud_video_api logs debug and returns None."""
+    """Verify default _dispatch_cloud_video_api logs debug and handles exceptions cleanly."""
     settings = Settings()
     generator = VideoGenerator(llm_provider=MagicMock(), settings=settings)
     res = await generator._dispatch_cloud_video_api("Pharaoh prompt", None, 5, "test-key")
     assert res is None
+
+    # Test exception branch in _dispatch_cloud_video_api (lines 152-154)
+    bad_prompt = MagicMock()
+    bad_prompt.__len__.side_effect = TypeError("Corrupted prompt string")
+    res_exc = await generator._dispatch_cloud_video_api(bad_prompt, None, 5, "test-key")
+    assert res_exc is None
 
 
 @pytest.mark.asyncio
