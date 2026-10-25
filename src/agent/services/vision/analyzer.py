@@ -79,20 +79,30 @@ class ImageAnalyzer:
 
     async def analyze(self, image_source: str, query: str) -> str:
         """Analyze an image using the LLM's multimodal vision capabilities."""
+        from agent.services.security.pii import redact_egyptian_pii
+        from agent.services.nlp.arabic import clean_arabic_text
+
+        sanitized_query = clean_arabic_text(redact_egyptian_pii(query))
         image = self.load_image(image_source)
         name = self._settings.agent_persona_name
         prompt = (
             f"You are {name}, an expert historical AI. Examine this image carefully and answer:\n"
-            f"{query}"
+            f"{sanitized_query}"
         )
         return await self._llm.generate(prompt, images=[image])
 
     async def analyze_video(self, video_source: str, query: str) -> str:
         """Analyze a historical video clip by extracting keyframes and prompting the LLM."""
+        from agent.services.security.pii import redact_egyptian_pii
+        from agent.services.nlp.arabic import clean_arabic_text
+
+        sanitized_query = clean_arabic_text(redact_egyptian_pii(query))
         frames = self.extract_video_frames(video_source)
         name = self._settings.agent_persona_name
         prompt = (
             f"You are {name}, an expert historical AI. Review these sequential video frames "
+            f"and answer this historical question:\n{sanitized_query}"
+        )
             "depicting a historical site, artifact, or event, and answer:\n"
             f"{query}"
         )

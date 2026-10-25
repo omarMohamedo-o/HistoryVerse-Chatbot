@@ -1,0 +1,292 @@
+"""Persistent store for Multi-Agent Teams and Workflow Executions."""
+
+from __future__ import annotations
+
+import json
+import logging
+import os
+import sqlite3
+from typing import Any
+
+from agent.config.settings import Settings, get_settings
+
+logger = logging.getLogger(__name__)
+
+__all__ = ["TeamRegistryStore"]
+
+
+class TeamRegistryStore:
+    """SQLite-backed storage for Multi-Agent Teams and audit-trailed Workflow Executions."""
+
+    def __init__(self, db_path: str | None = None, settings: Settings | None = None) -> None:
+        self._settings = settings or get_settings()
+        self.db_path = db_path or self._settings.agent_registry_db_path
+
+        if self.db_path != ":memory:":
+            os.makedirs(os.path.dirname(os.path.abspath(self.db_path)), exist_ok=True)
+
+        self._init_db()
+
+    def _get_connection(self) -> sqlite3.Connection:
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        return conn
+
+    def _init_db(self) -> None:
+        """Create tables for teams and execution runs."""
+        with self._get_connection() as conn:
+            if self.db_path != ":memory:":
+                conn.execute("PRAGMA journal_mode=WAL;")
+                conn.execute("PRAGMA busy_timeout=5000;")
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS multi_agent_teams (
+                    team_id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    description TEXT,
+                    strategy TEXT NOT NULL,
+                    members_json TEXT NOT NULL,
+                    config_json TEXT DEFAULT '{}',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                """
+            )
+            conn.execute(
+                """
+                CREATE TABLE IF NOT EXISTS workflow_executions (
+                    run_id TEXT PRIMARY KEY,
+                    team_id TEXT,
+                    strategy TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    query TEXT NOT NULL,
+                    final_answer TEXT,
+                    steps_json TEXT DEFAULT '[]',
+                    requires_approval INTEGER DEFAULT 0,
+                    approval_status TEXT DEFAULT 'NONE',
+                    approval_comment TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+                """
+            )
+            conn.commit()
+
+    # Team Management
+    def save_team(
+        self,
+        team_id: str,
+        name: str,
+        strategy: str,
+        members: list[str] | list[dict[str, Any]],
+        description: str = "",
+        config: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Insert or update a multi-agent team definition."""
+        members_json = json.dumps(members)
+        config_json = json.dumps(config or {})
+
+        with self._get_connection() as conn:
+            conn.execute(
+                """
+                INSERT INTO multi_agent_teams (
+                    team_id, name, description, strategy, members_json, config_json, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(team_id) DO UPDATE SET
+                    name = excluded.name,
+                    description = excluded.description,
+                    strategy = excluded.strategy,
+                    members_json = excluded.members_json,
+                    config_json = excluded.config_json,
+                    updated_at = CURRENT_TIMESTAMP;
+                """,
+                (team_id, name, description, strategy, members_json, config_json),
+            )
+            conn.commit()
+
+        logger.info("Persisted team '%s' (%s) with strategy '%s'", name, team_id, strategy)
+        return self.get_team(team_id) or {}
+
+    def get_team(self, team_id: str, tenant_id: str | None = None) -> dict[str, Any] | None:
+        """Fetch a team by its unique identifier with optional tenant verification."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM multi_agent_teams WHERE team_id = ?", (team_id,))
+            row = cursor.fetchone()
+            if not row:
+                return None
+            data = self._team_row_to_dict(row)
+            if tenant_id and data.get("config", {}).get("tenant_id") != tenant_id:
+                return None
+            return data
+
+    def list_teams(self, tenant_id: str | None = None) -> list[dict[str, Any]]:
+        """List all persisted multi-agent teams with optional tenant filtering."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM multi_agent_teams ORDER BY created_at DESC")
+            rows = cursor.fetchall()
+            results = [self._team_row_to_dict(r) for r in rows]
+            if tenant_id:
+                results = [t for t in results if t.get("config", {}).get("tenant_id") == tenant_id]
+            return results
+
+    def delete_team(self, team_id: str, tenant_id: str | None = None) -> bool:
+        """Delete a multi-agent team with tenant boundary enforcement."""
+        if tenant_id:
+            existing = self.get_team(team_id)
+            if not existing or existing.get("config", {}).get("tenant_id") != tenant_id:
+                logger.warning(
+                    "Tenant isolation violation: tenant '%s' attempted to delete team '%s'",
+                    tenant_id,
+                    team_id,
+                )
+                return False
+
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM multi_agent_teams WHERE team_id = ?", (team_id,))
+            conn.commit()
+            return cursor.rowcount > 0
+
+    # Workflow Execution History & Auditing
+    def create_execution(
+        self,
+        run_id: str,
+        team_id: str | None,
+        strategy: str,
+        query: str,
+        status: str = "RUNNING",
+    ) -> dict[str, Any]:
+        """Record the start of a workflow execution run."""
+        with self._get_connection() as conn:
+            conn.execute(
+                """
+                INSERT INTO workflow_executions (
+                    run_id, team_id, strategy, status, query, steps_json, updated_at
+                ) VALUES (?, ?, ?, ?, ?, '[]', CURRENT_TIMESTAMP)
+                ON CONFLICT(run_id) DO UPDATE SET
+                    status = excluded.status,
+                    updated_at = CURRENT_TIMESTAMP;
+                """,
+                (run_id, team_id, strategy, status, query),
+            )
+            conn.commit()
+        return self.get_execution(run_id) or {}
+
+    def update_execution(
+        self,
+        run_id: str,
+        status: str,
+        final_answer: str | None = None,
+        steps: list[dict[str, Any]] | None = None,
+        requires_approval: bool | None = None,
+        approval_status: str | None = None,
+        approval_comment: str | None = None,
+    ) -> dict[str, Any] | None:
+        """Update state, outputs, steps, and approval status for an execution run."""
+        steps_json = json.dumps(steps) if steps is not None else None
+        with self._get_connection() as conn:
+            query = """
+                UPDATE workflow_executions
+                SET status = ?,
+                    final_answer = COALESCE(?, final_answer),
+                    steps_json = COALESCE(?, steps_json),
+                    requires_approval = COALESCE(?, requires_approval),
+                    approval_status = COALESCE(?, approval_status),
+                    approval_comment = COALESCE(?, approval_comment),
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE run_id = ?;
+            """
+            conn.execute(
+                query,
+                (
+                    status,
+                    final_answer,
+                    steps_json,
+                    (1 if requires_approval else 0) if requires_approval is not None else None,
+                    approval_status,
+                    approval_comment,
+                    run_id,
+                ),
+            )
+            conn.commit()
+        return self.get_execution(run_id)
+
+    def get_execution(self, run_id: str, tenant_id: str | None = None) -> dict[str, Any] | None:
+        """Fetch details of a workflow run with optional tenant verification."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM workflow_executions WHERE run_id = ?", (run_id,))
+            row = cursor.fetchone()
+            if not row:
+                return None
+            data = self._exec_row_to_dict(row)
+            if tenant_id and data.get("team_id"):
+                team = self.get_team(data["team_id"])
+                if (
+                    team
+                    and team.get("config", {}).get("tenant_id")
+                    and team["config"]["tenant_id"] != tenant_id
+                ):
+                    logger.warning(
+                        "Tenant isolation violation: tenant '%s' attempted to access execution '%s' belonging to tenant '%s'",
+                        tenant_id,
+                        run_id,
+                        team["config"]["tenant_id"],
+                    )
+                    return None
+            return data
+
+    def list_executions(
+        self, limit: int = 50, team_id: str | None = None, tenant_id: str | None = None
+    ) -> list[dict[str, Any]]:
+        """List recent workflow execution runs with optional team_id and tenant_id filtering."""
+        with self._get_connection() as conn:
+            cursor = conn.cursor()
+            if team_id:
+                cursor.execute(
+                    "SELECT * FROM workflow_executions WHERE team_id = ? ORDER BY created_at DESC LIMIT ?",
+                    (team_id, limit),
+                )
+            else:
+                cursor.execute(
+                    "SELECT * FROM workflow_executions ORDER BY created_at DESC LIMIT ?", (limit,)
+                )
+            rows = cursor.fetchall()
+            results = [self._exec_row_to_dict(r) for r in rows]
+            if tenant_id:
+                filtered = []
+                for r in results:
+                    t_id = r.get("team_id")
+                    if t_id:
+                        tm = self.get_team(t_id)
+                        if tm and tm.get("config", {}).get("tenant_id") == tenant_id:
+                            filtered.append(r)
+                return filtered
+            return results
+
+    # Helper Serialization
+    def _team_row_to_dict(self, row: sqlite3.Row) -> dict[str, Any]:
+        data = dict(row)
+        try:
+            data["members"] = json.loads(data.get("members_json") or "[]")
+        except Exception:
+            data["members"] = []
+        try:
+            data["config"] = json.loads(data.get("config_json") or "{}")
+        except Exception:
+            data["config"] = {}
+        data.pop("members_json", None)
+        data.pop("config_json", None)
+        return data
+
+    def _exec_row_to_dict(self, row: sqlite3.Row) -> dict[str, Any]:
+        data = dict(row)
+        try:
+            data["steps"] = json.loads(data.get("steps_json") or "[]")
+        except Exception:
+            data["steps"] = []
+        data.pop("steps_json", None)
+        data["requires_approval"] = bool(data.get("requires_approval", 0))
+        return data

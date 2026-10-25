@@ -1,0 +1,44 @@
+# Promtool unit test for alert_rules.yml
+# Usage:
+#   promtool test rules configs/prometheus/alerts_test.yml
+rule_files:
+  - alert_rules.yml
+
+evaluation_interval: 1m
+
+tests:
+  # Test 1: ServiceDegraded alert fires when agent-api is down for 1 minute
+  - interval: 1m
+    input_series:
+      - series: 'up{job="agent-api"}'
+        values: "1 0 0 0"
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: ServiceDegraded
+        exp_alerts: []
+      - eval_time: 2m
+        alertname: ServiceDegraded
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+            exp_annotations:
+              summary: "Agent API is down"
+              description: "Target agent-api:8000 is unreachable."
+
+  # Test 2: FaithfulnessLow fires when rag_faithfulness < 0.80
+  - interval: 1m
+    input_series:
+      - series: 'rag_faithfulness'
+        values: "0.92 0.75 0.70 0.68"
+    alert_rule_test:
+      - eval_time: 1m
+        alertname: FaithfulnessLow
+        exp_alerts: []
+      - eval_time: 2m
+        alertname: FaithfulnessLow
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: "RAG Faithfulness has dropped below 0.80 threshold"
+              description: "Groundedness of legal answers has degraded below the required quality gate."

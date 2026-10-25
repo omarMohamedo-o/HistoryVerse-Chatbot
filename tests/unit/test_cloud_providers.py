@@ -110,3 +110,83 @@ async def test_openai_provider_error_handling():
         pytest.raises(LLMProviderError, match=r"\[openai\] OpenAI service unavailable"),
     ):
         await provider.generate("Any query")
+
+
+@pytest.mark.asyncio
+async def test_cloud_providers_streaming_and_multimodal():
+    from PIL import Image
+
+    # 1. Gemini with image and streaming
+    g_prov = GeminiProvider(Settings(google_api_key=SecretStr("test-key")))
+    img = Image.new("RGB", (10, 10), color="blue")
+
+    mock_chunk1 = MagicMock()
+    mock_chunk1.choices = [MagicMock(delta=MagicMock(content="Token 1 "))]
+    mock_chunk2 = MagicMock()
+    mock_chunk2.choices = [MagicMock(delta=MagicMock(content="Token 2"))]
+
+    async def mock_chunks():
+        yield mock_chunk1
+        yield mock_chunk2
+
+    with patch("litellm.acompletion", AsyncMock(return_value=mock_chunks())):
+        tokens = [t async for t in g_prov.stream("Prompt", images=[img])]
+        assert tokens == ["Token 1 ", "Token 2"]
+
+    # Gemini missing key error on generate and stream
+    g_no_key = GeminiProvider(Settings(google_api_key=SecretStr("")))
+    with pytest.raises(LLMProviderError, match="Google API key"):
+        await g_no_key.generate("Prompt")
+    with pytest.raises(LLMProviderError, match="Google API key"):
+        async for _ in g_no_key.stream("Prompt"):
+            pass
+
+    # Gemini stream exception and image generation fallback
+    with (
+        patch("litellm.acompletion", AsyncMock(side_effect=RuntimeError("Stream broke"))),
+        pytest.raises(LLMProviderError, match=r"\[gemini\] Stream broke"),
+    ):
+        async for _ in g_prov.stream("Prompt"):
+            pass
+
+    with patch("litellm.aimage_generation", AsyncMock(side_effect=RuntimeError("DALL-E broke"))):
+        assert await g_prov.generate_image("Prompt") is None
+
+    # Gemini generate with image
+    mock_resp = MagicMock()
+    mock_resp.choices = [MagicMock(message=MagicMock(content="Image analyzed"))]
+    with patch("litellm.acompletion", AsyncMock(return_value=mock_resp)):
+        ans_g = await g_prov.generate("Prompt", images=[img])
+        assert ans_g == "Image analyzed"
+
+    # 2. OpenAI with image and streaming
+    o_prov = OpenAIProvider(Settings(openai_api_key=SecretStr("sk-test")))
+    with patch("litellm.acompletion", AsyncMock(return_value=mock_chunks())):
+        tokens_o = [t async for t in o_prov.stream("Prompt", images=[img])]
+        assert tokens_o == ["Token 1 ", "Token 2"]
+
+    # OpenAI missing key error on generate and stream
+    o_no_key = OpenAIProvider(Settings(openai_api_key=SecretStr("")))
+    with pytest.raises(LLMProviderError, match="OpenAI API key"):
+        await o_no_key.generate("Prompt")
+    with pytest.raises(LLMProviderError, match="OpenAI API key"):
+        async for _ in o_no_key.stream("Prompt"):
+            pass
+
+    # OpenAI stream exception and image generation fallback
+    with (
+        patch("litellm.acompletion", AsyncMock(side_effect=RuntimeError("OpenAI stream broke"))),
+        pytest.raises(LLMProviderError, match=r"\[openai\] OpenAI stream broke"),
+    ):
+        async for _ in o_prov.stream("Prompt"):
+            pass
+
+    with patch(
+        "litellm.aimage_generation", AsyncMock(side_effect=RuntimeError("OpenAI image broke"))
+    ):
+        assert await o_prov.generate_image("Prompt") is None
+
+    # OpenAI generate with image
+    with patch("litellm.acompletion", AsyncMock(return_value=mock_resp)):
+        ans_o = await o_prov.generate("Prompt", images=[img])
+        assert ans_o == "Image analyzed"

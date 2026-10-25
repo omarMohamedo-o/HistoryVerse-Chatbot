@@ -13,6 +13,8 @@ build/
 venv/
 DB/
 *.sqlite3
+*.db
+data/*.db
 *.log
 file_ingest.log
 .idea/
@@ -31,6 +33,9 @@ local_chat_history/
 .ruff_cache/
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
+coverage_html/
+coverage.xml
 .DS_Store
 speak_audio_file/

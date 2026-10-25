@@ -235,3 +235,44 @@ async def test_analyze_video_workflow(tmp_path):
     with patch.object(analyzer, "extract_video_frames", return_value=[]):
         analysis_empty = await analyzer.analyze_video(str(video_path), query="Describe this site.")
         assert "Greco-Roman Museum" in analysis_empty
+
+
+def test_vision_routes_disabled_modes():
+    from fastapi.testclient import TestClient
+
+    from agent.api.app import create_app
+    from agent.api.dependencies import get_app_settings
+
+    cfg = Settings(
+        vision_enabled=False,
+        video_enabled=False,
+        image_generation_enabled=False,
+        video_generation_enabled=False,
+    )
+    app = create_app()
+    app.dependency_overrides[get_app_settings] = lambda: cfg
+    c = TestClient(app)
+
+    # 1. /v1/vision disabled
+    r1 = c.post("/v1/vision", params={"image_source": "test.jpg", "query": "Describe"})
+    assert r1.status_code == 400
+    assert "Vision analysis is disabled" in r1.json()["message"]
+
+    # 2. /v1/video disabled
+    r2 = c.post(
+        "/v1/video",
+        params={"query": "Describe"},
+        files={"file": ("clip.mp4", b"data", "video/mp4")},
+    )
+    assert r2.status_code == 400
+    assert "Video analysis is disabled" in r2.json()["message"]
+
+    # 3. /v1/vision/generate disabled
+    r3 = c.post("/v1/vision/generate", json={"prompt": "Reconstruct temple"})
+    assert r3.status_code == 400
+    assert "Image creation is disabled" in r3.json()["message"]
+
+    # 4. /v1/vision/video/generate disabled
+    r4 = c.post("/v1/vision/video/generate", json={"prompt": "Animate pharaoh"})
+    assert r4.status_code == 400
+    assert "Video generation is disabled" in r4.json()["message"]

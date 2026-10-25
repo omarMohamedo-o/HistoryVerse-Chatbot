@@ -69,4 +69,8 @@ def create_app() -> FastAPI:
     app.include_router(unlearning_router)
     app.include_router(mcp_router)
 
+    from agent.api.routes.ar import ar_live_websocket
+
+    app.add_api_websocket_route("/ws/ar/live", ar_live_websocket)
+
     return app

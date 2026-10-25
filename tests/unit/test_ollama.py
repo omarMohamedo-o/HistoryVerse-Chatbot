@@ -108,3 +108,30 @@ async def test_ollama_generate_rest_fallback():
         img = Image.new("RGB", (32, 32), color="red")
         output = await provider.generate("What is this image?", images=[img])
         assert "Greco-Roman column" in output
+
+
+@pytest.mark.asyncio
+async def test_ollama_streaming_and_pull():
+    settings = Settings(
+        llm_provider=LLMProvider.OLLAMA,
+        llm_model_name="llama3.2",
+        ollama_base_url="http://localhost:11434",
+        llm_auto_download=False,
+    )
+    provider = OllamaProvider(settings)
+
+    # 1. Stream token generation
+    mock_choice = MagicMock()
+    mock_choice.message.content = "Streamed token output"
+    mock_completion = MagicMock(choices=[mock_choice])
+
+    with patch("litellm.acompletion", AsyncMock(return_value=mock_completion)):
+        tokens = [t async for t in provider.stream("Stream prompt")]
+        assert "".join(tokens) == "Streamed token output"
+
+    # 2. Model pull logic via urllib.request.urlopen
+    with patch("urllib.request.urlopen") as mock_url:
+        mock_resp = MagicMock()
+        mock_resp.status = 200
+        mock_url.return_value.__enter__.return_value = mock_resp
+        provider._ensure_model_available()

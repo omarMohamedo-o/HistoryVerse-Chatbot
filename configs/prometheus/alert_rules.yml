@@ -18,3 +18,12 @@ groups:
         annotations:
           summary: "Agent API is down"
           description: "Target agent-api:8000 is unreachable."
+
+      - alert: FaithfulnessLow
+        expr: rag_faithfulness < 0.80
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "RAG Faithfulness has dropped below 0.80 threshold"
+          description: "Groundedness of legal answers has degraded below the required quality gate."

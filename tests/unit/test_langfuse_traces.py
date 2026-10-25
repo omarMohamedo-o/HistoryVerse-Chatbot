@@ -98,3 +98,41 @@ def test_trace_execution_helpers():
     with patch("agent.services.langfuse.traces.get_langfuse_client", return_value=mock_client):
         trace_id = trace_execution("test_op", {"in": 1}, {"out": 2})
         assert trace_id is None
+
+
+def test_langfuse_client_enabled_and_error_paths():
+    from pydantic import SecretStr
+
+    import agent.services.langfuse.client as lc
+    from agent.config.settings import Settings
+    from agent.services.langfuse.client import get_langfuse_client
+
+    # 1. Disabled
+    lc._client_instance = None
+    cfg_disabled = Settings(langfuse_enabled=False)
+    assert get_langfuse_client(cfg_disabled) is None
+
+    # 2. Enabled and mock Langfuse init
+    lc._client_instance = None
+    cfg_enabled = Settings(
+        langfuse_enabled=True,
+        langfuse_public_key=SecretStr("pk_test"),
+        langfuse_secret_key=SecretStr("sk_test"),
+        langfuse_host="http://localhost:1234",
+    )
+    mock_lf_cls = MagicMock()
+    mock_instance = MagicMock()
+    mock_lf_cls.return_value = mock_instance
+
+    with patch.dict("sys.modules", {"langfuse": MagicMock(Langfuse=mock_lf_cls)}):
+        client = get_langfuse_client(cfg_enabled)
+        assert client == mock_instance
+
+    # 3. Enabled but raises exception
+    lc._client_instance = None
+    mock_lf_err = MagicMock(side_effect=Exception("Connection refused"))
+    with patch.dict("sys.modules", {"langfuse": MagicMock(Langfuse=mock_lf_err)}):
+        err_client = get_langfuse_client(cfg_enabled)
+        assert err_client is None
+
+    lc._client_instance = None

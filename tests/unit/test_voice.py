@@ -112,3 +112,29 @@ def test_tts_detect_language_fallback_on_exception():
     with patch.dict(sys.modules, {"langid": mock_langid}):
         lang = tts._detect_language("Some text")
         assert lang == "en"
+
+
+def test_sanitize_for_speech_strips_citations_and_redactions():
+    from agent.services.voice.tts import sanitize_for_speech
+
+    input_text = "قلعة قايتباي بنيت عام 1477 م. [المصدر: كتاب خطط المقريزي] ورقم الهاتف [رقم_هاتف_محجوب/REDACTED_PHONE]."
+    cleaned = sanitize_for_speech(input_text)
+    assert "[المصدر:" not in cleaned
+    assert "[رقم_هاتف_محجوب" not in cleaned
+    assert "قلعة قايتباي بنيت عام 1477 م." in cleaned
+
+
+def test_stt_transcribe_masks_spoken_pii(tmp_path):
+    audio_file = tmp_path / "voice_pii.wav"
+    audio_file.write_bytes(b"RIFFdummywavdata")
+
+    stt = WhisperSTT()
+    mock_segment = MagicMock()
+    mock_segment.text = "رقم تليفوني هو 01012345678 وأسأل عن قلعة قايتباي"
+    mock_model = MagicMock()
+    mock_model.transcribe.return_value = ([mock_segment], None)
+
+    stt._model = mock_model
+    transcript = stt.transcribe(str(audio_file))
+    assert "01012345678" not in transcript
+    assert "REDACTED_PHONE" in transcript

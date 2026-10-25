@@ -46,10 +46,27 @@ class ImageGenerator:
         if not self._settings.image_generation_enabled:
             raise VisionError("Image creation is disabled in application settings.")
 
-        enhanced_prompt = prompt
+        # 1. Global Sanitization & Domain Boundary Check
+        from agent.services.security.pii import redact_egyptian_pii
+        from agent.services.nlp.arabic import clean_arabic_text
+        from agent.services.nlp.colloquial import expand_egyptian_colloquial_query
+        from agent.services.rag.refusal import DomainRefusalGate
+
+        sanitized_input = redact_egyptian_pii(prompt)
+        cleaned_input = clean_arabic_text(sanitized_input)
+        enriched_input = expand_egyptian_colloquial_query(cleaned_input)
+
+        refusal_gate = DomainRefusalGate(domain="history", strict_mode=True)
+        decision = refusal_gate.check_query(cleaned_input)
+        if decision.is_refused:
+            raise VisionError(
+                f"Image generation request refused: {decision.refusal_message or 'The prompt is outside the historical scope.'}"
+            )
+
+        enhanced_prompt = enriched_input
         if enhance:
             enhancement_template = self._prompts.get_prompt("image_generation")
-            rendered = enhancement_template.replace("{prompt}", prompt)
+            rendered = enhancement_template.replace("{prompt}", enriched_input)
             try:
                 enhanced_prompt = await self._llm.generate(rendered)
                 logger.info("Enhanced historical image prompt: %s", enhanced_prompt[:120])

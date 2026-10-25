@@ -16,6 +16,7 @@ from agent.utils.arabic import (
 )
 
 __all__ = [
+    "detect_language",
     "detect_script",
     "expand_multilingual_keywords",
     "fuzzy_token_match",
@@ -95,6 +96,68 @@ def detect_script(text: str) -> str:
     if _LATIN_PATTERN.search(text):
         return "latin"
     return "unknown"
+
+
+# Stopwords and characteristic lexical markers for top international visitor languages
+_STOPWORDS_FR = {"le", "la", "les", "des", "du", "qui", "que", "dans", "pour", "avec", "est", "sont", "cette", "ce", "en", "sur", "par", "quand", "comment", "citadelle", "château", "musée", "histoire", "construit"}
+_STOPWORDS_DE = {"der", "die", "das", "und", "in", "ist", "wer", "was", "wie", "wo", "hat", "mit", "für", "von", "den", "dem", "des", "ein", "eine", "einer", "erbaut", "zitadelle", "geschichte", "museum"}
+_STOPWORDS_ES = {"el", "la", "los", "las", "de", "en", "que", "por", "para", "con", "quien", "quién", "qué", "cómo", "donde", "dónde", "cuando", "cuándo", "construyó", "del", "historia", "ciudadela", "museo"}
+_STOPWORDS_IT = {"il", "lo", "la", "i", "gli", "le", "di", "in", "su", "per", "con", "chi", "cosa", "dove", "quando", "ha", "costruito", "della", "degli", "storia", "cittadella", "museo"}
+_STOPWORDS_EN = {"the", "is", "are", "who", "what", "where", "when", "which", "built", "about", "in", "of", "and", "to", "citadel", "history", "museum", "how"}
+
+
+def detect_language(text: str) -> str:
+    """Automatically detects the ISO 639-1 language code of input text.
+
+    Supports the primary international tourist languages for Egyptian and world heritage:
+    Arabic (ar), English (en), French (fr), German (de), Spanish (es), Italian (it),
+    Russian (ru), Chinese (zh).
+    """
+    if not text or not text.strip():
+        return "en"
+
+    # Fast script detection
+    script = detect_script(text)
+    if script == "arabic":
+        return "ar"
+    if script == "cyrillic":
+        return "ru"
+    if script == "cjk":
+        return "zh"
+    if script == "greek":
+        return "el"
+    if script == "hebrew":
+        return "he"
+
+    # Latin script classification
+    tokens = set(re.findall(r"\b\w+\b", text.lower()))
+
+    # Direct orthographic cues
+    if any(c in text for c in "¿¡ñ"):
+        return "es"
+    if any(c in text for c in "äöüß"):
+        return "de"
+    if any(c in text for c in "œæç"):
+        return "fr"
+
+    scores = {
+        "fr": len(tokens.intersection(_STOPWORDS_FR)),
+        "de": len(tokens.intersection(_STOPWORDS_DE)),
+        "es": len(tokens.intersection(_STOPWORDS_ES)),
+        "it": len(tokens.intersection(_STOPWORDS_IT)),
+        "en": len(tokens.intersection(_STOPWORDS_EN)),
+    }
+
+    best_lang, best_score = max(scores.items(), key=lambda item: item[1])
+    if best_score > 0:
+        return best_lang
+
+    try:
+        import langid
+        code, _ = langid.classify(text)
+        return code
+    except Exception:
+        return "en"
 
 
 def normalize_text(text: str) -> str:

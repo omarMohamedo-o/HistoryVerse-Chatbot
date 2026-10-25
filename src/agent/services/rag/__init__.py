@@ -1,8 +1,41 @@
 """RAG service components: Ingestion, Retrieval, and Query Pipeline."""
 
-from agent.services.rag.file_chat import FileChatService
-from agent.services.rag.ingest import DocumentIngestor
-from agent.services.rag.pipeline import RAGPipeline
-from agent.services.rag.retriever import ChromaRetriever
+from __future__ import annotations
 
-__all__ = ["ChromaRetriever", "DocumentIngestor", "FileChatService", "RAGPipeline"]
+from agent.services.rag.refusal import DomainRefusalGate, LegalRefusalGate, RefusalDecision
+from agent.services.rag.citation_guard import (
+    GroundingGuardrail,
+    GroundingVerificationResult,
+    CitationGuardrail,
+    CitationVerificationResult,
+)
+
+__all__ = [
+    "ChromaRetriever",
+    "CitationGuardrail",
+    "CitationVerificationResult",
+    "DocumentIngestor",
+    "DomainRefusalGate",
+    "FileChatService",
+    "GroundingGuardrail",
+    "GroundingVerificationResult",
+    "LegalRefusalGate",
+    "RAGPipeline",
+    "RefusalDecision",
+]
+
+
+def __getattr__(name: str):
+    if name == "FileChatService":
+        from agent.services.rag.file_chat import FileChatService
+        return FileChatService
+    if name == "DocumentIngestor":
+        from agent.services.rag.ingest import DocumentIngestor
+        return DocumentIngestor
+    if name == "RAGPipeline":
+        from agent.services.rag.pipeline import RAGPipeline
+        return RAGPipeline
+    if name == "ChromaRetriever":
+        from agent.services.rag.retriever import ChromaRetriever
+        return ChromaRetriever
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

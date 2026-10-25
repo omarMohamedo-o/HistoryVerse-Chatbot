@@ -9,21 +9,26 @@ import re
 from agent.config.settings import Settings, get_settings
 from agent.core.base import BaseTTSProvider
 from agent.core.exceptions import VoiceError
+from agent.services.voice.sanitizer import sanitize_for_speech
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["GTTSTextToSpeech"]
+__all__ = ["GTTSTextToSpeech", "sanitize_for_speech"]
 
 
 class GTTSTextToSpeech(BaseTTSProvider):
     """Text-to-speech engine using gTTS and language detection."""
 
     def __init__(self, settings: Settings | None = None) -> None:
-        self._settings = settings or get_settings()
+        if settings is None:
+            from agent.config.settings import get_settings
+            self._settings = get_settings()
+        else:
+            self._settings = settings
 
     def synthesize(self, text: str, output_path: str | None = None) -> str:
         """Synthesize text to audio and return file path."""
-        cleaned = re.sub(r"[*#_`]", "", text).strip()
+        cleaned = sanitize_for_speech(text)
         if not cleaned:
             raise VoiceError("Cannot synthesize empty text.")
 

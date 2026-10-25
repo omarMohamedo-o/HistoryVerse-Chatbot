@@ -24,7 +24,14 @@ class GeminiProvider(BaseLLMProvider):
 
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
-        self._model_name = settings.llm_model_name
+        model = settings.llm_model_name
+        model_lower = model.lower()
+        # Auto-resolve Flash Lite and 3.5 aliases to official Gemini Flash Lite endpoint
+        if "3.5" in model_lower or any(alias in model_lower for alias in ["flash-lite", "flash_lite", "flash lite"]):
+            model = "gemini/gemini-2.0-flash-lite"
+        elif not model.startswith("gemini/"):
+            model = f"gemini/{model}"
+        self._model_name = model
         self._api_key = settings.google_api_key.get_secret_value()
 
     @property
@@ -108,4 +115,38 @@ class GeminiProvider(BaseLLMProvider):
             return response.choices[0].message.content or ""
         except Exception as exc:
             logger.error("Gemini generation failed: %s", exc, exc_info=True)
+            raise LLMProviderError(str(exc), provider="gemini") from exc
+
+    async def stream(
+        self,
+        prompt: str,
+        *,
+        images: list[Image.Image] | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        **kwargs: Any,
+    ):
+        if not self._api_key:
+            raise LLMProviderError("Google API key is not configured.", provider="gemini")
+
+        temp = temperature if temperature is not None else self._settings.llm_temperature
+        tokens = max_tokens if max_tokens is not None else self._settings.llm_max_tokens
+
+        messages: list[dict[str, Any]] = [{"role": "user", "content": prompt}]
+        try:
+            response = await litellm.acompletion(
+                model=self._model_name,
+                messages=messages,
+                temperature=temp,
+                max_tokens=tokens,
+                api_key=self._api_key,
+                stream=True,
+                **kwargs,
+            )
+            async for chunk in response:
+                delta = getattr(chunk.choices[0].delta, "content", None) or ""
+                if delta:
+                    yield delta
+        except Exception as exc:
+            logger.error("Gemini stream failed: %s", exc)
             raise LLMProviderError(str(exc), provider="gemini") from exc

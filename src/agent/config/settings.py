@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     llm_provider: LLMProvider = LLMProvider.GEMINI
-    llm_model_name: str = "gemini/gemini-1.5-flash"
+    llm_model_name: str = "gemini/gemini-2.0-flash-lite"
     llm_temperature: float = 0.3
     llm_max_tokens: int = 8192
     llm_top_p: float = 0.95
@@ -48,6 +48,9 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
     agent_persona_name: str = "Mora"
     agent_persona_id: str = "agent-mora"
+    agent_registry_db_path: str = "data/agent_registry.db"
+    auth_enabled: bool = False
+    api_key: SecretStr = Field(default=SecretStr(""))
     prompts_dir: str = "configs/prompts"
     default_agent_template: str = "historical_guide"
     default_ar_template: str = "ar_mode"

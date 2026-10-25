@@ -1,0 +1,182 @@
+[
+  {
+    "chunk_id": "chunk_qaitbay_citadel_ar",
+    "artifact_id": "qaitbay_citadel",
+    "title": "قلعة قايتباي",
+    "location": "Alexandria, Egypt (Eastern Harbour / Pharos Island)",
+    "era": "Mamluk Sultanate (15th Century CE)",
+    "builder": "Sultan Al-Ashraf Sayf al-Din Qa'itbay",
+    "text": "قلعة قايتباي هي قلعة دفاعية حصينة شيدها السلطان المملوكي الأشرف أبو النصر قايتباي عام 1477 ميلادية (882 هجرية) في موقع منارة الإسكندرية القديمة المدمرة في الطرف الشرقي لجزيرة فاروس. تم بناء القلعة لحماية السواحل المصرية من التهديدات العثمانية والبحرية، وتتكون من ثلاثة طوابق وبرج رئيسي مبني بالحجر الجيري واستُخدمت فيها بعض أحجار وقواعد منارة الإسكندرية المنهارة.",
+    "language": "ar",
+    "key_facts": [
+      "بُنيت في موقع منارة الإسكندرية القديمة (أحد عجائب العالم القديم).",
+      "استخدمت أحجار الجرانيت من بقايا المنارة المنهارة بفعل الزلازل.",
+      "تتكون من سورين خارجي وداخلي ومسجد تاريخي وبرج رئيسي."
+    ]
+  },
+  {
+    "chunk_id": "chunk_qaitbay_citadel_en",
+    "artifact_id": "qaitbay_citadel",
+    "title": "Citadel of Qaitbay",
+    "location": "Alexandria, Egypt (Eastern Harbour / Pharos Island)",
+    "era": "Mamluk Sultanate (15th Century CE)",
+    "builder": "Sultan Al-Ashraf Sayf al-Din Qa'itbay",
+    "text": "The Citadel of Qaitbay is a 15th-century defensive fortress located on the Mediterranean coast in Alexandria, Egypt. Established in 1477 CE by Sultan Al-Ashraf Sayf al-Din Qa'itbay on the exact site of the ruined ancient Lighthouse of Alexandria. Constructed using stones salvaged from the collapsed lighthouse, it served as a key Mediterranean defense fortification against Ottoman naval threats.",
+    "language": "en",
+    "key_facts": [
+      "بُنيت في موقع منارة الإسكندرية القديمة (أحد عجائب العالم القديم).",
+      "استخدمت أحجار الجرانيت من بقايا المنارة المنهارة بفعل الزلازل.",
+      "تتكون من سورين خارجي وداخلي ومسجد تاريخي وبرج رئيسي."
+    ]
+  },
+  {
+    "chunk_id": "chunk_alexandria_lighthouse_ar",
+    "artifact_id": "alexandria_lighthouse",
+    "title": "منارة الإسكندرية (فنار فاروس)",
+    "location": "Alexandria, Egypt (Pharos Island)",
+    "era": "Ptolemaic Kingdom (3rd Century BCE)",
+    "builder": "Ptolemy I Soter & Ptolemy II Philadelphus (Architect: Sostratus of Cnidus)",
+    "text": "منارة الإسكندرية أو فنار فاروس، إحدى عجائب العالم القديم السبع. أنشئت في عهد بطليموس الأول وبطليموس الثاني نحو عام 280 قبل الميلاد على يد المهندس الإغريقي سوستراتوس. كان ارتفاعها يقدر بنحو 100 إلى 130 متراً، وتتألف من ثلاث طبقات: سفلية مربعة، ووسطى مثمنة، وعلوية أسطوانية تعلوها مرآة عاكسة ضخمة وتمثال للإله بوسيدون. تهدمت المنارة تدريجياً نتيجة لسلسلة من الزلازل القوية بين القرنين العاشر والرابع عشر الميلاديين.",
+    "language": "ar",
+    "key_facts": [
+      "إحدى عجائب العالم القديم السبع.",
+      "دُمرت بفعل زلازل متتالية كان آخرها زلزال عام 1323 م.",
+      "أقيمت قلعة قايتباي على جزء من أساساتها عام 1477 م."
+    ]
+  },
+  {
+    "chunk_id": "chunk_alexandria_lighthouse_en",
+    "artifact_id": "alexandria_lighthouse",
+    "title": "Lighthouse of Alexandria (Pharos)",
+    "location": "Alexandria, Egypt (Pharos Island)",
+    "era": "Ptolemaic Kingdom (3rd Century BCE)",
+    "builder": "Ptolemy I Soter & Ptolemy II Philadelphus (Architect: Sostratus of Cnidus)",
+    "text": "The Lighthouse of Alexandria, sometimes called the Pharos of Alexandria, was one of the Seven Wonders of the Ancient World. Commissioned by Ptolemy I Soter and completed during the reign of Ptolemy II around 280 BCE by the Greek architect Sostratus of Cnidus. Rising between 100 and 130 meters, it consisted of three tiers: a square base, an octagonal middle section, and a cylindrical top crowned by a colossal bronze statue of Poseidon. It was severely damaged by earthquakes between 956 and 1323 CE.",
+    "language": "en",
+    "key_facts": [
+      "إحدى عجائب العالم القديم السبع.",
+      "دُمرت بفعل زلازل متتالية كان آخرها زلزال عام 1323 م.",
+      "أقيمت قلعة قايتباي على جزء من أساساتها عام 1477 م."
+    ]
+  },
+  {
+    "chunk_id": "chunk_alexandria_library_ar",
+    "artifact_id": "alexandria_library",
+    "title": "مكتبة الإسكندرية الملكية القديمة",
+    "location": "Alexandria, Egypt (Bruchion / Royal Quarter)",
+    "era": "Ptolemaic Kingdom (3rd Century BCE)",
+    "builder": "Ptolemy I Soter with Demetrius of Phalerum",
+    "text": "مكتبة الإسكندرية القديمة كانت أعظم مركز علمي وفكري في العالم القديم كجزء من مؤسسة الموسيون (Musaeum). تأسست في عهد بطليموس الأول بمشورة ديمتريوس الفاليري، واحتوت على مئات الآلاف من لفائف البردي في الفلسفة والطب والفلك والرياضيات. تعرضت للحريق والدمار التدريجي عبر مراحل تاريخية متعددة أشهرها حريق حرب الإسكندرية إبان حصار يوليوس قيصر عام 48 قبل الميلاد.",
+    "language": "ar",
+    "key_facts": [
+      "جمعت علوم العالم القديم ومخطوطات الإغريق والمصريين والبابليين.",
+      "عمل بها علماء خالدون مثل إقليدس وإراتوستينس وأرخميدس.",
+      "تم إحياء ذكراها ببناء مكتبة الإسكندرية الحديثة عام 2002."
+    ]
+  },
+  {
+    "chunk_id": "chunk_alexandria_library_en",
+    "artifact_id": "alexandria_library",
+    "title": "Ancient Library of Alexandria (Musaeum)",
+    "location": "Alexandria, Egypt (Bruchion / Royal Quarter)",
+    "era": "Ptolemaic Kingdom (3rd Century BCE)",
+    "builder": "Ptolemy I Soter with Demetrius of Phalerum",
+    "text": "The Royal Library of Alexandria was the largest and most significant library of the ancient world. Part of a larger research institution known as the Musaeum, founded by Ptolemy I Soter with Demetrius of Phalerum around 288 BCE. Housing an estimated 400,000 to 700,000 papyrus scrolls, it attracted scholars such as Archimedes, Eratosthenes, and Euclid. Suffered partial fires during Julius Caesar's civil war siege in 48 BCE and subsequent political upheavals.",
+    "language": "en",
+    "key_facts": [
+      "جمعت علوم العالم القديم ومخطوطات الإغريق والمصريين والبابليين.",
+      "عمل بها علماء خالدون مثل إقليدس وإراتوستينس وأرخميدس.",
+      "تم إحياء ذكراها ببناء مكتبة الإسكندرية الحديثة عام 2002."
+    ]
+  },
+  {
+    "chunk_id": "chunk_rosetta_stone_ar",
+    "artifact_id": "rosetta_stone",
+    "title": "حجر رشيد",
+    "location": "Discovered at Fort Julien (Rashid / Rosetta, Egypt); currently in British Museum",
+    "era": "Ptolemaic Period (196 BCE)",
+    "builder": "Ptolemy V Epiphanes (Priesthood of Memphis Decree)",
+    "text": "حجر رشيد هو لوح من حجر الجرانوديوريت منقوش عليه مرسوم ملكي صدر في منف عام 196 قبل الميلاد نيابة عن الملك بطليموس الخامس. كُتب النص بثلاث لغات وكتابات: الهيروغليفية (لغة الكهنة والآلهة)، والديموطيقية (لغة الشعب المعاملات اليومية)، واليونانية القديمة (لغة الإدارة والحكم). اكتشفه الضابط الفرنسي بيير فرانسوا بوشار عام 1799 أثناء الحملة الفرنسية قرب مدينة رشيد، واستخدمه العالم جان فرانسوا شامبليون عام 1822 لفك أسرار ورموز اللغة المصرية القديمة.",
+    "language": "ar",
+    "key_facts": [
+      "مفتاح فك أسرار ورموز اللغة المصرية القديمة عام 1822.",
+      "يضم ثلاثة نصوص لنفس المرسوم بـ (الهيروغليفية، الديموطيقية، اليونانية القديمة).",
+      "أصدره كهنة منف تكريماً للملك بطليموس الخامس إبيفانس."
+    ]
+  },
+  {
+    "chunk_id": "chunk_rosetta_stone_en",
+    "artifact_id": "rosetta_stone",
+    "title": "Rosetta Stone",
+    "location": "Discovered at Fort Julien (Rashid / Rosetta, Egypt); currently in British Museum",
+    "era": "Ptolemaic Period (196 BCE)",
+    "builder": "Ptolemy V Epiphanes (Priesthood of Memphis Decree)",
+    "text": "The Rosetta Stone is a granodiorite stele inscribed with three versions of a royal decree issued in Memphis in 196 BCE on behalf of King Ptolemy V Epiphanes. The decree appears in Ancient Egyptian Hieroglyphs (sacred script), Demotic script (daily vernacular), and Ancient Greek (administrative language). Discovered in 1799 by French officer Pierre-François Bouchard during Napoleon's Egyptian expedition, it served as the critical decipherment key for Jean-François Champollion in 1822.",
+    "language": "en",
+    "key_facts": [
+      "مفتاح فك أسرار ورموز اللغة المصرية القديمة عام 1822.",
+      "يضم ثلاثة نصوص لنفس المرسوم بـ (الهيروغليفية، الديموطيقية، اليونانية القديمة).",
+      "أصدره كهنة منف تكريماً للملك بطليموس الخامس إبيفانس."
+    ]
+  },
+  {
+    "chunk_id": "chunk_giza_pyramids_ar",
+    "artifact_id": "giza_pyramids",
+    "title": "أهرامات الجيزة",
+    "location": "Giza Plateau, Greater Cairo, Egypt",
+    "era": "Old Kingdom (Fourth Dynasty, 26th Century BCE)",
+    "builder": "Pharaohs Khufu (Cheops), Khafre (Chephren), and Menkaure (Mykerinos)",
+    "text": "أهرامات الجيزة هي مجمع أثري ملكي شيد خلال الأسرة الرابعة من الدولة القديمة في مصر القديمة. يضم الهرم الأكبر للملك خوفو، وهو الأثر الوحيد الباقي من عجائب العالم القديم السبع، وهرم خفرع ومعه تمثال أبو الهول العظيم، وهرم منقرع مع أهرامات الملكات والمعابد الجنائزية. تجسد قمة الهندسة المعمارية الفلكية الدقيقة والحضارة المصرية القديمة.",
+    "language": "ar",
+    "key_facts": [
+      "الهرم الأكبر للملك خوفو هو الأثر الوحيد الصامد من عجائب العالم القديم السبع.",
+      "تمثال أبو الهول ينتمي لمجموعة الملك خفرع بجسم أسد ورأس فرعون.",
+      "بنيت كأهرامات ومقابر ملكية خالدة في عقيدة البعث والخلود."
+    ]
+  },
+  {
+    "chunk_id": "chunk_giza_pyramids_en",
+    "artifact_id": "giza_pyramids",
+    "title": "Giza Pyramid Complex",
+    "location": "Giza Plateau, Greater Cairo, Egypt",
+    "era": "Old Kingdom (Fourth Dynasty, 26th Century BCE)",
+    "builder": "Pharaohs Khufu (Cheops), Khafre (Chephren), and Menkaure (Mykerinos)",
+    "text": "The Giza Pyramid Complex consists of the Great Pyramid of Khufu (the only surviving wonder of the Seven Wonders of the Ancient World), the Pyramid of Khafre with the Great Sphinx, and the Pyramid of Menkaure. Built during the Fourth Dynasty of Egypt's Old Kingdom (c. 2580–2510 BCE), they demonstrate extraordinary astronomical alignment, architectural engineering, and royal mortuary traditions.",
+    "language": "en",
+    "key_facts": [
+      "الهرم الأكبر للملك خوفو هو الأثر الوحيد الصامد من عجائب العالم القديم السبع.",
+      "تمثال أبو الهول ينتمي لمجموعة الملك خفرع بجسم أسد ورأس فرعون.",
+      "بنيت كأهرامات ومقابر ملكية خالدة في عقيدة البعث والخلود."
+    ]
+  },
+  {
+    "chunk_id": "chunk_kom_el_shoqafa_ar",
+    "artifact_id": "kom_el_shoqafa",
+    "title": "مقابر كوم الشقافة",
+    "location": "Alexandria, Egypt (Karmouz district)",
+    "era": "Greco-Roman Period (2nd Century CE)",
+    "builder": "Alexandrian Roman Nobles",
+    "text": "مقابر كوم الشقافة هي أكبر مقبرة رومانية أثرية متعددة الطوابق تحت الأرض في مصر. تم اكتشافها عام 1900 بالمصادفة، وتتميز بامتزاج فريد وغير مسبوق بين الفنون المعمارية المصرية الفرعونية واليونانية الرومانية، حيث تظهر تماثيل الآلهة المصرية مثل أنوبيس وسوبك بالزي العسكري الروماني، وتحتوي على ردهة تريكلينيوم الجنائزية ومقابر ومسارج زيتية.",
+    "language": "ar",
+    "key_facts": [
+      "تعتبر من إحدى عجائب القرون الوسطى السبع.",
+      "تدمج العقائد المصرية القديمة مع الفن الكلاسيكي الروماني.",
+      "اكتشفت عام 1900 إثر سقوط حمار في بئر المقبرة."
+    ]
+  },
+  {
+    "chunk_id": "chunk_kom_el_shoqafa_en",
+    "artifact_id": "kom_el_shoqafa",
+    "title": "Catacombs of Kom El Shoqafa",
+    "location": "Alexandria, Egypt (Karmouz district)",
+    "era": "Greco-Roman Period (2nd Century CE)",
+    "builder": "Alexandrian Roman Nobles",
+    "text": "The Catacombs of Kom El Shoqafa is an underground necropolis in Alexandria, Egypt, consisting of three tiers hewn into solid bedrock. Dating to the 2nd century CE, it represents an extraordinary syncretic fusion of Pharaonic Egyptian, Greek, and Roman artistic and burial traditions, featuring figures like Anubis dressed as a Roman legionnaire.",
+    "language": "en",
+    "key_facts": [
+      "تعتبر من إحدى عجائب القرون الوسطى السبع.",
+      "تدمج العقائد المصرية القديمة مع الفن الكلاسيكي الروماني.",
+      "اكتشفت عام 1900 إثر سقوط حمار في بئر المقبرة."
+    ]
+  }
+]

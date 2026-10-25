@@ -86,3 +86,58 @@ async def test_unlearning_engine_end_to_end():
     assert report.status == UnlearningStatus.FORGOTTEN_VERIFIED
     assert report.certificate_id.startswith("CERT-UNLEARN-")
     assert len(report.probes) == 3
+
+
+@pytest.mark.asyncio
+async def test_unlearning_engine_branches():
+    from unittest.mock import AsyncMock, MagicMock
+
+    mock_memory = MagicMock()
+    mock_memory.purge_from_agent_async = AsyncMock(return_value=2)
+    mock_memory.purge_from_agent = MagicMock(return_value=1)
+    mock_memory.purge_from_all_agents_async = AsyncMock(return_value=3)
+    mock_memory.purge_from_all_agents = MagicMock(return_value=3)
+
+    mock_retriever = MagicMock()
+    mock_retriever.delete_documents_by_keywords_async = AsyncMock(return_value=4)
+    mock_retriever.delete_documents_by_keywords = MagicMock(return_value=4)
+
+    mock_llm = MagicMock()
+    mock_llm.generate = AsyncMock(return_value="Clean output without forbidden concept")
+
+    tombstones = TombstoneRegistry()
+    engine = UnlearningEngine(
+        llm_provider=mock_llm,
+        memory_manager=mock_memory,
+        retriever=mock_retriever,
+        tombstone_registry=tombstones,
+    )
+    assert engine.tombstone_registry is tombstones
+
+    req1 = UnlearningRequest(
+        target_concept="Ancient Myth",
+        agent_ids=["historian-1", "historian-2"],
+        purge_memory=True,
+        purge_rag=False,
+    )
+    rep1 = await engine.unlearn(req1)
+    assert rep1.memory_turns_purged == 4
+
+    del mock_memory.purge_from_agent_async
+    rep2 = await engine.unlearn(req1)
+    assert rep2.memory_turns_purged == 2
+
+    # 3. Purge without agent_ids with async retriever
+    req3 = UnlearningRequest(
+        target_concept="Ancient Myth",
+        purge_memory=True,
+        purge_rag=True,
+    )
+    rep3 = await engine.unlearn(req3)
+    assert rep3.memory_turns_purged == 3
+    mock_retriever.delete_documents_by_keywords_async.assert_called()
+
+    # 4. Purge with sync retriever fallback
+    del mock_retriever.delete_documents_by_keywords_async
+    await engine.unlearn(req3)
+    mock_retriever.delete_documents_by_keywords.assert_called()
