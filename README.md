@@ -20,7 +20,19 @@ Agent AI unifies and modernizes predecessor open-source repositories into a doma
    - Provided offline local inference, standalone LLaMA GGUF quantized models (`llama-cpp-python`), Ollama daemon management, and edge memory.
 
 ### The Agent 2.0 Engine
-Rather than coupling the codebase to a single knowledge domain, **Agent** abstracts agent generation into declarative YAML templates ([`AgentTemplate`](src/agent/services/agents/template.py)) executed by universal engines ([`TemplatedAgent`](src/agent/services/agents/template.py), [`DomainAgent`](src/agent/services/agents/domain.py), and [`AgentOrchestrator`](src/agent/services/agents/orchestrator.py)). Domain applications like the Historical Mora Guide, Museum AR Tour Guide, and Offline Local RAG are implemented as declarative presets in `configs/prompts/`.
+Rather than coupling the codebase to a single knowledge domain, **Agent AI** provides a universal, domain-agnostic agent framework where agents are declaratively defined via YAML templates ([`AgentTemplate`](src/agent/services/agents/template.py)) and executed by universal engines ([`TemplatedAgent`](src/agent/services/agents/template.py), [`DomainAgent`](src/agent/services/agents/domain.py), and [`AgentOrchestrator`](src/agent/services/agents/orchestrator.py)).
+
+All agents globally and automatically inherit enterprise-grade NLP and safety capabilities:
+- **Global Arabic NLP Normalizer**: Lam-Alef ligature protection (`\ue000`), Arabic-Indic numeral translation (`٠-٩` $\to$ `0-9`), and mirrored RTL bracket inversion.
+- **Egyptian Colloquial (Amiya) Normalizer**: Translates spoken Egyptian dialect into formal structured concepts.
+- **Domain Boundary & Scope Refusal Gate**: Enforces strict scope boundaries and declines out-of-domain queries to guarantee zero hallucinations.
+- **Fact & Source Grounding Guardrail**: Verifies citations and attributes against retrieved context.
+- **Egyptian PII Masker**: Sanitizes Egyptian 14-digit National IDs and mobile phone numbers.
+
+### The Two Flagship Examples
+The platform showcases two production implementations for Egypt's cultural heritage:
+1. **HistoryVerse Historical Guide (`historical_guide.yaml`)**: Deep historical reasoning, classical antiquity analysis, image generation, and multimodal vision.
+2. **HistoryVerse AR Museum Guide (`ar_mode.yaml`)**: Real-time **Live Conversational Streaming Voice** over WebSockets with user barge-in / interruption handling, dynamically scoped to physical museum exhibits.
 
 ---
 
@@ -42,10 +54,9 @@ flowchart TD
     Gateway --> Eval["/v1/evaluate (Ragas & AI Evals Benchmark)"]
     Gateway --> Drift["/v1/drift (Drift & Auto-Rebuild Hooks)"]
     
-    Agents --> AgentHistorical["Historical Guide (Mora Preset)"]
-    Agents --> AgentAR["AR Artifact Guide Preset"]
-    Agents --> AgentLocal["Local Offline RAG Preset"]
-    Agents --> CustomAgent["Custom Domain Agents (Dynamic)"]
+    Agents --> AgentHistorical["Flagship 1: HistoryVerse Guide (Mora Preset)"]
+    Agents --> AgentAR["Flagship 2: HistoryVerse AR Guide (Live Voice Preset)"]
+    Agents --> CustomAgent["Custom Dynamic Domain Agents"]
     
     Agents --> Harness["Agent Execution Harness"]
     Harness --> ToolReg["Tool Registry (Search, Artifacts, Unlearning)"]

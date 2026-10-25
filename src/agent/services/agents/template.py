@@ -17,6 +17,11 @@ from pydantic import BaseModel, Field
 
 from agent.core.base import BaseLLMProvider
 from agent.services.agents.base import AgentResponse, BaseAgent
+from agent.services.nlp.arabic import clean_arabic_text
+from agent.services.nlp.colloquial import expand_egyptian_colloquial_query
+from agent.services.rag.citation_guard import GroundingGuardrail
+from agent.services.rag.refusal import DomainRefusalGate
+from agent.services.security.pii import redact_egyptian_pii
 
 if TYPE_CHECKING:
     from agent.services.memory.agent_memory import AgentMemory
@@ -219,16 +224,33 @@ class TemplatedAgent(BaseAgent):
         self,
         artifact_name: str | None = None,
         session_id: str | None = None,
-        language: str = "en",
+        language: str = "auto",
     ) -> str:
         """Generate a concise multilingual overview of an artifact or subject (under 10 lines)."""
-        from agent.utils.multilingual import is_arabic
+        from agent.utils.multilingual import detect_language, is_arabic
 
         label = artifact_name or self.artifact_label
         self.set_artifact_label(label)
 
-        if language == "ar" or is_arabic(label):
+        # Automatic language recognition if set to auto or unspecified
+        target_lang = language
+        if target_lang in ("auto", "unknown", ""):
+            target_lang = "ar" if is_arabic(label) else detect_language(label)
+
+        if target_lang == "ar":
             intro_query = f"قدم نبذة تاريخية شاملة وموجزة (في حدود 10 أسطر أو أقل) عن {label} وأهميتها التاريخية والأثرية."
+        elif target_lang == "fr":
+            intro_query = f"Donnez un aperçu historique complet et concis (en 10 lignes ou moins) sur {label} et son importance archéologique."
+        elif target_lang == "de":
+            intro_query = f"Geben Sie einen prägnanten historischen Überblick (in 10 Zeilen oder weniger) über {label} und seine archäologische Bedeutung."
+        elif target_lang == "es":
+            intro_query = f"Proporcione una descripción histórica concisa (en 10 líneas o menos) sobre {label} y su importancia arqueológica."
+        elif target_lang == "it":
+            intro_query = f"Fornisci una panoramica storica concisa (in 10 righe o meno) su {label} e la sua importanza archeologica."
+        elif target_lang == "ru":
+            intro_query = f"Предоставьте краткий исторический обзор (до 10 строк) о {label} и его археологическом значении."
+        elif target_lang == "zh":
+            intro_query = f"请简要介绍（10行以内）关于 {label} 的历史背景和考古价值。"
         else:
             intro_query = f"Tell me everything you can about {label}, but try to keep it brief (10 lines or less)."
 
@@ -240,6 +262,51 @@ class TemplatedAgent(BaseAgent):
         ctx_data = context or {}
         context_str = ctx_data.get("context", "")
         session_id = ctx_data.get("session_id")
+
+        # 1. Global Input Sanitization & Normalization
+        sanitized_query = redact_egyptian_pii(query)
+        normalized_query = clean_arabic_text(sanitized_query)
+        enriched_query = expand_egyptian_colloquial_query(normalized_query)
+
+        # 2. Global Domain Boundary & Scope Refusal Gate
+        refusal_gate = DomainRefusalGate(
+            domain=self.domain,
+            artifact_label=self.artifact_label if self.domain in ("augmented-reality", "ar") else None,
+            strict_mode=True,
+        )
+        decision = refusal_gate.check_query(normalized_query)
+        if decision.is_refused:
+            logger.info("Query refused by DomainRefusalGate: %s", decision.refusal_reason)
+            return AgentResponse(
+                agent_id=self.agent_id,
+                agent_name=self.name,
+                role=self.role,
+                output=decision.refusal_message or "عذراً، هذا الاستفسار خارج نطاق تخصصي.",
+                model_used=self.llm_provider.model_name,
+                confidence=1.0,
+                metadata={"refusal": True, "reason": decision.refusal_reason, "domain": self.domain},
+            )
+
+        # 3. Semantic Response Caching for Tourist Inquiries
+        from agent.services.cache import get_semantic_cache
+        cache = get_semantic_cache()
+        cached_output = cache.get(
+            query=normalized_query,
+            domain=self.domain,
+            artifact_label=self.artifact_label if self.domain in ("augmented-reality", "ar") else None,
+        )
+        if cached_output and not history_str:
+            logger.info("Serving query from SemanticResponseCache (sub-15ms): %s", query[:50])
+            return AgentResponse(
+                agent_id=self.agent_id,
+                agent_name=self.name,
+                role=self.role,
+                output=cached_output,
+                model_used="semantic-cache",
+                confidence=1.0,
+                metadata={"cache_hit": True, "domain": self.domain, **self._custom_metadata},
+            )
+
         history_str = (
             self.memory.get_formatted_history(session_id)
             if session_id and self.memory.get_history(session_id)
@@ -252,7 +319,7 @@ class TemplatedAgent(BaseAgent):
             parts.append(f"Conversation History:\n{history_str}")
         if context_str:
             parts.append(f"Context:\n{context_str}")
-        parts.append(f"User Query:\n{query}")
+        parts.append(f"User Query:\n{enriched_query}")
         formatted_prompt = "\n\n".join(parts)
 
         logger.info(
@@ -262,6 +329,22 @@ class TemplatedAgent(BaseAgent):
             query[:50],
         )
         response_text = await self.llm_provider.generate(formatted_prompt)
+
+        # 4. Save to Semantic Response Cache
+        if not history_str:
+            cache.set(
+                query=normalized_query,
+                response=response_text,
+                domain=self.domain,
+                artifact_label=self.artifact_label if self.domain in ("augmented-reality", "ar") else None,
+            )
+
+        # 5. Post-Generation Fact & Source Guardrail
+        if context_str:
+            guardrail = GroundingGuardrail()
+            verification = guardrail.verify_grounding(response_text, context_str)
+            if not verification.is_valid:
+                logger.warning("Unverified references detected: %s", verification.unverified_references)
 
         if session_id:
             self.memory.add_exchange(session_id, query, response_text)
@@ -287,6 +370,24 @@ class TemplatedAgent(BaseAgent):
         ctx_data = context or {}
         context_str = ctx_data.get("context", "")
         session_id = ctx_data.get("session_id")
+
+        # 1. Global Input Sanitization & Normalization
+        sanitized_query = redact_egyptian_pii(query)
+        normalized_query = clean_arabic_text(sanitized_query)
+        enriched_query = expand_egyptian_colloquial_query(normalized_query)
+
+        # 2. Global Domain Boundary & Scope Refusal Gate
+        refusal_gate = DomainRefusalGate(
+            domain=self.domain,
+            artifact_label=self.artifact_label if self.domain in ("augmented-reality", "ar") else None,
+            strict_mode=True,
+        )
+        decision = refusal_gate.check_query(normalized_query)
+        if decision.is_refused:
+            logger.info("Stream refused by DomainRefusalGate: %s", decision.refusal_reason)
+            yield decision.refusal_message or "عذراً، هذا الاستفسار خارج نطاق تخصصي."
+            return
+
         history_str = (
             self.memory.get_formatted_history(session_id)
             if session_id and self.memory.get_history(session_id)
@@ -299,7 +400,7 @@ class TemplatedAgent(BaseAgent):
             parts.append(f"Conversation History:\n{history_str}")
         if context_str:
             parts.append(f"Context:\n{context_str}")
-        parts.append(f"User Query:\n{query}")
+        parts.append(f"User Query:\n{enriched_query}")
         formatted_prompt = "\n\n".join(parts)
 
         logger.info(

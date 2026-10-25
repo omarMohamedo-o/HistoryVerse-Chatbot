@@ -8,6 +8,8 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 __all__ = [
+    "CACHE_HITS",
+    "CACHE_MISSES",
     "DRIFT_EVENTS",
     "HALLUCINATION_SCORES",
     "LLM_LATENCY",
@@ -22,6 +24,16 @@ __all__ = [
 try:
     from prometheus_client import Counter, Gauge, Histogram
 
+    CACHE_HITS = Counter(
+        "agent_cache_hits_total",
+        "Total cache hits for repetitive historical queries",
+        ["domain"],
+    )
+    CACHE_MISSES = Counter(
+        "agent_cache_misses_total",
+        "Total cache misses requiring LLM inference",
+        ["domain"],
+    )
     REQUEST_COUNT = Counter(
         "agent_requests_total",
         "Total processed API requests",
@@ -83,6 +95,8 @@ except ImportError:
         def observe(self, *args, **kwargs) -> None:
             pass
 
+    CACHE_HITS = _DummyMetric()
+    CACHE_MISSES = _DummyMetric()
     REQUEST_COUNT = _DummyMetric()
     REQUEST_LATENCY = _DummyMetric()
     DRIFT_EVENTS = _DummyMetric()

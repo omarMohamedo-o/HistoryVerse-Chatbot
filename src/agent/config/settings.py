@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
 
     llm_provider: LLMProvider = LLMProvider.GEMINI
-    llm_model_name: str = "gemini/gemini-1.5-flash"
+    llm_model_name: str = "gemini/gemini-2.0-flash-lite"
     llm_temperature: float = 0.3
     llm_max_tokens: int = 8192
     llm_top_p: float = 0.95

@@ -24,7 +24,14 @@ class GeminiProvider(BaseLLMProvider):
 
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
-        self._model_name = settings.llm_model_name
+        model = settings.llm_model_name
+        model_lower = model.lower()
+        # Auto-resolve Flash Lite and 3.5 aliases to official Gemini Flash Lite endpoint
+        if "3.5" in model_lower or any(alias in model_lower for alias in ["flash-lite", "flash_lite", "flash lite"]):
+            model = "gemini/gemini-2.0-flash-lite"
+        elif not model.startswith("gemini/"):
+            model = f"gemini/{model}"
+        self._model_name = model
         self._api_key = settings.google_api_key.get_secret_value()
 
     @property

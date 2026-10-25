@@ -1,0 +1,30 @@
+stages:
+  extract:
+    cmd: python3 scripts/dvc_pipeline.py extract
+    deps:
+      - data/corpus/historyverse_corpus.json
+      - scripts/dvc_pipeline.py
+
+  validate:
+    cmd: python3 scripts/dvc_pipeline.py validate
+    deps:
+      - data/corpus/historyverse_corpus.json
+      - scripts/dvc_pipeline.py
+    outs:
+      - data/corpus/historyverse_validated.json:
+          cache: false
+
+  chunk:
+    cmd: python3 scripts/dvc_pipeline.py chunk
+    deps:
+      - data/corpus/historyverse_validated.json
+      - scripts/dvc_pipeline.py
+    outs:
+      - data/corpus/historyverse_chunks.json:
+          cache: false
+
+  embed:
+    cmd: python3 scripts/dvc_pipeline.py embed
+    deps:
+      - data/corpus/historyverse_chunks.json
+      - scripts/dvc_pipeline.py
