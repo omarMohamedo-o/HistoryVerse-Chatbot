@@ -14,9 +14,17 @@ import sys
 from pathlib import Path
 
 DEFAULT_DATA_DIR = Path(os.getenv("DVC_DATA_DIR", "data"))
-DEFAULT_CORPUS_FILE = Path(os.getenv("DVC_CORPUS_FILE", str(DEFAULT_DATA_DIR / "corpus" / "historyverse_corpus.json")))
-DEFAULT_VALIDATED_FILE = Path(os.getenv("DVC_VALIDATED_FILE", str(DEFAULT_DATA_DIR / "corpus" / "historyverse_validated.json")))
-DEFAULT_CHUNKS_FILE = Path(os.getenv("DVC_CHUNKS_FILE", str(DEFAULT_DATA_DIR / "corpus" / "historyverse_chunks.json")))
+DEFAULT_CORPUS_FILE = Path(
+    os.getenv("DVC_CORPUS_FILE", str(DEFAULT_DATA_DIR / "corpus" / "historyverse_corpus.json"))
+)
+DEFAULT_VALIDATED_FILE = Path(
+    os.getenv(
+        "DVC_VALIDATED_FILE", str(DEFAULT_DATA_DIR / "corpus" / "historyverse_validated.json")
+    )
+)
+DEFAULT_CHUNKS_FILE = Path(
+    os.getenv("DVC_CHUNKS_FILE", str(DEFAULT_DATA_DIR / "corpus" / "historyverse_chunks.json"))
+)
 
 
 def stage_extract(corpus_file: Path) -> None:
@@ -28,8 +36,8 @@ def stage_extract(corpus_file: Path) -> None:
 
 
 def stage_validate(corpus_file: Path, validated_file: Path) -> None:
-    print(f"[DVC] Stage 2: Validate HistoryVerse Corpus Schema...")
-    with open(corpus_file, "r", encoding="utf-8") as f:
+    print("[DVC] Stage 2: Validate HistoryVerse Corpus Schema...")
+    with open(corpus_file, encoding="utf-8") as f:
         data = json.load(f)
 
     validated = []
@@ -48,34 +56,38 @@ def stage_validate(corpus_file: Path, validated_file: Path) -> None:
 
 
 def stage_chunk(validated_file: Path, chunks_file: Path) -> None:
-    print(f"[DVC] Stage 3: Chunk HistoryVerse Corpus for Vector Retrieval...")
-    with open(validated_file, "r", encoding="utf-8") as f:
+    print("[DVC] Stage 3: Chunk HistoryVerse Corpus for Vector Retrieval...")
+    with open(validated_file, encoding="utf-8") as f:
         data = json.load(f)
 
     chunks = []
     for art in data:
-        chunks.append({
-            "chunk_id": f"chunk_{art['artifact_id']}_ar",
-            "artifact_id": art["artifact_id"],
-            "title": art["artifact_label"],
-            "location": art.get("location", ""),
-            "era": art.get("era", ""),
-            "builder": art.get("builder", ""),
-            "text": art["description_ar"],
-            "language": "ar",
-            "key_facts": art.get("key_facts", []),
-        })
-        chunks.append({
-            "chunk_id": f"chunk_{art['artifact_id']}_en",
-            "artifact_id": art["artifact_id"],
-            "title": art.get("artifact_label_en", art["artifact_label"]),
-            "location": art.get("location", ""),
-            "era": art.get("era", ""),
-            "builder": art.get("builder", ""),
-            "text": art["description_en"],
-            "language": "en",
-            "key_facts": art.get("key_facts", []),
-        })
+        chunks.append(
+            {
+                "chunk_id": f"chunk_{art['artifact_id']}_ar",
+                "artifact_id": art["artifact_id"],
+                "title": art["artifact_label"],
+                "location": art.get("location", ""),
+                "era": art.get("era", ""),
+                "builder": art.get("builder", ""),
+                "text": art["description_ar"],
+                "language": "ar",
+                "key_facts": art.get("key_facts", []),
+            }
+        )
+        chunks.append(
+            {
+                "chunk_id": f"chunk_{art['artifact_id']}_en",
+                "artifact_id": art["artifact_id"],
+                "title": art.get("artifact_label_en", art["artifact_label"]),
+                "location": art.get("location", ""),
+                "era": art.get("era", ""),
+                "builder": art.get("builder", ""),
+                "text": art["description_en"],
+                "language": "en",
+                "key_facts": art.get("key_facts", []),
+            }
+        )
 
     chunks_file.parent.mkdir(parents=True, exist_ok=True)
     with open(chunks_file, "w", encoding="utf-8") as out:
@@ -89,7 +101,7 @@ def stage_embed(chunks_file: Path) -> None:
     if not chunks_file.exists():
         print(f"Error: {chunks_file} not found.")
         sys.exit(1)
-    with open(chunks_file, "r", encoding="utf-8") as f:
+    with open(chunks_file, encoding="utf-8") as f:
         chunks = json.load(f)
     print(f"Indexed {len(chunks)} historical and AR exhibit chunks ready for retrieval.")
 
@@ -97,9 +109,15 @@ def stage_embed(chunks_file: Path) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="DVC pipeline stage runner for HistoryVerse")
     parser.add_argument("stage", choices=["extract", "validate", "chunk", "embed", "all"])
-    parser.add_argument("--corpus", default=str(DEFAULT_CORPUS_FILE), help="Path to raw corpus JSON")
-    parser.add_argument("--validated", default=str(DEFAULT_VALIDATED_FILE), help="Path to validated corpus JSON")
-    parser.add_argument("--chunks", default=str(DEFAULT_CHUNKS_FILE), help="Path to output chunks JSON")
+    parser.add_argument(
+        "--corpus", default=str(DEFAULT_CORPUS_FILE), help="Path to raw corpus JSON"
+    )
+    parser.add_argument(
+        "--validated", default=str(DEFAULT_VALIDATED_FILE), help="Path to validated corpus JSON"
+    )
+    parser.add_argument(
+        "--chunks", default=str(DEFAULT_CHUNKS_FILE), help="Path to output chunks JSON"
+    )
     args = parser.parse_args()
 
     c_file = Path(args.corpus)

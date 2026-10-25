@@ -52,7 +52,9 @@ async def run_pillar_1_security_audit():
     print("[1.1] Testing Vector Store Per-Tenant Isolation...")
     mock_collection = MagicMock()
     # Mocking similarity_search
-    doc_alpha = MagicMock(page_content="Pharaoh Khufu secret tomb map", metadata={"tenant_id": "tenant_alpha"})
+    doc_alpha = MagicMock(
+        page_content="Pharaoh Khufu secret tomb map", metadata={"tenant_id": "tenant_alpha"}
+    )
 
     def mock_search(query, k=5, **kwargs):
         filter_clause = kwargs.get("filter")
@@ -63,14 +65,19 @@ async def run_pillar_1_security_audit():
         return []
 
     mock_collection.similarity_search = mock_search
-    mock_collection.get.return_value = {"ids": ["doc_01"], "metadatas": [{"tenant_id": "tenant_alpha"}]}
+    mock_collection.get.return_value = {
+        "ids": ["doc_01"],
+        "metadatas": [{"tenant_id": "tenant_alpha"}],
+    }
 
     retriever = ChromaRetriever()
     retriever._vectorstore = mock_collection
 
     # Tenant Beta searches for Alpha's documents
     beta_results = retriever.retrieve("Khufu tomb", top_k=5, tenant_id="tenant_beta")
-    assert len(beta_results) == 0, "Security Failure: Tenant Beta retrieved Tenant Alpha's vector documents!"
+    assert len(beta_results) == 0, (
+        "Security Failure: Tenant Beta retrieved Tenant Alpha's vector documents!"
+    )
 
     # Tenant Alpha searches for Alpha's documents
     alpha_results = retriever.retrieve("Khufu tomb", top_k=5, tenant_id="tenant_alpha")
@@ -131,7 +138,9 @@ async def run_pillar_1_security_audit():
     mem_alpha = memory_manager.get_agent_memory("agent_alpha")
     mem_beta = memory_manager.get_agent_memory("agent_beta")
 
-    mem_alpha.add_exchange("session_1", "Alpha confidential coordinate 31.2, 29.9", "Acknowledged Alpha")
+    mem_alpha.add_exchange(
+        "session_1", "Alpha confidential coordinate 31.2, 29.9", "Acknowledged Alpha"
+    )
     mem_beta.add_exchange("session_1", "Beta general greeting", "Acknowledged Beta")
 
     alpha_turns = mem_alpha.get_history("session_1")
@@ -253,7 +262,9 @@ async def run_pillar_2_e2e_workflow():
     }
     resp_team = client.post("/v1/agents/teams", headers=headers, json=team_payload)
     assert resp_team.status_code == 200
-    print(f"  -> Team Registered: {resp_team.json()['name']} with members {team_payload['members']}")
+    print(
+        f"  -> Team Registered: {resp_team.json()['name']} with members {team_payload['members']}"
+    )
 
     # 2.5 Run Team Workflow with Human-in-the-Loop Approval Required
     print("[2.5] Executing Team Workflow with require_human_approval=True...")
@@ -314,12 +325,14 @@ async def run_pillar_3_browser_ar_voice():
 
     # Mock Incremental STT
     mock_stt = MagicMock()
-    mock_stt.feed_audio_chunk = AsyncMock(side_effect=[
-        ("What is the", False),
-        ("", True),
-        ("Interrupting audio", False),
-        ("", True),
-    ])
+    mock_stt.feed_audio_chunk = AsyncMock(
+        side_effect=[
+            ("What is the", False),
+            ("", True),
+            ("Interrupting audio", False),
+            ("", True),
+        ]
+    )
     mock_stt.finish = AsyncMock(side_effect=["What is the Rosetta Stone?", "Interrupting query"])
     mock_stt.reset = AsyncMock()
 
@@ -379,7 +392,9 @@ async def run_pillar_3_browser_ar_voice():
                 break
 
         full_llm_answer = "".join(llm_tokens)
-        print(f"  -> Streamed {len(llm_tokens)} tokens and {audio_packets} sentence-chunked TTS packets.")
+        print(
+            f"  -> Streamed {len(llm_tokens)} tokens and {audio_packets} sentence-chunked TTS packets."
+        )
         print(f"  -> Completed Turn Response: '{full_llm_answer[:60]}...'")
 
         # 3.5 Test Barge-in Interruption
@@ -467,11 +482,15 @@ async def run_pillar_4_stress_chaos_recovery():
     print("[4.2] Testing Chaos Injection: Primary Provider 503 & Failover Cascade...")
     failing_primary = AsyncMock()
     failing_primary.model_name = "primary-failing-llm"
-    failing_primary.generate = AsyncMock(side_effect=RuntimeError("503 Service Unavailable: Rate limit exceeded"))
+    failing_primary.generate = AsyncMock(
+        side_effect=RuntimeError("503 Service Unavailable: Rate limit exceeded")
+    )
 
     fallback_secondary = AsyncMock()
     fallback_secondary.model_name = "fallback-healthy-llm"
-    fallback_secondary.generate = AsyncMock(return_value="Recovered historical response via fallback provider.")
+    fallback_secondary.generate = AsyncMock(
+        return_value="Recovered historical response via fallback provider."
+    )
 
     async def robust_generate_with_fallback(prompt: str):
         try:
@@ -482,7 +501,9 @@ async def run_pillar_4_stress_chaos_recovery():
 
     recovered_output = await robust_generate_with_fallback("Urgent query")
     assert "Recovered historical response" in recovered_output
-    print("  -> Provider Failover Recovery: PASSED (Graceful fallback to secondary provider without crash)")
+    print(
+        "  -> Provider Failover Recovery: PASSED (Graceful fallback to secondary provider without crash)"
+    )
 
 
 async def run_pillar_5_operational_readiness():
@@ -548,7 +569,9 @@ async def run_pillar_5_operational_readiness():
         con_dst.close()
         con_src.close()
         assert os.path.exists(backup_db)
-        print(f"  -> SQLite Online Backup: PASSED (Snapshot created: {os.path.getsize(backup_db)} bytes)")
+        print(
+            f"  -> SQLite Online Backup: PASSED (Snapshot created: {os.path.getsize(backup_db)} bytes)"
+        )
 
         # 2. Simulate disaster (corrupt or delete production DB)
         os.remove(prod_db)
@@ -560,14 +583,18 @@ async def run_pillar_5_operational_readiness():
         restored_agent = restored_store.get_agent("archivist_01")
         assert restored_agent is not None
         assert restored_agent["name"] == "Archivist"
-        print("  -> Disaster Recovery Verification: PASSED (Database restored with 100% data integrity)")
+        print(
+            "  -> Disaster Recovery Verification: PASSED (Database restored with 100% data integrity)"
+        )
 
     # 5.5 Deployment Rollback Procedure
     print("[5.5] Validating Deployment Rollback Procedures...")
     docker_compose_path = "/home/omar/Projects/HistoryVerse-Chatbot/docker-compose.yml"
     assert os.path.exists(docker_compose_path), "docker-compose.yml missing!"
     print("  -> Container Orchestration Config: Present")
-    print("  -> Rollback Strategy: Tagged image version pin & zero-downtime container rollback supported.")
+    print(
+        "  -> Rollback Strategy: Tagged image version pin & zero-downtime container rollback supported."
+    )
 
     print("\n" + "=" * 70)
     print("ALL 5 PILLARS COMPLETED AND FULLY VERIFIED: 100% OPERATIONAL")

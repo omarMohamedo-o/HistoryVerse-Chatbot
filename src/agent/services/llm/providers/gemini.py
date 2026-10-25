@@ -27,7 +27,9 @@ class GeminiProvider(BaseLLMProvider):
         model = settings.llm_model_name
         model_lower = model.lower()
         # Auto-resolve Flash Lite and 3.5 aliases to official Gemini Flash Lite endpoint
-        if "3.5" in model_lower or any(alias in model_lower for alias in ["flash-lite", "flash_lite", "flash lite"]):
+        if "3.5" in model_lower or any(
+            alias in model_lower for alias in ["flash-lite", "flash_lite", "flash lite"]
+        ):
             model = "gemini/gemini-2.0-flash-lite"
         elif not model.startswith("gemini/"):
             model = f"gemini/{model}"

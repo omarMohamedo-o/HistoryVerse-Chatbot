@@ -12,8 +12,8 @@ try:
 except ImportError:
     pytest = None
 
-from agent.services.rag.citation_guard import GroundingGuardrail
 from agent.services.nlp.arabic import clean_arabic_text
+from agent.services.rag.citation_guard import GroundingGuardrail
 
 
 def compute_historical_faithfulness(answer: str, context: str) -> float:
@@ -54,7 +54,9 @@ def test_faithfulness_drops_on_unverified_historical_source():
     score_corrupted = compute_historical_faithfulness(corrupted_answer, context)
 
     assert score_valid >= 0.80, f"Expected high faithfulness for valid answer, got {score_valid}"
-    assert score_corrupted <= 0.60, f"Expected score drop on fake historical source, got {score_corrupted}"
+    assert score_corrupted <= 0.60, (
+        f"Expected score drop on fake historical source, got {score_corrupted}"
+    )
     assert score_valid > score_corrupted
 
 

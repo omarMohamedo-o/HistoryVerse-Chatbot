@@ -9,52 +9,287 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import List, Optional, Pattern
+from re import Pattern
 
 # Default Out-of-Domain Keywords for Historical & Heritage Agents
 DEFAULT_OUT_OF_DOMAIN_PATTERNS = [
-    re.compile(r"(?:^|\s|[^\w])(?:و|ال|وال|بال)?(كورة|كوره|ماتش|أهداف|اهداف|دوري|كرة قدم|football|soccer|champions league)\b", re.IGNORECASE),
-    re.compile(r"(?:^|\s|[^\w])(?:و|ال|وال|بال)?(طبخة|طبخه|وصفة طعام|شوربة|شوربه|بيتزا|recipe|cooking|baking)\b", re.IGNORECASE),
-    re.compile(r"(?:^|\s|[^\w])(?:و|ال|وال|بال)?(برمجة|برمجه|بايثون|كود برمجي|javascript|python code|debug my code)\b", re.IGNORECASE),
-    re.compile(r"(?:^|\s|[^\w])(?:و|ال|وال|بال)?(طقس|درجات?\s+الحرارة|حرارة اليوم|مطر اليوم|weather forecast|weather)\b", re.IGNORECASE),
-    re.compile(r"(?:^|\s|[^\w])(?:و|ال|وال|بال|لل)?(تشخيص طبي|علاج الصداع|دواء|أعراض كورونا|medical treatment|prescription)\b", re.IGNORECASE),
-    re.compile(r"(?:^|\s|[^\w])(?:و|ال|وال|بال)?(سعر الدولار|أسعار الذهب|اسعار الذهب|بورصة|بورصه|bitcoin|crypto trading)\b", re.IGNORECASE),
+    re.compile(
+        r"(?:^|\s|[^\w])(?:و|ال|وال|بال)?(كورة|كوره|ماتش|أهداف|اهداف|دوري|كرة قدم|football|soccer|champions league)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"(?:^|\s|[^\w])(?:و|ال|وال|بال)?(طبخة|طبخه|وصفة طعام|شوربة|شوربه|بيتزا|recipe|cooking|baking)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"(?:^|\s|[^\w])(?:و|ال|وال|بال)?(برمجة|برمجه|بايثون|كود برمجي|javascript|python code|debug my code)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"(?:^|\s|[^\w])(?:و|ال|وال|بال)?(طقس|درجات?\s+الحرارة|حرارة اليوم|مطر اليوم|weather forecast|weather)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"(?:^|\s|[^\w])(?:و|ال|وال|بال|لل)?(تشخيص طبي|علاج الصداع|دواء|أعراض كورونا|medical treatment|prescription)\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"(?:^|\s|[^\w])(?:و|ال|وال|بال)?(سعر الدولار|أسعار الذهب|اسعار الذهب|بورصة|بورصه|bitcoin|crypto trading)\b",
+        re.IGNORECASE,
+    ),
 ]
 
 # Default In-Domain Historical Concepts (Multilingual for International Museum Visitors)
 DEFAULT_HISTORICAL_KEYWORDS = [
     # 1. Arabic (العربية)
-    "تاريخ", "أثر", "آثار", "أثري", "معبد", "معابد", "هرم", "أهرام", "أهرامات", "تمثال", "تماثيل",
-    "ملك", "ملوك", "فرعون", "فراعنة", "فرعوني", "حضارة", "حضارات", "متحف", "متاحف", "قلعة", "قلاع",
-    "إسكندرية", "بطالمة", "بطلمي", "رومان", "روماني", "مملوكي", "مماليك", "عصر", "عصور", "نقش", "نقوش",
-    "بردي", "برديات", "مخطوطة", "مخطوطات", "مقبرة", "مقابر", "قايتباي", "رشيد", "حجر", "عجائب", "رموز",
-    "منارة", "فنار", "مكتبة", "مومياء", "خوفو", "خفرع", "رمسيس", "توت عنخ آمون", "إخناتون", "كليوباترا",
+    "تاريخ",
+    "أثر",
+    "آثار",
+    "أثري",
+    "معبد",
+    "معابد",
+    "هرم",
+    "أهرام",
+    "أهرامات",
+    "تمثال",
+    "تماثيل",
+    "ملك",
+    "ملوك",
+    "فرعون",
+    "فراعنة",
+    "فرعوني",
+    "حضارة",
+    "حضارات",
+    "متحف",
+    "متاحف",
+    "قلعة",
+    "قلاع",
+    "إسكندرية",
+    "بطالمة",
+    "بطلمي",
+    "رومان",
+    "روماني",
+    "مملوكي",
+    "مماليك",
+    "عصر",
+    "عصور",
+    "نقش",
+    "نقوش",
+    "بردي",
+    "برديات",
+    "مخطوطة",
+    "مخطوطات",
+    "مقبرة",
+    "مقابر",
+    "قايتباي",
+    "رشيد",
+    "حجر",
+    "عجائب",
+    "رموز",
+    "منارة",
+    "فنار",
+    "مكتبة",
+    "مومياء",
+    "خوفو",
+    "خفرع",
+    "رمسيس",
+    "توت عنخ آمون",
+    "إخناتون",
+    "كليوباترا",
+    "سيرابيوم",
+    "السيرابيوم",
+    "عمود السواري",
+    "كوم الشقافة",
+    "المسرح الروماني",
+    "كولوسيوم",
+    "روما",
+    "طيبة",
+    "الأقصر",
+    "الكرنك",
     # 2. English
-    "history", "historical", "monument", "monuments", "pyramid", "pyramids", "temple", "temples",
-    "statue", "statues", "pharaoh", "pharaohs", "civilization", "museum", "alexandria", "antiquity",
-    "ptolemy", "dynasty", "artifact", "archaeology", "inscription", "rosetta", "lighthouse",
-    "citadel", "mummy", "qaitbay", "heritage", "cleopatra", "ramses",
+    "history",
+    "historical",
+    "monument",
+    "monuments",
+    "pyramid",
+    "pyramids",
+    "temple",
+    "temples",
+    "statue",
+    "statues",
+    "pharaoh",
+    "pharaohs",
+    "civilization",
+    "museum",
+    "alexandria",
+    "antiquity",
+    "ptolemy",
+    "dynasty",
+    "artifact",
+    "archaeology",
+    "archaeological",
+    "inscription",
+    "rosetta",
+    "lighthouse",
+    "citadel",
+    "mummy",
+    "qaitbay",
+    "heritage",
+    "cleopatra",
+    "ramses",
+    "serapeum",
+    "colosseum",
+    "rome",
+    "roman",
+    "ancient",
+    "king",
+    "kings",
+    "queen",
+    "queens",
+    "dynastic",
+    "chronicle",
+    "chronicles",
+    "karnak",
+    "luxor",
+    "thebes",
+    "giza",
+    "sphinx",
+    "tomb",
+    "tombs",
+    "catacomb",
+    "catacombs",
+    "pompey",
+    "pillar",
+    "column",
+    "excavation",
+    "relic",
+    "relics",
+    "empire",
+    "emperor",
+    "caesar",
+    "alexander",
+    "library",
     # 3. French (Français)
-    "histoire", "historique", "monument", "monuments", "pyramide", "pyramides", "temple", "temples",
-    "statue", "statues", "pharaon", "pharaons", "civilisation", "musée", "alexandrie", "antiquité",
-    "citadelle", "momie", "rosette", "ptolémée", "archéologie", "fouilles", "patrimoine",
+    "histoire",
+    "historique",
+    "monument",
+    "monuments",
+    "pyramide",
+    "pyramides",
+    "temple",
+    "temples",
+    "statue",
+    "statues",
+    "pharaon",
+    "pharaons",
+    "civilisation",
+    "musée",
+    "alexandrie",
+    "antiquité",
+    "citadelle",
+    "momie",
+    "rosette",
+    "ptolémée",
+    "archéologie",
+    "fouilles",
+    "patrimoine",
     # 4. German (Deutsch)
-    "geschichte", "historisch", "denkmal", "denkmäler", "pyramide", "pyramiden", "tempel",
-    "statue", "statuen", "pharao", "pharaonen", "zivilisation", "museum", "museen", "alexandria",
-    "antike", "zitadelle", "mumie", "rosette", "ptolomäus", "archäologie", "erbe",
+    "geschichte",
+    "historisch",
+    "denkmal",
+    "denkmäler",
+    "pyramide",
+    "pyramiden",
+    "tempel",
+    "statue",
+    "statuen",
+    "pharao",
+    "pharaonen",
+    "zivilisation",
+    "museum",
+    "museen",
+    "alexandria",
+    "antike",
+    "zitadelle",
+    "mumie",
+    "rosette",
+    "ptolomäus",
+    "archäologie",
+    "erbe",
     # 5. Spanish (Español)
-    "historia", "histórico", "monumento", "monumentos", "pirámide", "pirámides", "templo", "templos",
-    "estatua", "estatuas", "faraón", "faraones", "civilización", "museo", "museos", "alejandría",
-    "antigüedad", "ciudadela", "momia", "roseta", "ptolomeo", "arqueología", "patrimonio",
+    "historia",
+    "histórico",
+    "monumento",
+    "monumentos",
+    "pirámide",
+    "pirámides",
+    "templo",
+    "templos",
+    "estatua",
+    "estatuas",
+    "faraón",
+    "faraones",
+    "civilización",
+    "museo",
+    "museos",
+    "alejandría",
+    "antigüedad",
+    "ciudadela",
+    "momia",
+    "roseta",
+    "ptolomeo",
+    "arqueología",
+    "patrimonio",
     # 6. Italian (Italiano)
-    "storia", "storico", "monumento", "monumenti", "piramide", "piramidi", "tempio", "templi",
-    "statua", "statue", "faraone", "faraoni", "civiltà", "museo", "musei", "alessandria",
-    "antichità", "cittadella", "mummia", "rosetta", "tolomeo", "archeologia",
+    "storia",
+    "storico",
+    "monumento",
+    "monumenti",
+    "piramide",
+    "piramidi",
+    "tempio",
+    "templi",
+    "statua",
+    "statue",
+    "faraone",
+    "faraoni",
+    "civiltà",
+    "museo",
+    "musei",
+    "alessandria",
+    "antichità",
+    "cittadella",
+    "mummia",
+    "rosetta",
+    "tolomeo",
+    "archeologia",
     # 7. Russian (Русский)
-    "история", "исторический", "монумент", "пирамида", "храм", "статуя", "фараон",
-    "цивилизация", "музей", "александрия", "древность", "цитадель", "мумия", "розетта",
+    "история",
+    "исторический",
+    "монумент",
+    "пирамида",
+    "храм",
+    "статуя",
+    "фараон",
+    "цивилизация",
+    "музей",
+    "александрия",
+    "древность",
+    "цитадель",
+    "мумия",
+    "розетта",
     # 8. Chinese (中文)
-    "历史", "纪念碑", "金字塔", "神庙", "雕像", "法老", "文明", "博物馆", "亚历山大", "文物", "古迹",
+    "历史",
+    "纪念碑",
+    "金字塔",
+    "神庙",
+    "雕像",
+    "法老",
+    "文明",
+    "博物馆",
+    "亚历山大",
+    "文物",
+    "古迹",
 ]
 
 # Localized refusal messages for international museum visitors
@@ -73,9 +308,9 @@ MULTILINGUAL_REFUSAL_MESSAGES = {
 @dataclass
 class RefusalDecision:
     is_refused: bool
-    refusal_reason: Optional[str] = None
-    refusal_message: Optional[str] = None
-    target_artifact: Optional[str] = None
+    refusal_reason: str | None = None
+    refusal_message: str | None = None
+    target_artifact: str | None = None
 
 
 class DomainRefusalGate:
@@ -87,11 +322,11 @@ class DomainRefusalGate:
     def __init__(
         self,
         domain: str = "history",
-        artifact_label: Optional[str] = None,
+        artifact_label: str | None = None,
         strict_mode: bool = True,
-        in_domain_keywords: Optional[List[str]] = None,
-        out_of_domain_patterns: Optional[List[Pattern[str]]] = None,
-        custom_refusal_message: Optional[str] = None,
+        in_domain_keywords: list[str] | None = None,
+        out_of_domain_patterns: list[Pattern[str]] | None = None,
+        custom_refusal_message: str | None = None,
     ) -> None:
         self.domain = domain
         self.artifact_label = artifact_label
@@ -118,15 +353,36 @@ class DomainRefusalGate:
             is_generic_tour = any(
                 w in q_clean
                 for w in [
-                    "مين", "إيه", "تاريخ", "كام", "سنة", "بنى", "شرح", "معلومات",
-                    "what", "who", "when", "tell me", "explain", "info",
-                    "qui", "quand", "comment", "wer", "wie", "wann", "quién", "cómo", "chi",
+                    "مين",
+                    "إيه",
+                    "تاريخ",
+                    "كام",
+                    "سنة",
+                    "بنى",
+                    "شرح",
+                    "معلومات",
+                    "what",
+                    "who",
+                    "when",
+                    "tell me",
+                    "explain",
+                    "info",
+                    "qui",
+                    "quand",
+                    "comment",
+                    "wer",
+                    "wie",
+                    "wann",
+                    "quién",
+                    "cómo",
+                    "chi",
                 ]
             )
             if not is_generic_tour and art_clean not in q_clean:
                 for pattern in self.out_of_domain_patterns:
                     if pattern.search(clean_query):
                         from agent.utils.multilingual import detect_language
+
                         lang = detect_language(clean_query)
                         if lang == "ar":
                             ar_msg = f"أنا مرشدك الخاص بالقطعة الأثرية: '{self.artifact_label}'. يمكنني فقط الإجابة عن التساؤلات المتعلقة بتاريخ هذا الأثر وتفاصيله المعمارية."
@@ -149,6 +405,7 @@ class DomainRefusalGate:
                         )
 
         from agent.utils.multilingual import detect_language
+
         lang = detect_language(clean_query)
         default_msg = MULTILINGUAL_REFUSAL_MESSAGES.get(lang, MULTILINGUAL_REFUSAL_MESSAGES["en"])
 
@@ -164,7 +421,12 @@ class DomainRefusalGate:
         # 3. If query contains zero in-domain context and is sufficiently long
         if self.strict_mode and len(clean_query.split()) > 3:
             lower_q = clean_query.lower()
-            has_domain_term = any(kw in lower_q for kw in self.in_domain_keywords)
+            in_domain_set = set(self.in_domain_keywords)
+            if self.artifact_label:
+                for w in re.findall(r"\w+", self.artifact_label.lower()):
+                    if len(w) > 2:
+                        in_domain_set.add(w)
+            has_domain_term = any(kw in lower_q for kw in in_domain_set)
             if not has_domain_term:
                 return RefusalDecision(
                     is_refused=True,

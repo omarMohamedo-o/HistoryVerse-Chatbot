@@ -8,9 +8,9 @@ from __future__ import annotations
 
 import re
 
-from agent.services.security.pii import redact_egyptian_pii
 from agent.services.nlp.arabic import clean_arabic_text
 from agent.services.nlp.colloquial import expand_egyptian_colloquial_query
+from agent.services.security.pii import redact_egyptian_pii
 
 
 def sanitize_for_speech(text: str) -> str:
@@ -51,4 +51,3 @@ def sanitize_speech_transcript(raw_text: str, expand_dialect: bool = True) -> st
     if expand_dialect:
         return expand_egyptian_colloquial_query(normalized)
     return normalized
-

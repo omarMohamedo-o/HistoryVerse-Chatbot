@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import logging
 import os
-import re
 
-from agent.config.settings import Settings, get_settings
+from agent.config.settings import Settings
 from agent.core.base import BaseTTSProvider
 from agent.core.exceptions import VoiceError
 from agent.services.voice.sanitizer import sanitize_for_speech
@@ -22,6 +21,7 @@ class GTTSTextToSpeech(BaseTTSProvider):
     def __init__(self, settings: Settings | None = None) -> None:
         if settings is None:
             from agent.config.settings import get_settings
+
             self._settings = get_settings()
         else:
             self._settings = settings

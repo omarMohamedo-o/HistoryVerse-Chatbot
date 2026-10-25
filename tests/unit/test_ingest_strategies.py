@@ -84,7 +84,10 @@ def test_get_document_map_fallback_on_unstructured_missing():
     """Verify fallback to standard TextLoader when unstructured packages fail to import."""
     orig_dict = dict(ingest_mod.__dict__)
     try:
-        with patch("warnings.filterwarnings", side_effect=[RuntimeError("Unstructured loader import fail"), None, None]):
+        with patch(
+            "warnings.filterwarnings",
+            side_effect=[RuntimeError("Unstructured loader import fail"), None, None],
+        ):
             importlib.reload(ingest_mod)
             assert ".png" not in ingest_mod.DOCUMENT_MAP
             assert ".txt" in ingest_mod.DOCUMENT_MAP
@@ -103,7 +106,10 @@ def test_document_ingestor_batch_exception_handling(tmp_path):
     ingestor = DocumentIngestor()
 
     # 1. Submission error
-    with patch("concurrent.futures.ProcessPoolExecutor.submit", side_effect=RuntimeError("Worker spawn failed")):
+    with patch(
+        "concurrent.futures.ProcessPoolExecutor.submit",
+        side_effect=RuntimeError("Worker spawn failed"),
+    ):
         docs = ingestor.load_documents(str(tmp_path))
         assert docs == []
 

@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import List, Set
 
 HISTORICAL_CITATION_PATTERNS = [
     re.compile(r"\[(?:المصدر|مرجع|كتاب|بردي|سجل|Source|Ref):\s*([^\]]+)\]", re.IGNORECASE),
@@ -20,21 +19,21 @@ HISTORICAL_CITATION_PATTERNS = [
 @dataclass
 class GroundingVerificationResult:
     is_valid: bool
-    cited_references: List[str]
-    retrieved_references: List[str]
-    unverified_references: List[str]
+    cited_references: list[str]
+    retrieved_references: list[str]
+    unverified_references: list[str]
     sanitized_answer: str
 
 
 class GroundingGuardrail:
     """Validates citations and factual references against retrieved historical knowledge."""
 
-    def extract_references(self, text: str) -> Set[str]:
+    def extract_references(self, text: str) -> set[str]:
         """Extracts unique references and source tags from text."""
         if not text:
             return set()
 
-        refs: Set[str] = set()
+        refs: set[str] = set()
         for pattern in HISTORICAL_CITATION_PATTERNS:
             for match in pattern.finditer(text):
                 val = match.group(0).strip()
@@ -44,7 +43,7 @@ class GroundingGuardrail:
     def verify_grounding(
         self,
         answer: str,
-        retrieved_context: str | List[str],
+        retrieved_context: str | list[str],
         strict_redaction: bool = False,
     ) -> GroundingVerificationResult:
         """Verifies that references in the answer are grounded in retrieved context."""

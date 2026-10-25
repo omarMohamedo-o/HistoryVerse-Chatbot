@@ -33,8 +33,12 @@ async def test_orchestrator_list_agents_with_settings_and_conditional_branching(
     mock_llm.settings = MagicMock()
     mock_llm.settings.llm_provider = "gemini"
 
-    agent1 = SimpleAgent(agent_id="arch-01", name="Arch", role="Arch", system_prompt="Sys", llm_provider=mock_llm)
-    agent2 = SimpleAgent(agent_id="poly-02", name="Poly", role="Poly", system_prompt="Sys", llm_provider=mock_llm)
+    agent1 = SimpleAgent(
+        agent_id="arch-01", name="Arch", role="Arch", system_prompt="Sys", llm_provider=mock_llm
+    )
+    agent2 = SimpleAgent(
+        agent_id="poly-02", name="Poly", role="Poly", system_prompt="Sys", llm_provider=mock_llm
+    )
 
     orchestrator = AgentOrchestrator()
     orchestrator.register_agent(agent1)
@@ -46,10 +50,22 @@ async def test_orchestrator_list_agents_with_settings_and_conditional_branching(
     assert arch_entry["model_used"] == "test-provider-model"
 
     # 2. Verify conditional execution matching branch
-    mock_router = SimpleAgent(agent_id="router-01", name="Router", role="Router", system_prompt="Sys", llm_provider=mock_llm)
-    mock_router.run = AsyncMock(return_value=AgentResponse(
-        agent_id="router-01", agent_name="Router", role="Router", output="archaeology branch", model_used="test"
-    ))
+    mock_router = SimpleAgent(
+        agent_id="router-01",
+        name="Router",
+        role="Router",
+        system_prompt="Sys",
+        llm_provider=mock_llm,
+    )
+    mock_router.run = AsyncMock(
+        return_value=AgentResponse(
+            agent_id="router-01",
+            agent_name="Router",
+            role="Router",
+            output="archaeology branch",
+            model_used="test",
+        )
+    )
     orchestrator.register_agent(mock_router)
 
     result = await orchestrator.run_conditional(
@@ -91,7 +107,12 @@ async def test_templated_agent_from_yaml_and_prompt_formatting(tmp_path):
         yield "chronicle"
 
     mock_llm.stream = dummy_stream
-    streamed = [c async for c in agent.stream("Tell of the king", context={"context": "Karnak stones", "session_id": "s1"})]
+    streamed = [
+        c
+        async for c in agent.stream(
+            "Tell of the king", context={"context": "Karnak stones", "session_id": "s1"}
+        )
+    ]
     assert "".join(streamed) == "Dynastic chronicle"
 
 

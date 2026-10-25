@@ -19,7 +19,10 @@ async def test_unlearning_validator_properties_and_arabic_probes():
     mock_llm = MagicMock()
     validator = UnlearningValidator(llm_provider=mock_llm, retriever=None)
     assert len(validator.retraction_indicators) > 0
-    assert "no record" in validator.retraction_indicators or "retracted" in validator.retraction_indicators
+    assert (
+        "no record" in validator.retraction_indicators
+        or "retracted" in validator.retraction_indicators
+    )
 
     # Arabic probes
     arabic_probes = validator.generate_adversarial_probes("توت عنخ آمون", language="ar")
@@ -71,7 +74,9 @@ def test_tombstone_registry_get_and_agent_filtering():
     assert forbidden is False
 
     # Test is_forbidden with affected agent (should return True)
-    forbidden, concept = registry.is_forbidden("This contains secret_tomb", agent_id="agent_restricted_only")
+    forbidden, concept = registry.is_forbidden(
+        "This contains secret_tomb", agent_id="agent_restricted_only"
+    )
     assert forbidden is True
     assert concept == "secret_tomb"
 

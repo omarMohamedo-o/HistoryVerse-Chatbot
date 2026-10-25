@@ -53,9 +53,10 @@ class WhisperSTT(BaseSTTProvider):
         try:
             segments, _ = model.transcribe(audio_path)
             raw_transcript = "".join(segment.text for segment in segments).strip()
-            
+
             # Apply global security and NLP sanitization
             from agent.services.voice.sanitizer import sanitize_speech_transcript
+
             transcript = sanitize_speech_transcript(raw_transcript, expand_dialect=False)
             logger.info("Transcribed and sanitized audio (%d chars)", len(transcript))
             return transcript

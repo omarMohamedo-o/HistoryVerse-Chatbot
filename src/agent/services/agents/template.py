@@ -271,7 +271,9 @@ class TemplatedAgent(BaseAgent):
         # 2. Global Domain Boundary & Scope Refusal Gate
         refusal_gate = DomainRefusalGate(
             domain=self.domain,
-            artifact_label=self.artifact_label if self.domain in ("augmented-reality", "ar") else None,
+            artifact_label=self.artifact_label
+            if self.domain in ("augmented-reality", "ar")
+            else None,
             strict_mode=True,
         )
         decision = refusal_gate.check_query(normalized_query)
@@ -284,16 +286,29 @@ class TemplatedAgent(BaseAgent):
                 output=decision.refusal_message or "عذراً، هذا الاستفسار خارج نطاق تخصصي.",
                 model_used=self.llm_provider.model_name,
                 confidence=1.0,
-                metadata={"refusal": True, "reason": decision.refusal_reason, "domain": self.domain},
+                metadata={
+                    "refusal": True,
+                    "reason": decision.refusal_reason,
+                    "domain": self.domain,
+                },
             )
+
+        history_str = (
+            self.memory.get_formatted_history(session_id)
+            if session_id and self.memory.get_history(session_id)
+            else ""
+        )
 
         # 3. Semantic Response Caching for Tourist Inquiries
         from agent.services.cache import get_semantic_cache
+
         cache = get_semantic_cache()
         cached_output = cache.get(
             query=normalized_query,
             domain=self.domain,
-            artifact_label=self.artifact_label if self.domain in ("augmented-reality", "ar") else None,
+            artifact_label=self.artifact_label
+            if self.domain in ("augmented-reality", "ar")
+            else None,
         )
         if cached_output and not history_str:
             logger.info("Serving query from SemanticResponseCache (sub-15ms): %s", query[:50])
@@ -307,11 +322,6 @@ class TemplatedAgent(BaseAgent):
                 metadata={"cache_hit": True, "domain": self.domain, **self._custom_metadata},
             )
 
-        history_str = (
-            self.memory.get_formatted_history(session_id)
-            if session_id and self.memory.get_history(session_id)
-            else ""
-        )
         system_base = self.build_effective_system_prompt()
 
         parts = [system_base]
@@ -336,7 +346,9 @@ class TemplatedAgent(BaseAgent):
                 query=normalized_query,
                 response=response_text,
                 domain=self.domain,
-                artifact_label=self.artifact_label if self.domain in ("augmented-reality", "ar") else None,
+                artifact_label=self.artifact_label
+                if self.domain in ("augmented-reality", "ar")
+                else None,
             )
 
         # 5. Post-Generation Fact & Source Guardrail
@@ -344,7 +356,9 @@ class TemplatedAgent(BaseAgent):
             guardrail = GroundingGuardrail()
             verification = guardrail.verify_grounding(response_text, context_str)
             if not verification.is_valid:
-                logger.warning("Unverified references detected: %s", verification.unverified_references)
+                logger.warning(
+                    "Unverified references detected: %s", verification.unverified_references
+                )
 
         if session_id:
             self.memory.add_exchange(session_id, query, response_text)
@@ -379,7 +393,9 @@ class TemplatedAgent(BaseAgent):
         # 2. Global Domain Boundary & Scope Refusal Gate
         refusal_gate = DomainRefusalGate(
             domain=self.domain,
-            artifact_label=self.artifact_label if self.domain in ("augmented-reality", "ar") else None,
+            artifact_label=self.artifact_label
+            if self.domain in ("augmented-reality", "ar")
+            else None,
             strict_mode=True,
         )
         decision = refusal_gate.check_query(normalized_query)

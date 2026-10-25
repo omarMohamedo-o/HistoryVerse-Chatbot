@@ -19,14 +19,34 @@ from agent.utils.multilingual import detect_script, expand_multilingual_keywords
 async def test_rag_pipeline_context_miss_fallback():
     """Verify RAGPipeline triggers fallback prompt when primary context answer misses."""
     mock_retriever = MagicMock()
-    mock_retriever.retrieve.return_value = [Document(page_content="Unrelated text about modern architecture.")]
+    mock_retriever.retrieve.return_value = [
+        Document(page_content="Unrelated text about modern architecture.")
+    ]
 
     mock_drift = MagicMock()
     # First response triggers context miss; second response is the fallback
     mock_drift.generate_with_drift_protection = AsyncMock(
         side_effect=[
-            ("The answer is not available in the context provided.", DriftReport(action_taken=DriftAction.ALERT, confidence_score=0.5, threshold=0.75, original_answer="old", final_answer="old")),
-            ("Alexander the Great founded Alexandria in 331 BC.", DriftReport(action_taken=DriftAction.ALERT, confidence_score=0.95, threshold=0.75, original_answer="new", final_answer="new")),
+            (
+                "The answer is not available in the context provided.",
+                DriftReport(
+                    action_taken=DriftAction.ALERT,
+                    confidence_score=0.5,
+                    threshold=0.75,
+                    original_answer="old",
+                    final_answer="old",
+                ),
+            ),
+            (
+                "Alexander the Great founded Alexandria in 331 BC.",
+                DriftReport(
+                    action_taken=DriftAction.ALERT,
+                    confidence_score=0.95,
+                    threshold=0.75,
+                    original_answer="new",
+                    final_answer="new",
+                ),
+            ),
         ]
     )
 
@@ -60,7 +80,11 @@ async def test_retriever_retrieve_async_and_filter_branches():
 
     # Test retrieve_async
     with pytest.MonkeyPatch.context() as m:
-        m.setattr(retriever, "retrieve", lambda q, top_k, agent_id, tenant_id: [Document(page_content="async doc")])
+        m.setattr(
+            retriever,
+            "retrieve",
+            lambda q, top_k, agent_id, tenant_id: [Document(page_content="async doc")],
+        )
         results = await retriever.retrieve_async("test query", top_k=1)
         assert len(results) == 1
 
@@ -69,7 +93,9 @@ async def test_retriever_retrieve_async_and_filter_branches():
     assert deleted_agent >= 0
 
     # Test delete_documents_by_keywords with both agent_id and tenant_id ($and branch)
-    deleted_both = retriever.delete_documents_by_keywords(["pharaoh"], agent_id="agent_123", tenant_id="tenant_abc")
+    deleted_both = retriever.delete_documents_by_keywords(
+        ["pharaoh"], agent_id="agent_123", tenant_id="tenant_abc"
+    )
     assert deleted_both >= 0
 
 
@@ -89,7 +115,10 @@ def test_embedding_model_registry_multilingual_language_check():
     # BAAI/bge-m3 is multilingual
     assert EmbeddingModelRegistry.is_multilingual_compatible("BAAI/bge-m3", language="fr") is True
     # Unknown model defaults to True
-    assert EmbeddingModelRegistry.is_multilingual_compatible("unknown/custom-model", language="es") is True
+    assert (
+        EmbeddingModelRegistry.is_multilingual_compatible("unknown/custom-model", language="es")
+        is True
+    )
 
 
 def test_retriever_get_vectorstore_when_dir_exists(tmp_path, monkeypatch):

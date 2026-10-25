@@ -40,6 +40,7 @@ def test_prompt_manager_render_key_error_fallback(tmp_path):
 
 def test_llm_factory_register_and_create():
     """Verify LLMFactory can register custom providers dynamically."""
+
     class CustomMockProvider(BaseLLMProvider):
         def __init__(self, settings):
             self._settings = settings

@@ -20,7 +20,9 @@ def test_ollama_model_tags_probe_found():
     )
 
     mock_resp = MagicMock()
-    mock_resp.read.return_value = json.dumps({"models": [{"name": "llama3.2:latest"}]}).encode("utf-8")
+    mock_resp.read.return_value = json.dumps({"models": [{"name": "llama3.2:latest"}]}).encode(
+        "utf-8"
+    )
     mock_resp.__enter__.return_value = mock_resp
 
     with patch("urllib.request.urlopen", return_value=mock_resp) as mock_urlopen:

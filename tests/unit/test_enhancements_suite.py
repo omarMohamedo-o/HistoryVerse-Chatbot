@@ -16,24 +16,23 @@ Validates all 10 enterprise capabilities:
 from __future__ import annotations
 
 import json
-import os
-import unittest
-from pathlib import Path
 
 # Add src to path
 import sys
+import unittest
+from pathlib import Path
+
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 from agent.services.nlp.arabic import (
     clean_arabic_text,
     fix_mirrored_brackets,
-    normalize_alef,
     normalize_digits,
     strip_tashkeel,
 )
 from agent.services.nlp.colloquial import expand_egyptian_colloquial_query
-from agent.services.rag.refusal import DomainRefusalGate
 from agent.services.rag.citation_guard import GroundingGuardrail
+from agent.services.rag.refusal import DomainRefusalGate
 from agent.services.security.pii import contains_pii, redact_egyptian_pii
 from agent.services.voice.sanitizer import sanitize_for_speech, sanitize_speech_transcript
 
@@ -78,8 +77,13 @@ class TestHistoryVerseEnhancements(unittest.TestCase):
 
         # Custom mapping injection
         import re
-        custom_mapping = [(re.compile(r"\bتوت عنخ\b", re.IGNORECASE), "الملك توت عنخ آمون الأسرة الثامنة عشرة")]
-        custom_enriched = expand_egyptian_colloquial_query("إيه حكاية مقبرة توت عنخ", custom_mappings=custom_mapping)
+
+        custom_mapping = [
+            (re.compile(r"\bتوت عنخ\b", re.IGNORECASE), "الملك توت عنخ آمون الأسرة الثامنة عشرة")
+        ]
+        custom_enriched = expand_egyptian_colloquial_query(
+            "إيه حكاية مقبرة توت عنخ", custom_mappings=custom_mapping
+        )
         self.assertIn("الأسرة الثامنة عشرة", custom_enriched)
 
     def test_03_domain_boundary_refusal_gate_indomain(self):
@@ -148,14 +152,10 @@ class TestHistoryVerseEnhancements(unittest.TestCase):
         )
 
         valid_response = (
-            "تأسست قلعة قايتباي عام 1477 م على يد السلطان قايتباي. "
-            "[المصدر: كتاب خطط المقريزي]"
+            "تأسست قلعة قايتباي عام 1477 م على يد السلطان قايتباي. [المصدر: كتاب خطط المقريزي]"
         )
 
-        fabricated_response = (
-            "تأسست قلعة قايتباي عام 1477 م. "
-            "[المصدر: وثيقة أثرية مزيفة 12345]"
-        )
+        fabricated_response = "تأسست قلعة قايتباي عام 1477 م. [المصدر: وثيقة أثرية مزيفة 12345]"
 
         # Valid answer check
         valid_res = guard.verify_grounding(valid_response, retrieved_context)
@@ -223,7 +223,7 @@ class TestHistoryVerseEnhancements(unittest.TestCase):
         corpus_file = Path("data/corpus/historyverse_corpus.json")
         self.assertTrue(corpus_file.exists(), f"Corpus not found at {corpus_file}")
 
-        with open(corpus_file, "r", encoding="utf-8") as f:
+        with open(corpus_file, encoding="utf-8") as f:
             data = json.load(f)
 
         self.assertGreaterEqual(len(data), 6, "Expected at least 6 flagship historical monuments")
@@ -241,7 +241,9 @@ class TestHistoryVerseEnhancements(unittest.TestCase):
 
         for item in data:
             for k in required_keys:
-                self.assertIn(k, item, f"Missing required key '{k}' in artifact {item.get('artifact_id')}")
+                self.assertIn(
+                    k, item, f"Missing required key '{k}' in artifact {item.get('artifact_id')}"
+                )
             self.assertTrue(len(item["description_ar"]) > 50)
             self.assertTrue(len(item["description_en"]) > 50)
 
@@ -292,11 +294,15 @@ class TestHistoryVerseEnhancements(unittest.TestCase):
 
         for lang, query in samples.items():
             detected = detect_language(query)
-            self.assertEqual(detected, lang, f"Expected {lang}, detected {detected} for query: {query}")
+            self.assertEqual(
+                detected, lang, f"Expected {lang}, detected {detected} for query: {query}"
+            )
 
             # Every international historical inquiry must be accepted by the gate
             decision = gate.check_query(query)
-            self.assertFalse(decision.is_refused, f"Historical query in {lang} was rejected: {query}")
+            self.assertFalse(
+                decision.is_refused, f"Historical query in {lang} was rejected: {query}"
+            )
 
         # Verify localized refusal for an out-of-domain French question
         french_drift = "Quelle est la meilleure recette de cuisine pour préparer une pizza ?"

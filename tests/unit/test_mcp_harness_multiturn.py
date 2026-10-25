@@ -25,7 +25,9 @@ async def test_mcp_harness_multiturn_tool_execution():
     """Verify MCP harness executes tool calls emitted by agent, accumulates scratchpad, and synthesizes final answer."""
     mock_retriever = MagicMock()
     mock_retriever.retrieve.return_value = [
-        MagicMock(page_content="Khufu ruled Egypt during 4th dynasty.", metadata={"source": "manuscript"})
+        MagicMock(
+            page_content="Khufu ruled Egypt during 4th dynasty.", metadata={"source": "manuscript"}
+        )
     ]
     harness = AgentHarness()
     harness.registry.register(HistoricalSearchTool(retriever=mock_retriever))

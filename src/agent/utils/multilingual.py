@@ -99,11 +99,127 @@ def detect_script(text: str) -> str:
 
 
 # Stopwords and characteristic lexical markers for top international visitor languages
-_STOPWORDS_FR = {"le", "la", "les", "des", "du", "qui", "que", "dans", "pour", "avec", "est", "sont", "cette", "ce", "en", "sur", "par", "quand", "comment", "citadelle", "château", "musée", "histoire", "construit"}
-_STOPWORDS_DE = {"der", "die", "das", "und", "in", "ist", "wer", "was", "wie", "wo", "hat", "mit", "für", "von", "den", "dem", "des", "ein", "eine", "einer", "erbaut", "zitadelle", "geschichte", "museum"}
-_STOPWORDS_ES = {"el", "la", "los", "las", "de", "en", "que", "por", "para", "con", "quien", "quién", "qué", "cómo", "donde", "dónde", "cuando", "cuándo", "construyó", "del", "historia", "ciudadela", "museo"}
-_STOPWORDS_IT = {"il", "lo", "la", "i", "gli", "le", "di", "in", "su", "per", "con", "chi", "cosa", "dove", "quando", "ha", "costruito", "della", "degli", "storia", "cittadella", "museo"}
-_STOPWORDS_EN = {"the", "is", "are", "who", "what", "where", "when", "which", "built", "about", "in", "of", "and", "to", "citadel", "history", "museum", "how"}
+_STOPWORDS_FR = {
+    "le",
+    "la",
+    "les",
+    "des",
+    "du",
+    "qui",
+    "que",
+    "dans",
+    "pour",
+    "avec",
+    "est",
+    "sont",
+    "cette",
+    "ce",
+    "en",
+    "sur",
+    "par",
+    "quand",
+    "comment",
+    "citadelle",
+    "château",
+    "musée",
+    "histoire",
+    "construit",
+}
+_STOPWORDS_DE = {
+    "der",
+    "die",
+    "das",
+    "und",
+    "in",
+    "ist",
+    "wer",
+    "was",
+    "wie",
+    "wo",
+    "hat",
+    "mit",
+    "für",
+    "von",
+    "den",
+    "dem",
+    "des",
+    "ein",
+    "eine",
+    "einer",
+    "erbaut",
+    "zitadelle",
+    "geschichte",
+    "museum",
+}
+_STOPWORDS_ES = {
+    "el",
+    "la",
+    "los",
+    "las",
+    "de",
+    "en",
+    "que",
+    "por",
+    "para",
+    "con",
+    "quien",
+    "quién",
+    "qué",
+    "cómo",
+    "donde",
+    "dónde",
+    "cuando",
+    "cuándo",
+    "construyó",
+    "del",
+    "historia",
+    "ciudadela",
+    "museo",
+}
+_STOPWORDS_IT = {
+    "il",
+    "lo",
+    "la",
+    "i",
+    "gli",
+    "le",
+    "di",
+    "in",
+    "su",
+    "per",
+    "con",
+    "chi",
+    "cosa",
+    "dove",
+    "quando",
+    "ha",
+    "costruito",
+    "della",
+    "degli",
+    "storia",
+    "cittadella",
+    "museo",
+}
+_STOPWORDS_EN = {
+    "the",
+    "is",
+    "are",
+    "who",
+    "what",
+    "where",
+    "when",
+    "which",
+    "built",
+    "about",
+    "in",
+    "of",
+    "and",
+    "to",
+    "citadel",
+    "history",
+    "museum",
+    "how",
+}
 
 
 def detect_language(text: str) -> str:
@@ -141,19 +257,23 @@ def detect_language(text: str) -> str:
         return "fr"
 
     scores = {
+        "en": len(tokens.intersection(_STOPWORDS_EN)),
         "fr": len(tokens.intersection(_STOPWORDS_FR)),
         "de": len(tokens.intersection(_STOPWORDS_DE)),
         "es": len(tokens.intersection(_STOPWORDS_ES)),
         "it": len(tokens.intersection(_STOPWORDS_IT)),
-        "en": len(tokens.intersection(_STOPWORDS_EN)),
     }
 
-    best_lang, best_score = max(scores.items(), key=lambda item: item[1])
-    if best_score > 0:
+    max_score = max(scores.values())
+    if max_score > 0:
+        if scores["en"] == max_score:
+            return "en"
+        best_lang, _ = max(scores.items(), key=lambda item: item[1])
         return best_lang
 
     try:
         import langid
+
         code, _ = langid.classify(text)
         return code
     except Exception:

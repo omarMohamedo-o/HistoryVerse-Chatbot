@@ -323,4 +323,3 @@ def test_nested_metadata_and_secret_variants_sanitization(tmp_path):
     assert meta["service_endpoints"][2] == "******"
     assert meta["service_endpoints"][3] == "******"
     assert meta["service_endpoints"][4] == "safe string in list"
-

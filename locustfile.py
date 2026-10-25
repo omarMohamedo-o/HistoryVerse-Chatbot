@@ -13,9 +13,11 @@ import json
 import os
 import random
 from pathlib import Path
+
 from locust import HttpUser, between, task
 
 CORPUS_PATH = Path(os.getenv("HISTORYVERSE_CORPUS_PATH", "data/corpus/historyverse_corpus.json"))
+
 
 # Dynamically load artifacts and build queries from corpus
 def load_corpus_data() -> tuple[list[str], list[str]]:
@@ -24,7 +26,7 @@ def load_corpus_data() -> tuple[list[str], list[str]]:
 
     if CORPUS_PATH.exists():
         try:
-            with open(CORPUS_PATH, "r", encoding="utf-8") as f:
+            with open(CORPUS_PATH, encoding="utf-8") as f:
                 data = json.load(f)
                 for item in data:
                     label_ar = item.get("artifact_label")
@@ -64,7 +66,7 @@ class HistoryVerseVisitor(HttpUser):
         payload = {
             "query": query,
             "agent_id": "historical_guide",
-            "language": "ar" if any("\u0600" <= c <= "\u06FF" for c in query) else "en",
+            "language": "ar" if any("\u0600" <= c <= "\u06ff" for c in query) else "en",
         }
         self.client.post("/v1/chat", json=payload, name="/v1/chat")
 

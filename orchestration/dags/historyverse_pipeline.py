@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import argparse
 import logging
-import os
 import subprocess
 import sys
 from datetime import datetime, timedelta
@@ -31,21 +30,27 @@ def task_sensor_raw_data() -> bool:
 
 def task_extract_and_validate() -> bool:
     print("[Pipeline Stage 2] Extracting and validating HistoryVerse corpus schema...")
-    res = subprocess.run([sys.executable, "scripts/dvc_pipeline.py", "validate"], capture_output=True, text=True)
+    res = subprocess.run(
+        [sys.executable, "scripts/dvc_pipeline.py", "validate"], capture_output=True, text=True
+    )
     print(res.stdout)
     return res.returncode == 0
 
 
 def task_build_chunks() -> bool:
     print("[Pipeline Stage 3] Chunking and indexing historical monuments & artifacts...")
-    res = subprocess.run([sys.executable, "scripts/dvc_pipeline.py", "chunk"], capture_output=True, text=True)
+    res = subprocess.run(
+        [sys.executable, "scripts/dvc_pipeline.py", "chunk"], capture_output=True, text=True
+    )
     print(res.stdout)
     return res.returncode == 0
 
 
 def task_quality_gate() -> bool:
     print("[Pipeline Stage 4] Running HistoryVerse quality gate & drift simulation...")
-    res = subprocess.run([sys.executable, "scripts/simulate_query_drift.py"], capture_output=True, text=True)
+    res = subprocess.run(
+        [sys.executable, "scripts/simulate_query_drift.py"], capture_output=True, text=True
+    )
     print(res.stdout)
     return res.returncode == 0
 
@@ -79,7 +84,9 @@ try:
     )
 
     t1 = PythonOperator(task_id="sensor_raw_data", python_callable=task_sensor_raw_data, dag=dag)
-    t2 = PythonOperator(task_id="extract_and_validate", python_callable=task_extract_and_validate, dag=dag)
+    t2 = PythonOperator(
+        task_id="extract_and_validate", python_callable=task_extract_and_validate, dag=dag
+    )
     t3 = PythonOperator(task_id="build_chunks", python_callable=task_build_chunks, dag=dag)
     t4 = PythonOperator(task_id="quality_gate", python_callable=task_quality_gate, dag=dag)
     t5 = PythonOperator(task_id="promote_model", python_callable=task_promote_model, dag=dag)
@@ -91,7 +98,9 @@ except ImportError:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="HistoryVerse Continuous Pipeline")
-    parser.add_argument("--standalone", action="store_true", default=True, help="Execute standalone pipeline")
+    parser.add_argument(
+        "--standalone", action="store_true", default=True, help="Execute standalone pipeline"
+    )
     args = parser.parse_args()
 
     print("=" * 60)
@@ -105,4 +114,3 @@ if __name__ == "__main__":
     assert task_promote_model()
 
     print("\nEnd-to-end HistoryVerse Pipeline executed successfully!")
-

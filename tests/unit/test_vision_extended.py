@@ -103,7 +103,11 @@ async def test_video_generator_cloud_dispatch(tmp_path):
     generator = VideoGenerator(llm_provider=mock_llm, settings=settings)
 
     with (
-        patch.object(generator, "_dispatch_cloud_video_api", return_value="https://video.example.com/stream.mp4") as mock_dispatch,
+        patch.object(
+            generator,
+            "_dispatch_cloud_video_api",
+            return_value="https://video.example.com/stream.mp4",
+        ) as mock_dispatch,
         patch.object(generator, "_download_video", return_value="/tmp/saved.mp4"),
     ):
         resp = await generator.generate_historical_video("Pharaoh building Karnak temple")

@@ -11,11 +11,13 @@ import json
 import os
 from pathlib import Path
 
-DEFAULT_CORPUS_PATH = Path(os.getenv("HISTORYVERSE_CORPUS_PATH", "data/corpus/historyverse_corpus.json"))
+DEFAULT_CORPUS_PATH = Path(
+    os.getenv("HISTORYVERSE_CORPUS_PATH", "data/corpus/historyverse_corpus.json")
+)
 
 
 def load_corpus(path: Path = DEFAULT_CORPUS_PATH):
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         return json.load(f)
 
 

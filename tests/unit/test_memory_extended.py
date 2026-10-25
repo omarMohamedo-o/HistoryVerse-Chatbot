@@ -20,9 +20,14 @@ def test_conversation_manager_with_mock_redis(monkeypatch):
 
     # Mock Redis responses
     turn_json = json.dumps([{"role": "user", "content": "Hello Redis"}])
-    mock_client.get.side_effect = lambda k: None if k == "historyverse:session:empty_key" else turn_json
+    mock_client.get.side_effect = lambda k: (
+        None if k == "historyverse:session:empty_key" else turn_json
+    )
     mock_client.keys.return_value = ["historyverse:session:conv1", "historyverse:session:empty_key"]
-    mock_client.scan_iter.return_value = ["historyverse:session:conv1", "historyverse:session:empty_key"]
+    mock_client.scan_iter.return_value = [
+        "historyverse:session:conv1",
+        "historyverse:session:empty_key",
+    ]
 
     settings = Settings(redis_url="redis://localhost:6379/0")
     manager = ConversationManager(settings=settings)
@@ -51,10 +56,14 @@ def test_conversation_manager_with_mock_redis(monkeypatch):
 
     # Test Redis trimming when length > max_history * 2
     manager._max_history = 1
-    mock_client.get.return_value = json.dumps([
-        {"role": "user", "content": "1"}, {"role": "assistant", "content": "2"},
-        {"role": "user", "content": "3"}, {"role": "assistant", "content": "4"},
-    ])
+    mock_client.get.return_value = json.dumps(
+        [
+            {"role": "user", "content": "1"},
+            {"role": "assistant", "content": "2"},
+            {"role": "user", "content": "3"},
+            {"role": "assistant", "content": "4"},
+        ]
+    )
     manager.add_exchange("conv1", "new_q", "new_a")
 
     # Test Redis delete error during clear
@@ -100,4 +109,7 @@ def test_hallucination_detector_edge_cases():
     assert detector.score("What was Memphis?", "   ") == 1.0
 
     # Response with only 1-3 letter words -> 0.5
-    assert detector.score("What was Memphis?", "it is a no", source_documents=["Memphis was capital."]) == 0.5
+    assert (
+        detector.score("What was Memphis?", "it is a no", source_documents=["Memphis was capital."])
+        == 0.5
+    )

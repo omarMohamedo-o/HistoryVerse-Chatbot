@@ -21,7 +21,11 @@ def test_mlflow_initialization_success(monkeypatch):
     mock_mlflow = MagicMock()
     monkeypatch.setitem(sys.modules, "mlflow", mock_mlflow)
 
-    settings = Settings(mlflow_enabled=True, mlflow_tracking_uri="http://localhost:5000", mlflow_experiment_name="test-exp")
+    settings = Settings(
+        mlflow_enabled=True,
+        mlflow_tracking_uri="http://localhost:5000",
+        mlflow_experiment_name="test-exp",
+    )
     tracker = MLflowTracker(settings=settings)
     assert tracker.is_active is True
     mock_mlflow.set_tracking_uri.assert_called_once_with("http://localhost:5000")
@@ -44,7 +48,7 @@ def test_dataset_profiling_jsonl_empty_and_corrupt_lines(tmp_path):
     jsonl_file = tmp_path / "dataset.jsonl"
     jsonl_file.write_text(
         '{"question": "Q1", "category": "pharaohs"}\n\n'
-        'invalid json line here\n'
+        "invalid json line here\n"
         '{"question": "Q2", "category": "pyramids"}\n'
     )
 

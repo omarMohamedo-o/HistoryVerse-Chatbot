@@ -158,7 +158,9 @@ def test_api_health_metrics_with_prometheus(client, monkeypatch):
     """Verify GET /metrics returns prometheus exposition when prometheus_client is available."""
     mock_prom = MagicMock()
     mock_prom.CONTENT_TYPE_LATEST = "text/plain; version=0.0.4"
-    mock_prom.generate_latest = MagicMock(return_value=b"# HELP agent_requests_total\nagent_requests_total 42.0\n")
+    mock_prom.generate_latest = MagicMock(
+        return_value=b"# HELP agent_requests_total\nagent_requests_total 42.0\n"
+    )
     monkeypatch.setitem(sys.modules, "prometheus_client", mock_prom)
 
     resp = client.get("/metrics")
@@ -246,7 +248,9 @@ def test_api_chat_websocket_langid_and_exception(client):
         model_used="test-llm",
         confidence_score=0.95,
     )
-    mock_rag.query = AsyncMock(side_effect=[dummy_ws_resp, RuntimeError("Unexpected pipeline crash")])
+    mock_rag.query = AsyncMock(
+        side_effect=[dummy_ws_resp, RuntimeError("Unexpected pipeline crash")]
+    )
     client.app.dependency_overrides[get_rag_pipeline] = lambda: mock_rag
 
     mock_langid = MagicMock()

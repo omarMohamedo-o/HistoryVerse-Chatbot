@@ -21,9 +21,13 @@ def test_dummy_metrics_fallback_behavior():
 def test_prometheus_metrics_when_installed(monkeypatch):
     """Verify that when prometheus_client is available, real metric instruments are created."""
     mock_prom = MagicMock()
-    mock_prom.Counter = MagicMock(side_effect=lambda name, desc, *args, **kwargs: f"Counter({name})")
+    mock_prom.Counter = MagicMock(
+        side_effect=lambda name, desc, *args, **kwargs: f"Counter({name})"
+    )
     mock_prom.Gauge = MagicMock(side_effect=lambda name, desc, *args, **kwargs: f"Gauge({name})")
-    mock_prom.Histogram = MagicMock(side_effect=lambda name, desc, *args, **kwargs: f"Histogram({name})")
+    mock_prom.Histogram = MagicMock(
+        side_effect=lambda name, desc, *args, **kwargs: f"Histogram({name})"
+    )
 
     monkeypatch.setitem(sys.modules, "prometheus_client", mock_prom)
     reloaded = importlib.reload(metrics_mod)

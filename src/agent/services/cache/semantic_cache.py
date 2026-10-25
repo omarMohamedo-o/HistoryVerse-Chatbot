@@ -7,12 +7,12 @@ costs, and record cache hit/miss Prometheus metrics.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import re
 import threading
 import time
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
 
 from agent.services.monitoring.metrics import CACHE_HITS, CACHE_MISSES
 from agent.services.nlp.arabic import clean_arabic_text, normalize_digits
@@ -28,7 +28,7 @@ class CachedResponse:
     normalized_key: str
     response: str
     domain: str
-    artifact_label: Optional[str]
+    artifact_label: str | None
     created_at: float
     ttl_seconds: int
     hit_count: int = 0
@@ -50,7 +50,7 @@ class SemanticResponseCache:
         self.similarity_threshold = similarity_threshold
         self.default_ttl_seconds = default_ttl_seconds
         self.max_entries = max_entries
-        self._cache: Dict[str, CachedResponse] = {}
+        self._cache: dict[str, CachedResponse] = {}
         self._lock = threading.Lock()
 
     def _normalize_query_for_cache(self, query: str) -> str:
@@ -84,8 +84,8 @@ class SemanticResponseCache:
         self,
         query: str,
         domain: str = "history",
-        artifact_label: Optional[str] = None,
-    ) -> Optional[str]:
+        artifact_label: str | None = None,
+    ) -> str | None:
         """Look up response from cache via exact or semantic similarity match."""
         normalized = self._normalize_query_for_cache(query)
         if not normalized:
@@ -101,17 +101,15 @@ class SemanticResponseCache:
                 entry = self._cache[scoped_key]
                 if not entry.is_expired:
                     entry.hit_count += 1
-                    try:
+                    with contextlib.suppress(Exception):
                         CACHE_HITS.labels(domain=domain).inc()
-                    except Exception:
-                        pass
                     logger.debug("Exact semantic cache hit for query: '%s'", query[:40])
                     return entry.response
                 else:
                     del self._cache[scoped_key]
 
             # 2. Fuzzy semantic similarity search within the same domain & artifact scope
-            best_match: Optional[CachedResponse] = None
+            best_match: CachedResponse | None = None
             highest_score = 0.0
 
             for entry in list(self._cache.values()):
@@ -128,10 +126,8 @@ class SemanticResponseCache:
 
             if best_match and highest_score >= self.similarity_threshold:
                 best_match.hit_count += 1
-                try:
+                with contextlib.suppress(Exception):
                     CACHE_HITS.labels(domain=domain).inc()
-                except Exception:
-                    pass
                 logger.info(
                     "Fuzzy semantic cache hit (score=%.2f) for query: '%s'",
                     highest_score,
@@ -140,10 +136,8 @@ class SemanticResponseCache:
                 return best_match.response
 
             # 3. Cache Miss
-            try:
+            with contextlib.suppress(Exception):
                 CACHE_MISSES.labels(domain=domain).inc()
-            except Exception:
-                pass
             return None
 
     def set(
@@ -151,8 +145,8 @@ class SemanticResponseCache:
         query: str,
         response: str,
         domain: str = "history",
-        artifact_label: Optional[str] = None,
-        ttl_seconds: Optional[int] = None,
+        artifact_label: str | None = None,
+        ttl_seconds: int | None = None,
     ) -> None:
         """Store query and generated response into the semantic cache."""
         if not query or not response:
@@ -193,7 +187,7 @@ class SemanticResponseCache:
             return sum(1 for e in self._cache.values() if (now - e.created_at) <= e.ttl_seconds)
 
 
-_GLOBAL_CACHE: Optional[SemanticResponseCache] = None
+_GLOBAL_CACHE: SemanticResponseCache | None = None
 
 
 def get_semantic_cache() -> SemanticResponseCache:

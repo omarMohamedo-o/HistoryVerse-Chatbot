@@ -47,10 +47,10 @@ class ImageGenerator:
             raise VisionError("Image creation is disabled in application settings.")
 
         # 1. Global Sanitization & Domain Boundary Check
-        from agent.services.security.pii import redact_egyptian_pii
         from agent.services.nlp.arabic import clean_arabic_text
         from agent.services.nlp.colloquial import expand_egyptian_colloquial_query
         from agent.services.rag.refusal import DomainRefusalGate
+        from agent.services.security.pii import redact_egyptian_pii
 
         sanitized_input = redact_egyptian_pii(prompt)
         cleaned_input = clean_arabic_text(sanitized_input)

@@ -7,9 +7,8 @@ emails, and credit cards) prior to embedding, logging, or passing to third-party
 from __future__ import annotations
 
 import re
-from typing import Dict, List, Tuple
 
-PII_PATTERNS: List[Tuple[str, re.Pattern[str], str]] = [
+PII_PATTERNS: list[tuple[str, re.Pattern[str], str]] = [
     # 1. Egyptian National ID: 14 digits starting with 2 (born 1900-1999) or 3 (born 2000-2099)
     (
         "national_id",
@@ -59,9 +58,4 @@ def contains_pii(text: str) -> bool:
     """Returns True if any PII pattern is detected in the text."""
     if not text:
         return False
-
-    for _, pattern, _ in PII_PATTERNS:
-        if pattern.search(text):
-            return True
-
-    return False
+    return any(pattern.search(text) for _, pattern, _ in PII_PATTERNS)

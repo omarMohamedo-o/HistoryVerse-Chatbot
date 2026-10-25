@@ -24,12 +24,14 @@ def test_ar_websocket_binary_audio_and_json_audio_chunks():
     mock_llm = MockLLMProvider()
 
     mock_stt = MagicMock()
-    mock_stt.feed_audio_chunk = AsyncMock(side_effect=[
-        ("[Processing audio...]", False),
-        ("", True),
-        ("[Processing base64...]", False),
-        ("", True),
-    ])
+    mock_stt.feed_audio_chunk = AsyncMock(
+        side_effect=[
+            ("[Processing audio...]", False),
+            ("", True),
+            ("[Processing base64...]", False),
+            ("", True),
+        ]
+    )
     mock_stt.finish = AsyncMock(side_effect=["Who was Cleopatra?", "Where is Alexandria?"])
 
     mock_tts = MagicMock()
@@ -160,6 +162,7 @@ async def test_live_ar_voice_session_interrupt_and_turn_branches():
 
     # 2. Test barge-in when state is PROCESSING for binary frame (line 187)
     session.interrupt = AsyncMock()
+
     async def recv_processing_binary():
         session.state = "PROCESSING"
         mock_ws.receive = AsyncMock(return_value={"type": "websocket.disconnect"})
@@ -171,6 +174,7 @@ async def test_live_ar_voice_session_interrupt_and_turn_branches():
 
     # 3. Test barge-in when state is SPEAKING for text_input (line 244)
     session.interrupt = AsyncMock()
+
     async def recv_speaking_text():
         session.state = "SPEAKING"
         mock_ws.receive = AsyncMock(return_value={"type": "websocket.disconnect"})
@@ -183,6 +187,7 @@ async def test_live_ar_voice_session_interrupt_and_turn_branches():
     # 4. Test barge-in when state is SPEAKING for audio_chunk (line 252)
     session.interrupt = AsyncMock()
     b64 = base64.b64encode(b"audio").decode("ascii")
+
     async def recv_speaking_audio():
         session.state = "SPEAKING"
         mock_ws.receive = AsyncMock(return_value={"type": "websocket.disconnect"})
